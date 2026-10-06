@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "gctk": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/dist/gctk.js",
+        "mcp"
+      ]
+    }
+  }
+}

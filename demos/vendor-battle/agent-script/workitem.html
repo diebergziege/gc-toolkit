@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumea Vorgangsbearbeitung</title>
+<link rel="stylesheet" href="assets/lumea.css?v=14">
+</head>
+<body>
+
+<div class="wrap single">
+  <div class="col">
+
+    <div class="panel">
+      <header>Auftrag aus dem Kundengespräch
+        <span class="sp"></span><span class="src" id="src">Quelle: Vorgang</span></header>
+      <div class="body flush"><table class="grid" id="auftrag"></table></div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <header id="todoHead">Zu erledigen
+        <span class="sp"></span><span class="src" id="todoCount"></span></header>
+      <div class="actionbar" id="actions"></div>
+      <div class="body" id="log" hidden></div>
+      <div class="body" id="fertig" hidden></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/lumea.js?v=14"></script>
+<script>
+/* =====================================================================
+   Seite 3 – Vorgangsbearbeitung (Work Item)
+   =====================================================================
+   Warum es diese Seite gibt: Ein Work Item im nativen Panel ist eine Zeile mit
+   einem Statusfeld. Das ist fachlich richtig und auf der Buehne langweilig - man
+   sieht nicht, WAS der Agent eigentlich tut. Diese Seite zeigt die Arbeit selbst;
+   den Status wechselt der Agent weiterhin nativ im Work-Item-Panel. Genau die
+   Arbeitsteilung wie auf Seite 1 und 2: Genesys routet und fuehrt, das Fachsystem
+   bucht.
+
+   Zwei Stufen, dieselbe Seite:
+     ?stufe=1  Angebot erfassen      (oder: name enthaelt "Angebot")
+     ?stufe=2  Bestaetigung senden   (oder: name enthaelt "Bestaet")
+   Ohne Parameter startet sie mit Stufe 1 und zeigt oben einen Umschalter -
+   damit sie auch dann funktioniert, wenn das Script keine Variable mitgibt.
+   ===================================================================== */
+
+/* Spiegelt ANGEBOT aus nba.html - der Auftrag ist das, was im Gespraech zugesagt wurde. */
+const ANGEBOT = { name: 'LumeaSolar Flex', preis: 0.342, laufzeit: 24, grund: 12.90 };
+const SAVING = (LUMEA.preis - ANGEBOT.preis) * LUMEA.verbrauchIst;
+
+/* Stufe bestimmen: Parameter, sonst aus dem Namen, sonst 1. */
+function stufeBestimmen() {
+  const p = (QS.get('stufe') || '').trim();
+  if (p === '1' || p === '2') return Number(p);
+  const name = (QS.get('name') || QS.get('workitem') || '').toLowerCase();
+  if (name.includes('bestaet') || name.includes('bestät')) return 2;
+  if (name.includes('angebot')) return 1;
+  return 1;
+}
+let stufe = stufeBestimmen();
+const stufeKam = QS.get('stufe') || QS.get('name') || QS.get('workitem');
+
+/* --------------------------------------------------------------- Kopfzeile */
+const bar = document.createElement('header');
+bar.className = 'appbar';
+document.body.prepend(bar);
+
+const rec = document.createElement('div');
+rec.className = 'record';
+bar.after(rec);
+
+function renderKopf() {
+  const agent = QS.get('agent') || 'Agent';
+  const queue = QS.get('queue') || 'Lumea Vorgangsbearbeitung';
+  const ref   = QS.get('vorgang') || S.angebotCase || 'ANG-x';
+  const frist = new Date(Date.now() + 24 * 3600 * 1000);
+
+  bar.innerHTML = `
+    <img class="logo" src="assets/lumea_logo.png?v=5" alt="Lumea Energie & Smart Home">
+    <div class="app">Vorgangsbearbeitung<span>Arbeit aus einem Kundenvorgang</span></div>
+    <div class="sp"></div>
+    <div class="meta">
+      <div><div class="k">Bearbeiter</div><div class="v">${agent}</div></div>
+      <div><div class="k">Warteschlange</div><div class="v">${queue}</div></div>
+      <div><div class="k">Frist</div><div class="v">${dDate(frist)}</div></div>
+    </div>`;
+
+  const titel = stufe === 1 ? 'Angebot erfassen' : 'Bestätigung senden';
+  rec.innerHTML = `
+    <div class="who">
+      <h1>${titel}</h1>
+      <div class="sub">Vorgang <b>${ref}</b> · Stufe ${stufe} von 3 ·
+        ${LUMEA.inhaber} · Kundennummer <b>${LUMEA.kundennummer}</b></div>
+    </div>
+    <div class="chips">
+      <span class="chip amber"><span class="dot"></span>Priorität 200</span>
+      <span class="chip">Work Item</span>
+    </div>
+    <div class="sp"></div>` +
+    /* Umschalter nur, wenn das Script keine Stufe mitgegeben hat - sonst waere er
+       auf der Buehne eine Einladung zum Fehlklick. */
+    (stufeKam ? '' : `<div class="lookup" id="switch"></div>`);
+
+  const sw = $('#switch');
+  if (sw) {
+    sw.innerHTML = '';
+    [1, 2].forEach(n => {
+      const b = document.createElement('button');
+      b.className = 'btn sm' + (n === stufe ? ' primary' : '');
+      b.textContent = 'Stufe ' + n;
+      b.onclick = () => { stufe = n; renderAll(); };
+      sw.appendChild(b);
+    });
+  }
+}
+
+/* ----------------------------------------------------------------- Auftrag */
+function renderAuftrag() {
+  const rows = stufe === 1
+    ? [['Kunde', `${LUMEA.inhaber} · ${LUMEA.kundennummer}`],
+       ['Bisheriger Tarif', `${LUMEA.tarif} · ${num(LUMEA.preis * 100, 1)} ct/kWh`],
+       ['Neuer Tarif', `${ANGEBOT.name} · ${num(ANGEBOT.preis * 100, 1)} ct/kWh`],
+       ['ab Smart Meter', 'stündlich zum Börsenpreis · Einbau über den Messstellenbetreiber'],
+       ['Laufzeit', `${ANGEBOT.laufzeit} Monate`],
+       ['Grundpreis', `${eur(ANGEBOT.grund)} · unverändert`],
+       ['Ersparnis', `${eur0(SAVING)} im Jahr bei ${num(LUMEA.verbrauchIst)} kWh`],
+       ['PV-Beratung', 'Termin zugesagt · Fachberatung meldet sich in drei Werktagen'],
+       ['Zugesagt am', `heute im Chat, ${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr`]]
+    : [['Kunde', `${LUMEA.inhaber} · ${LUMEA.kundennummer}`],
+       ['Tarifwechsel', S.wiBuchung ? `gebucht · ${S.wiBuchung}` : 'in Stufe 1 gebucht'],
+       ['Vertragsdokument', S.wiDokument ? `erzeugt · ${S.wiDokument}` : 'in Stufe 1 erzeugt'],
+       ['Zu versenden an', 'SMS · @{param:customerPhone.masked} (bevorzugt für Verbindliches)'],
+       ['PV-Beratung', S.wiPvLead ? `Lead übergeben · ${S.wiPvLead}` : 'in Stufe 1 übergeben'],
+       ['Inhalt', `Vertragsbestätigung ${ANGEBOT.name} mit Widerrufsbelehrung`]];
+  $('#auftrag').innerHTML =
+    '<thead><tr><th>Merkmal</th><th>Wert</th></tr></thead><tbody>' +
+    rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('') + '</tbody>';
+  $('#src').textContent = stufe === 1
+    ? 'Quelle: Vorgang · Angaben aus dem Gespräch'
+    : 'Quelle: Vorgang · Ergebnis aus Stufe 1';
+}
+
+/* ---------------------------------------------------------------- Aktionen */
+const SCHRITTE = {
+  1: [
+    { key: 'wiBuchung', label: 'Tarifwechsel im Abrechnungssystem buchen',
+      run: () => 'TW-' + (100000 + Math.floor(Math.random() * 899999)),
+      text: r => `Tarifwechsel gebucht · Referenz ${r} · wirksam zum Laufzeitende` },
+    { key: 'wiDokument', label: 'Vertragsdokument erzeugen',
+      run: () => 'Vertrag_SolarFlex_' + LUMEA.kundennummer + '.pdf',
+      text: r => `Dokument erzeugt · ${r} · zur elektronischen Signatur bereitgestellt` },
+    { key: 'wiPvLead', label: 'PV-Beratung an die Fachberatung übergeben',
+      run: () => 'PV-' + (10000 + Math.floor(Math.random() * 89999)),
+      text: r => `Lead ${r} übergeben · Dachprüfung terminiert · Rückmeldung in drei Werktagen` },
+  ],
+  2: [
+    { key: 'wiBestaetigung', label: 'Bestätigung erzeugen und versenden',
+      run: () => new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      text: r => `Bestätigung um ${r} Uhr per SMS versendet · Zustellung bestätigt` },
+  ],
+};
+
+function renderActions() {
+  const schritte = SCHRITTE[stufe];
+  const a = $('#actions');
+  a.innerHTML = '';
+  let offen = 0;
+
+  schritte.forEach(st => {
+    const done = !!S[st.key];
+    if (!done) offen++;
+    const b = document.createElement('button');
+    b.className = 'btn ' + (done ? 'done' : (offen === 1 && !done ? 'primary' : ''));
+    b.textContent = (done ? '✓ ' : '') + st.label;
+    b.disabled = done;
+    if (!done) b.onclick = () => {
+      const r = st.run();
+      Store.patch({ [st.key]: r });
+      toast(st.label + ' – erledigt');
+    };
+    a.appendChild(b);
+  });
+
+  $('#todoCount').textContent = offen === 0
+    ? 'alle Schritte erledigt'
+    : `${schritte.length - offen} von ${schritte.length} erledigt`;
+
+  /* Protokoll der ausgefuehrten Schritte - das ist der Beleg, dass wirklich
+     etwas passiert ist, und nicht nur ein Haken gesetzt wurde. */
+  const log = $('#log');
+  const zeilen = schritte.filter(st => S[st.key]).map(st => st.text(S[st.key]));
+  log.hidden = zeilen.length === 0;
+  log.innerHTML = zeilen.map(z => `<div class="hint">${z}</div>`).join('');
+
+  /* Der Hinweis auf den nativen Statuswechsel. Bewusst KEIN Knopf hier:
+     Den Status aendert der Agent im Work-Item-Panel von Genesys - das ist die
+     Stelle, die die Jury sehen soll. */
+  const f = $('#fertig');
+  f.hidden = offen !== 0;
+  if (offen === 0) {
+    f.innerHTML = `<div class="hint"><b>Alle Schritte erledigt.</b>
+      Jetzt im Work-Item-Panel den Status auf <b>Erledigt</b> setzen –
+      ${stufe === 1
+        ? 'danach entsteht Stufe 2 „Bestätigung senden“ von selbst.'
+        : 'damit schließt sich der Vorgang, Stufe 3 läuft ohne Schritt durch.'}</div>`;
+  }
+}
+
+function renderAll() { renderKopf(); renderAuftrag(); renderActions(); }
+renderAll();
+Store.onChange(renderAll);
+renderStatusbar(['Abrechnungssystem', 'Vertragsverwaltung']);
+</script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumea Energie & Smart Home – Mein Lumea</title>
+<link rel="icon" href="../assets/lumea_logo.png">
+<style>
+  :root {
+    --green: #2f8f43; --green-2: #57b947; --green-bg: #eef7ef; --sun: #f5a623; --sun-bg: #fff5e3;
+    --ink: #22272f; --ink-2: #59626f; --line: #e3e7ec; --bg: #f7f8f6; --white: #fff; --red: #b3312c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  a { color: var(--green); }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .topbar { background: var(--ink); color: #dfe4ea; font-size: 13px; }
+  .topbar .wrap { display: flex; gap: 22px; justify-content: flex-end; padding-top: 7px; padding-bottom: 7px; }
+  header { background: var(--white); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  header .wrap { display: flex; align-items: center; gap: 30px; height: 78px; }
+  header img { height: 58px; }
+  nav { display: flex; gap: 24px; flex: 1; }
+  nav a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
+  nav a:hover { color: var(--green); }
+  .account { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; }
+  .hero { background: linear-gradient(115deg, #1f6b31 0%, var(--green) 45%, var(--green-2) 100%); color: #fff; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -120px; top: -140px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(245,166,35,.85) 0%, rgba(245,166,35,0) 68%); }
+  .hero .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; padding-top: 54px; padding-bottom: 60px; position: relative; z-index: 1; }
+  .hero h1 { font-size: 40px; line-height: 1.15; margin: 0 0 14px; }
+  .hero p { font-size: 18px; opacity: .93; margin: 0 0 26px; max-width: 560px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 26px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
+  .btn.sun { background: var(--sun); color: var(--ink); }
+  .btn.white { background: #fff; color: var(--green); }
+  .btn.green { background: var(--green); color: #fff; }
+  .btn.ghost { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.7); }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .hero .card { color: var(--ink); box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+  .card h3 { margin: 0 0 4px; font-size: 18px; }
+  .muted { color: var(--ink-2); font-size: 14px; }
+  .facts { display: grid; gap: 12px; margin: 16px 0 18px; }
+  .fact { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--bg); }
+  .fact b { display: block; }
+  .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; background: var(--green); }
+  .dot.sun { background: var(--sun); }
+  .dot.red { background: var(--red); }
+  section { padding: 56px 0; }
+  section h2 { font-size: 28px; margin: 0 0 8px; }
+  .lead { color: var(--ink-2); margin: 0 0 28px; max-width: 720px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .tariff { display: flex; flex-direction: column; gap: 10px; }
+  .tariff .price { font-size: 30px; font-weight: 800; color: var(--green); }
+  .tariff .price small { font-size: 14px; color: var(--ink-2); font-weight: 600; }
+  .tariff ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 15px; flex: 1; }
+  .badge { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; background: var(--green-bg); color: var(--green); }
+  .badge.sun { background: var(--sun-bg); color: #9a6200; }
+  .tariff.current { border: 2px solid var(--green); }
+  .band { background: var(--white); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center; }
+  .icon { width: 46px; height: 46px; border-radius: 12px; background: var(--green-bg); display: grid; place-items: center; font-size: 22px; margin-bottom: 10px; }
+  .service { background: linear-gradient(135deg, var(--ink) 0%, #343c47 100%); color: #fff; border-radius: 18px; padding: 34px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 26px; align-items: center; }
+  .service p { color: #cfd6de; margin: 0 0 18px; }
+  .channels { display: grid; gap: 10px; }
+  .channel { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+  .channel b { color: #fff; display: block; font-size: 15px; }
+  footer { background: var(--ink); color: #aeb6c1; font-size: 13px; padding: 30px 0; margin-top: 56px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .notice { display: none; position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #fff3cd; color: #6b4e00; border: 1px solid #e8cf86; border-radius: 10px; padding: 10px 16px; font-size: 14px; z-index: 20; max-width: 640px; }
+  @media (max-width: 900px) { .hero .wrap, .split, .service { grid-template-columns: 1fr; } .grid3 { grid-template-columns: 1fr; } nav { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap"><span>Privatkunden</span><span>Geschäftskunden</span><span>Störung melden: 0800 586 32 00</span></div></div>
+
+<header>
+  <div class="wrap">
+    <img src="../assets/lumea_logo.png" alt="Lumea Energie & Smart Home GmbH">
+    <nav>
+      <a href="#tarife">Strom &amp; Tarife</a>
+      <a href="#solar">Solar &amp; Speicher</a>
+      <a href="#smarthome">Smart Home</a>
+      <a href="#service">Service</a>
+    </nav>
+    <div class="account"><div class="avatar">MB</div><div><b>Markus Berger</b><div class="muted">Mein Lumea</div></div></div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Guten Tag, Herr Berger.<br>Heute Energie für morgen.</h1>
+      <p>Ökostrom aus Norddeutschland, dynamische Tarife mit Smart Meter und Photovoltaik vom Dach bis zum Speicher – alles aus einer Hand.</p>
+      <button class="btn sun" data-chat>Frage stellen – im Chat</button>
+      <a class="btn ghost" href="#tarife" style="margin-left:10px">Tarife vergleichen</a>
+    </div>
+    <div class="card">
+      <h3>Ihr Kundenkonto</h3>
+      <div class="muted">Vertragskonto 4711 2025 · Musterstraße 1, 22767 Hamburg</div>
+      <div class="facts">
+        <div class="fact"><span class="dot red"></span><div><b>Jahresabrechnung 2025 ist da</b><span class="muted">Nachzahlung 246,80 € · fällig in 14 Tagen</span></div></div>
+        <div class="fact"><span class="dot sun"></span><div><b>Ihr Vertrag endet in 42 Tagen</b><span class="muted">LumeaPrivat Klassik · 36,8 ct/kWh</span></div></div>
+        <div class="fact"><span class="dot"></span><div><b>Verbrauch 2025: 4.750 kWh</b><span class="muted">Prognose war 4.200 kWh</span></div></div>
+      </div>
+      <button class="btn green" data-chat>Frage zur Abrechnung? Chat starten</button>
+    </div>
+  </div>
+</div>
+
+<section id="tarife">
+  <div class="wrap">
+    <h2>Strom, der zu Ihrem Zuhause passt</h2>
+    <p class="lead">Faire Preise ohne Lockangebote. Wechseln Sie jederzeit in einen anderen Lumea-Tarif – die Beratung im Chat hilft Ihnen dabei.</p>
+    <div class="grid3">
+      <div class="card tariff current">
+        <span class="badge">Ihr aktueller Tarif</span>
+        <h3>LumeaPrivat Klassik</h3>
+        <div class="price">36,8 ct <small>/ kWh · 12,90 € Grundpreis</small></div>
+        <ul><li>100 % Ökostrom</li><li>12 Monate Preisgarantie</li><li>Monatlicher Abschlag</li></ul>
+      </div>
+      <div class="card tariff">
+        <span class="badge sun">Empfehlung für Sie</span>
+        <h3>LumeaSolar Flex</h3>
+        <div class="price">34,2 ct <small>/ kWh · ab Smart Meter stündlich</small></div>
+        <ul><li>Dynamischer Börsenpreis mit Smart Meter</li><li>24 Monate Laufzeit</li><li>Inklusive PV-Vorprüfung für Ihr Dach</li></ul>
+        <button class="btn green" data-chat>Beraten lassen</button>
+      </div>
+      <div class="card tariff">
+        <span class="badge">Für Wärmepumpen</span>
+        <h3>LumeaWärme</h3>
+        <div class="price">27,9 ct <small>/ kWh · separater Zähler</small></div>
+        <ul><li>Günstiger Heizstrom</li><li>Steuerbare Verbrauchseinrichtung nach § 14a EnWG</li><li>Monatlich kündbar</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="solar" class="band">
+  <div class="wrap split">
+    <div>
+      <h2>Ihr Dach kann mehr</h2>
+      <p class="lead">Für Ihr Haus in Hamburg-Altona schätzen wir rund 9,8 kWp Leistung. Mit Speicher decken Sie bis zu 70 % Ihres Verbrauchs selbst.</p>
+      <button class="btn green" data-chat>PV-Beratung anfragen</button>
+    </div>
+    <div class="grid3" style="grid-template-columns:1fr 1fr">
+      <div class="card"><div class="icon">☀️</div><b>Photovoltaik</b><div class="muted">Planung, Montage und Anmeldung</div></div>
+      <div class="card"><div class="icon">🔋</div><b>Speicher</b><div class="muted">Strom vom Mittag für den Abend</div></div>
+      <div class="card"><div class="icon">🚗</div><b>Wallbox</b><div class="muted">Laden mit Sonnenstrom</div></div>
+      <div class="card"><div class="icon">📈</div><b>Smart Meter</b><div class="muted">Verbrauch stündlich sehen</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="smarthome">
+  <div class="wrap">
+    <h2>Smart Home, das Energie spart</h2>
+    <p class="lead">Heizung, Licht und Geräte laufen, wenn der Strom günstig ist – automatisch, mit der Lumea-App.</p>
+    <div class="grid3">
+      <div class="card"><div class="icon">🌡️</div><b>Heizen nach Plan</b><div class="muted">Thermostate, die wissen, wann Sie zu Hause sind.</div></div>
+      <div class="card"><div class="icon">⚡</div><b>Günstige Stunden nutzen</b><div class="muted">Spülmaschine und Wallbox starten im Preistal.</div></div>
+      <div class="card"><div class="icon">📱</div><b>Alles in einer App</b><div class="muted">Verbrauch, Abschlag und Rechnung jederzeit im Blick.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="service">
+  <div class="wrap">
+    <div class="service">
+      <div>
+        <h2>Wir sind für Sie da</h2>
+        <p>Fragen zu Ihrer Rechnung, zum Vertrag oder zur Solaranlage? Schreiben Sie uns – unser digitaler Assistent hilft sofort, und wenn es persönlich werden soll, übernimmt ein Kollege aus dem Kundenservice im selben Chat.</p>
+        <button class="btn sun" data-chat>Chat starten</button>
+      </div>
+      <div class="channels">
+        <div class="channel"><b>Chat auf dieser Seite</b>Rund um die Uhr, mit Übergabe an den Kundenservice</div>
+        <div class="channel"><b>WhatsApp</b>Schreiben Sie uns auch unterwegs</div>
+        <div class="channel"><b>Telefon 0800 586 32 00</b>Mo–Fr 8–20 Uhr, Sa 9–14 Uhr</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Lumea Energie &amp; Smart Home GmbH · Hamburg</span>
+    <span>Impressum · Datenschutz · AGB · Demo-Website, keine echte Firma</span>
+  </div>
+</footer>
+
+<div class="notice" id="notice"></div>
+
+<script>
+  // gctk fills these when it serves the page; unfilled tokens mean the demo is not deployed into this org.
+  const DEPLOYMENT = "@{messengerdeployment:Lumea Website}";
+  const ENVIRONMENT = "@{org.messengerEnv}";
+  const REGION = "@{org.region}";
+  const READY = /^[0-9a-f-]{36}$/.test(DEPLOYMENT);
+  const notice = (text) => { const n = document.getElementById("notice"); n.textContent = text; n.style.display = "block"; };
+  if (!READY) {
+    notice("Der Chat ist noch nicht eingerichtet: Demo in der gctk UI unter Demos → Vendor Battle in die Org deployen und die Seiten neu starten.");
+  } else {
+    (function (g, e, n, es, ys) {
+      g["_genesysJs"] = e; g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
+      g[e].t = 1 * new Date(); g[e].c = es;
+      ys = document.createElement("script"); ys.async = 1; ys.src = n; ys.charset = "utf-8"; document.head.appendChild(ys);
+    })(window, "Genesys", `https://apps.${REGION}/genesys-bootstrap/genesys.min.js`, { environment: ENVIRONMENT, deploymentId: DEPLOYMENT });
+    Genesys("command", "Database.set", { messaging: { customAttributes: { kunde: "Markus Berger", vertragskonto: "4711 2025", quelle: "Website" } } });
+  }
+  for (const b of document.querySelectorAll("[data-chat]")) b.addEventListener("click", () => {
+    if (READY && window.Genesys) Genesys("command", "Messenger.open");
+  });
+</script>
+</body>
+</html>

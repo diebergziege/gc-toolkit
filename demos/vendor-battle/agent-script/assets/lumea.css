@@ -1,0 +1,276 @@
+/* ============================================================================
+   TYPOSKALA – hochgezogen am 23.09.2026.
+   Grundschrift 13 -> 15 px, die Stufen darunter 10,5/11/11,5/12/12,5 -> 12/12,5/13/
+   13,5/14, Kennzahlen 18 -> 22. Grund: Der Buehnenschirm ist geteilt UND wird ueber
+   eine Videokonferenz uebertragen. 10,5-px-Versalien ueberleben das nicht.
+   Wer hier wieder verkleinert, prueft vorher an einem geteilten Bildschirm - nicht am
+   eigenen Monitor aus 50 cm Entfernung.
+   ============================================================================ */
+/* Lumea ServiceCockpit – Oberfläche für die eingebetteten Agent-Script-Seiten.
+   Bewusst wie eine Fachanwendung gebaut, nicht wie eine Präsentation:
+   Kopfleiste, Registerkarten, Datenraster, Aktionsspalte, Statuszeile. */
+
+:root {
+  --bg:        #f2f4f7;
+  --surface:   #ffffff;
+  --line:      #dde2e9;
+  --line-soft: #eaeef3;
+  --ink:       #1c2330;
+  --ink-2:     #55606f;
+  --ink-3:     #838d9c;
+
+  --bar:       #161d27;
+  --bar-2:     #232c39;
+  --bar-ink:   #e7ecf3;
+
+  --green:     #2f8f43;
+  --green-2:   #57b947;
+  --green-bg:  #eaf6ec;
+  --amber:     #b5761a;
+  --amber-bg:  #fdf3e2;
+  --red:       #b3312c;
+  --red-bg:    #fbecec;
+  --blue:      #2a5c9c;
+  --blue-bg:   #eaf1fa;
+
+  --radius: 3px;
+  --mono: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------ Kopfleiste
+   Marke auf hellem Grund – das Logo hat einen transparenten Hintergrund und
+   trägt seine eigene Farbigkeit. Auf allen Seiten identisch. */
+.appbar {
+  display: flex; align-items: center; gap: 18px;
+  background: var(--surface); color: var(--ink);
+  padding: 0 24px; height: 108px;
+  border-bottom: 3px solid var(--green);
+}
+.appbar .logo { height: 88px; width: auto; display: block; }
+.appbar .app {
+  font-size: 22px; font-weight: 600; letter-spacing: -.2px;
+  padding-left: 22px; border-left: 1px solid var(--line);
+}
+.appbar .app span { display: block; font-weight: 400; font-size: 14px; color: var(--ink-3); margin-top: 2px; }
+.appbar .sp { flex: 1; }
+.appbar .meta { display: flex; gap: 26px; font-size: 14px; }
+.appbar .meta div { text-align: right; }
+.appbar .meta .k { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+.appbar .meta .v { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------- Datensatzleiste */
+.record {
+  background: #fafbfc; border-bottom: 1px solid var(--line);
+  padding: 13px 20px; display: flex; align-items: center; gap: 18px;
+}
+.record .who { min-width: 0; }
+.record .who h1 { margin: 0; font-size: 23px; font-weight: 600; letter-spacing: -.2px; }
+.record .who .sub { color: var(--ink-2); font-size: 13.5px; margin-top: 3px; }
+.record .who .sub b { color: var(--ink); font-weight: 600; font-family: var(--mono); }
+.record .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.record .sp { flex: 1; }
+
+/* --------------------------------------------------------- Registerkarten */
+.tabs {
+  display: flex; gap: 0; background: var(--surface);
+  border-bottom: 1px solid var(--line); padding: 0 12px;
+  position: sticky; top: 0; z-index: 5;
+}
+.tabs button {
+  border: 0; background: none; font: inherit; color: var(--ink-2);
+  padding: 9px 14px; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.tabs button:hover { color: var(--ink); background: #f7f9fb; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--green); font-weight: 600; }
+.tabs .count {
+  display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px;
+  background: var(--line-soft); color: var(--ink-2); font-size: 12px; font-weight: 600;
+}
+
+/* -------------------------------------------------------------- Aufbau */
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; padding: 12px; align-items: start; }
+.wrap.single { grid-template-columns: minmax(0, 1fr); max-width: 1180px; }
+@media (max-width: 1100px) { .wrap { grid-template-columns: 1fr; } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.panel > header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--line-soft);
+  font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-2); font-weight: 600;
+}
+.panel > header .sp { flex: 1; }
+.panel > header .src { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink-3); font-size: 12.5px; }
+.panel .body { padding: 12px; }
+.panel .body.flush { padding: 0; }
+
+/* --------------------------------------------------------- Feldraster */
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; }
+.f { min-width: 0; }
+.f .k { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+.f .v { margin-top: 1px; }
+.f .v.mono { font-family: var(--mono); font-size: 13.5px; }
+.f .v.num  { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------- Zwei Panels nebeneinander */
+/* Fuer die Uebersicht (23.09.2026). Faellt unter 720 px auf eine Spalte zurueck -
+   der Buehnenschirm ist geteilt, und die Script-Seite bekommt nicht die volle Breite. */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.duo .fields { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 18px; }
+@media (max-width: 720px) { .duo { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------ Signalzeile */
+/* Die Chips der Uebersicht. Umbruchfaehig, damit auf schmalem Schirm keine Zeile
+   abgeschnitten wird - ein halb sichtbarer Chip sieht nach Fehler aus. */
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* -------------------------------------------------------------- Tabellen */
+table.grid { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.grid th {
+  text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--ink-3); font-weight: 600; padding: 7px 12px;
+  border-bottom: 1px solid var(--line); background: #fafbfc; white-space: nowrap;
+}
+table.grid td { padding: 8px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid tr:hover td { background: #fafbfc; }
+table.grid td.num, table.grid th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.grid td.mono { font-family: var(--mono); font-size: 13.5px; }
+table.grid td .note { color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+table.grid tr.total td { font-weight: 600; border-top: 1px solid var(--line); background: #fafbfc; }
+table.grid tr.now td { background: #f6faf6; }
+/* Vom Regelwerk beanstandeter Wert. Nicht dekorativ: der Agent - und das Publikum -
+   sollen die Abweichung SEHEN, bevor der erzeugte Text sie ausspricht. */
+table.grid td.bad { color: var(--red); font-weight: 600; }
+
+/* ------------------------------------------------- Aufklappbare Mailzeile */
+/* Die E-Mail-Zeile der Kontakthistorie klappt den Originaltext auf. Eine Historienzeile
+   BEHAUPTET, dass es die Mail gibt - hier steht sie. Auf der Buehne ist das der
+   Unterschied zwischen "das System sagt, er hat geschrieben" und "hier ist, was er
+   geschrieben hat". */
+table.grid tr.aufklappbar { cursor: pointer; }
+table.grid tr.aufklappbar:hover td { background: #f3f7fb; }
+table.grid tr.aufklappbar.offen td { background: #f3f7fb; font-weight: 600; }
+table.grid td .pf { color: var(--ink-3); margin-right: 5px; font-size: 12px; }
+table.grid tr.mailzeile td { padding: 0; background: #fafbfc; }
+table.grid tr.mailzeile:hover td { background: #fafbfc; }
+
+.mail { border-left: 3px solid var(--blue); margin: 0 12px 12px; background: #fff;
+        border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius); }
+.mailkopf { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); background: #fbfcfd; }
+.mailkopf div { font-size: 13px; color: var(--ink); padding: 1px 0; }
+.mailkopf .k { display: inline-block; width: 66px; color: var(--ink-3);
+               font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+/* Fliesstext, kein Datenblatt: etwas groesser und luftiger als die Tabelle darum.
+   Die Mail soll sich beim Lesen wie eine Mail anfuehlen. */
+.mailtext { padding: 4px 14px 12px; font-size: 14px; line-height: 1.6; max-width: 76ch; }
+.mailtext p { margin: 10px 0 0; }
+
+/* ---------------------------------------------------------------- Chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 1px 8px; font-size: 12.5px; color: var(--ink-2); background: #fff; white-space: nowrap;
+}
+.chip.green { color: var(--green); border-color: #bfe0c5; background: var(--green-bg); }
+.chip.amber { color: var(--amber); border-color: #ecd4a8; background: var(--amber-bg); }
+.chip.red   { color: var(--red);   border-color: #eec4c2; background: var(--red-bg); }
+.chip.blue  { color: var(--blue);  border-color: #c4d5ec; background: var(--blue-bg); }
+.chip .dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ------------------------------------------------------------- Kennzahl */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; background: var(--line-soft); }
+.metric { background: var(--surface); padding: 10px 12px; }
+.metric .k { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+.metric .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; letter-spacing: -.3px; }
+.metric .d { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+.metric .v.up { color: var(--green); }
+.metric .v.down { color: var(--red); }
+
+/* ------------------------------------------------------------ Aktionen */
+.act { display: flex; flex-direction: column; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: var(--radius); padding: 7px 12px; font: inherit; cursor: pointer; text-align: center;
+}
+.btn:hover { background: #f7f9fb; border-color: #c9d1db; }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
+.btn.primary:hover { background: #27793a; border-color: #27793a; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: 1; cursor: not-allowed; color: var(--ink-3);
+  background: #fbfcfd; border-color: var(--line-soft); }
+.btn.primary[disabled] { background: #fbfcfd; color: var(--ink-3); border-color: var(--line-soft); font-weight: 400; }
+.btn.done[disabled] { background: var(--green-bg); border-color: #bfe0c5; color: var(--green); font-weight: 600; }
+.btn.done { background: var(--green-bg); border-color: #bfe0c5; color: var(--green); font-weight: 600; }
+.btn.sm { padding: 4px 9px; font-size: 13.5px; }
+
+.hint { font-size: 13px; color: var(--ink-2); }
+.hint + .hint { margin-top: 6px; }
+.divider { height: 1px; background: var(--line-soft); margin: 4px 0; }
+
+/* --------------------------------------------------------------- Verlauf */
+.log { list-style: none; margin: 0; padding: 0; }
+.log li { display: grid; grid-template-columns: 84px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+.log li:last-child { border-bottom: 0; }
+.log .t { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.log .x { font-size: 14px; }
+
+/* ------------------------------------------------------------- Statuszeile */
+.statusbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  border-top: 1px solid var(--line); background: var(--surface);
+  padding: 7px 14px; font-size: 12.5px; color: var(--ink-3);
+}
+.statusbar .sp { flex: 1; }
+.statusbar b { color: var(--ink-2); font-weight: 600; }
+
+/* ------------------------------------------------------------------ Toast */
+#toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 12px);
+  background: var(--bar); color: #fff; padding: 8px 14px; border-radius: var(--radius);
+  font-size: 14px; opacity: 0; pointer-events: none; transition: .18s; z-index: 50;
+}
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+.tabpanel[hidden] { display: none !important; }
+.muted { color: var(--ink-2); }
+.xsmall { font-size: 12.5px; }
+.right { text-align: right; }
+.nowrap { white-space: nowrap; }
+
+/* ------------------------------------------------- Aktionsleiste unter einer Tabelle */
+.actionbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px; border-top: 1px solid var(--line-soft); background: #fafbfc;
+}
+.actionbar .sp { flex: 1; }
+/* Eingabefeld in der Aktionsleiste. Der Agent traegt den Betrag selbst ein - ein Knopf
+   mit fest eingebautem Wert ("Abschlag auf 158 EUR korrigieren") sagt dem Publikum, dass
+   die Maske fuer genau diesen einen Kunden gebaut wurde. */
+.actionbar .field { display: flex; align-items: center; gap: 6px; }
+.actionbar .field label { font-size: 13px; color: var(--ink-2); }
+.actionbar .field input {
+  width: 84px; padding: 5px 8px; text-align: right; color: var(--ink); background: #fff;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font: inherit; font-variant-numeric: tabular-nums;
+}
+.actionbar .field input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+.actionbar .field input.bad { border-color: var(--red); color: var(--red); }
+.actionbar .note { font-size: 13px; color: var(--ink-2); }
+.result {
+  border: 1px solid #bfe0c5; background: var(--green-bg); border-radius: var(--radius);
+  padding: 10px 12px; font-size: 14px;
+}
+.result b { font-family: var(--mono); }
+.result.err { border-color: #eec4c2; background: var(--red-bg); }

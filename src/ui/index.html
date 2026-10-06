@@ -1,0 +1,2445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gctk · Genesys Cloud Toolkit</title>
+<style nonce="__NONCE__">
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #e2e6ec;
+  --accent: #ff4f1f; --accent-ink: #ffffff;
+  --ok: #1a7f4b; --ok-bg: #e5f5ec; --warn: #9a6200; --warn-bg: #fff4de; --bad: #b42318; --bad-bg: #fde8e6;
+  --info: #1f5fbf; --info-bg: #e7effb; --neutral-bg: #eef0f3;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+/* Dark: the system setting, unless the user picked light in the top bar; or picked dark explicitly. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;
+    --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;
+    --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;
+  --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;
+  --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;
+  color-scheme: dark;
+}
+.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.theme button { background: none; border: 0; padding: 3px 10px; font: inherit; font-size: 12px; color: var(--muted); cursor: pointer; }
+.theme button[aria-pressed="true"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+header { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+.hbar { display: flex; align-items: center; gap: 14px; padding: 10px 20px 4px; flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+header h1 span { color: var(--accent); }
+.org { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.org select { padding: 3px 6px; font-size: 13px; }
+nav { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; padding: 0 14px 6px; }
+nav button { background: none; border: 0; padding: 6px 12px; border-radius: 6px; color: var(--muted); font: inherit; cursor: pointer; }
+nav button[aria-current="page"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }
+nav .sep { flex: 1; min-width: 12px; }
+nav .minor button { font-size: 13px; padding: 6px 9px; }
+.count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; text-align: center; }
+.who { margin-left: auto; color: var(--muted); font-size: 12px; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+h2 { font-size: 18px; margin: 8px 0 12px; }
+h3 { font-size: 15px; margin: 18px 0 8px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.muted { color: var(--muted); }
+a { color: var(--info); }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--neutral-bg); }
+.t-production, .r-high, .s-rejected, .s-failed, .s-stale { background: var(--bad-bg); color: var(--bad); }
+.t-test, .r-medium, .s-pending { background: var(--warn-bg); color: var(--warn); }
+.t-dev, .s-approved { background: var(--info-bg); color: var(--info); }
+.r-low, .s-applied, .a-granted { background: var(--ok-bg); color: var(--ok); }
+.a-missing { background: var(--bad-bg); color: var(--bad); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; }
+td.v { font-family: var(--mono); font-size: 12px; word-break: break-word; max-width: 380px; }
+.d-added td:first-child::before { content: "+ "; color: var(--ok); font-weight: 700; }
+.d-removed td:first-child::before { content: "− "; color: var(--bad); font-weight: 700; }
+.d-changed td:first-child::before { content: "~ "; color: var(--warn); font-weight: 700; }
+.warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+.warn li { margin: 2px 0; }
+.error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; margin: 10px 0; white-space: pre-wrap; }
+.okbox { background: var(--ok-bg); color: var(--ok); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+button.btn { font: inherit; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+button.btn:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.danger { color: var(--bad); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }
+textarea { width: 100%; min-height: 80px; font-family: var(--mono); font-size: 12.5px; }
+label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+details summary { cursor: pointer; color: var(--muted); margin: 8px 0; }
+pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 360px; font-size: 12px; }
+.empty { text-align: center; padding: 30px; color: var(--muted); }
+main.wide { max-width: 1500px; padding-bottom: 16px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.cards .panel { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.lead { font-size: 15px; color: var(--muted); margin: 0 0 16px; max-width: 820px; }
+.kv { display: grid; grid-template-columns: minmax(90px, 38%) minmax(0, 1fr); gap: 2px 10px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+[hidden] { display: none !important; }
+/* ---- Monitoring: one card per object kind, count against the org's limit. */
+.mon { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.mon > div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mon .n { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.mon .n small { font-size: 13px; font-weight: 400; color: var(--muted); }
+.meter { height: 6px; border-radius: 3px; background: var(--neutral-bg); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ok); }
+.m-warn .meter i { background: var(--warn); }
+.m-alert .meter i { background: var(--bad); }
+.mon > .m-alert { border-color: var(--bad); }
+.mon > .m-error .n { color: var(--muted); }
+.ws-opts { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.ws-opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; cursor: pointer; }
+.ws-opt:hover { border-color: var(--muted); }
+.ws-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ws-opt .mark { flex: none; width: 16px; height: 16px; margin-top: 2px; border: 2px solid var(--muted); border-radius: 50%; }
+.ws-opt.multi .mark { border-radius: 4px; }
+.ws-opt[aria-pressed="true"] .mark { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px var(--bg); }
+.ws-opt small { display: block; color: var(--muted); font-size: 12px; }
+.srv { border-top: 1px solid var(--line); }
+.srv > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; cursor: pointer; padding: 8px 4px; margin: 0; color: var(--text); }
+.srv > summary::-webkit-details-marker { display: none; }
+.srv > summary::before { content: "▸"; color: var(--muted); width: 12px; }
+.srv[open] > summary::before { content: "▾"; }
+.srv > summary:hover { background: var(--neutral-bg); border-radius: 6px; }
+.srv .body { padding: 0 4px 12px 24px; display: grid; gap: 8px; }
+.grp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.sub-head { font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); margin: 4px 0 2px; }
+.sub-head .mono { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; }
+.skill-group > summary { margin: 8px 0 2px; }
+.todo-group { border-top: 1px solid var(--line); padding: 10px 0; }
+.todo-group:first-of-type { border-top: 0; padding-top: 0; }
+.todo-group > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--text); }
+.todo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.skill-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 4px; border-top: 1px solid var(--line); font-size: 13px; }
+.creds > summary { color: var(--info); margin: 0; }
+.twin { padding: 4px 0 8px; }
+.twin .todo-row { flex-wrap: nowrap; }
+.twin-path { flex: 1; min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.twin + .twin { border-top: 1px dashed var(--line); padding-top: 8px; }
+.skill-row > .row { justify-content: flex-end; }
+.prereqs { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 10px; align-items: baseline; }
+.keybox { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--bg); }
+.chat { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.dtabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 0 0 14px; }
+.dtabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }
+.dtabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+.dtabs button:disabled { cursor: default; opacity: .55; }
+.dtabs small { font-size: 10px; margin-left: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.dblock { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.dblock.live { border-left: 4px solid var(--ok); }
+.dblock.setup { border-left: 4px solid var(--warn); }
+.dblock-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.dblock-head strong { font-size: 15px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <h1><span>gctk</span> Genesys Cloud Toolkit</h1>
+    <div class="org" id="org"></div>
+    <div class="who" id="who"></div>
+    <div class="theme" id="theme" role="group" aria-label="Colour theme"></div>
+  </div>
+  <nav id="nav" aria-label="Pages"></nav>
+</header>
+<main id="main"><div class="empty">Loading…</div></main>
+<script nonce="__NONCE__">
+"use strict";
+// Colour theme: follows the system until the user picks light or dark in the top bar (remembered
+// in this browser). Set before the first render so the page does not flash.
+const THEME_KEY = "gctk-theme";
+function currentTheme() {
+  const t = document.documentElement.dataset.theme;
+  return t === "light" || t === "dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
+  renderThemeToggle();
+}
+function renderThemeToggle() {
+  const box = document.getElementById("theme");
+  const now = currentTheme();
+  box.replaceChildren(...[["light", "☀ Light"], ["dark", "☾ Dark"]].map(([t, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(now === t));
+    b.addEventListener("click", () => setTheme(t));
+    return b;
+  }));
+}
+(() => {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch {}
+  if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+  renderThemeToggle();
+  // Without an explicit choice, follow system changes live.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!document.documentElement.dataset.theme) renderThemeToggle(); });
+})();
+// Token arrives in the URL fragment; keep it for this tab only and remove it from the address bar.
+const TOKEN = (() => {
+  const m = location.hash.match(/token=([\w-]+)/);
+  if (m) {
+    const view = location.hash.match(/view=([\w-]+)/);
+    const demo = location.hash.match(/[#&]demo=([\w-]+)/);
+    try {
+      sessionStorage.setItem("gctk-token", m[1]);
+      if (view) sessionStorage.setItem("gctk-view", view[1]);
+      if (demo) sessionStorage.setItem("gctk-open-demo", demo[1]);
+    } catch {}
+    history.replaceState(null, "", "/");
+    return m[1];
+  }
+  try { return sessionStorage.getItem("gctk-token") || ""; } catch { return ""; }
+})();
+
+async function api(path, opts = {}) {
+  const method = opts.method || "GET";
+  // Every write is JSON (the server refuses anything else, which also stops cross-site form posts).
+  const body = method === "GET" ? undefined : JSON.stringify(opts.body ?? {});
+  const res = await fetch(path, {
+    method,
+    headers: { "x-gctk-token": TOKEN, ...(body ? { "content-type": "application/json" } : {}) },
+    body,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// DOM builder: all dynamic content goes through text nodes, never parsed as HTML.
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else el.setAttribute(k, v === true ? "" : String(v));
+  }
+  for (const c of children.flat(Infinity)) {
+    if (c === undefined || c === null || c === false) continue;
+    el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+const pill = (text, cls) => h("span", { class: `pill ${cls || ""}` }, text);
+const fmt = (v) => v === undefined ? "" : (typeof v === "string" ? JSON.stringify(v) : JSON.stringify(v, null, 0));
+const short = (s, n = 160) => (s = fmt(s), s.length > n ? s.slice(0, n - 1) + "…" : s);
+const time = (iso) => iso ? new Date(iso).toLocaleString() : "";
+
+const state = { view: (() => { try { return sessionStorage.getItem("gctk-view") || "profiles"; } catch { return "profiles"; } })(), overview: null, profile: null };
+// Main pages follow a solution consultant's demo prep; setup and control pages sit on the right.
+// The ids are the page names the agent opens with gc_ui (UI_PAGES), so they stay as they are.
+const VIEWS = [
+  ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],
+  ["ai-setup", "AI setup", "The MCP servers and skills of your editors: which org each server works on and where its credentials are"],
+  ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
+  ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
+  ["demo", "Demo ready", "Fill the agent's home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],
+  ["axl", "AXL", "AI Agent eXperience Lab: the org and the Cursor folder for the workshop"],
+];
+const MINOR_VIEWS = [
+  ["monitoring", "Monitoring", "How many queues, flows, data actions … an org has, next to its limits"],
+  ["data", "Your data", "Where gctk keeps your orgs, settings and records on this computer"],
+];
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  const btn = ([id, label, title]) => h("button", { "aria-current": state.view === id ? "page" : null, title, onclick: () => go(id) }, label);
+  nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));
+  const o = state.overview;
+  document.getElementById("who").replaceChildren(o ? `${o.user} · gctk ${o.version}` : "",
+    o?.persistent ? h("button", { class: "btn", style: "padding:2px 8px;font-size:12px;margin-left:8px", title: "Stops the background UI; the AI or `gctk ui` starts it again", onclick: stopUi }, "Stop UI") : "");
+  renderOrg();
+}
+
+/** The org the AI works on by default (in Cursor or Claude Code), switchable in the top bar. */
+function renderOrg() {
+  const box = document.getElementById("org");
+  const o = state.overview;
+  if (!o) return box.replaceChildren();
+  const usable = o.profiles.filter((p) => !p.error);
+  if (!usable.length) return box.replaceChildren(h("button", { class: "btn primary", style: "padding:3px 10px;font-size:12px", onclick: () => go("profiles") }, "Connect an org"));
+  const active = usable.find((p) => p.name === o.activeProfile);
+  const sel = h("select", { title: "The org the AI works on unless you name another one.", "aria-label": "Org the AI works on" },
+    active ? null : h("option", { value: "" }, "choose…"),
+    usable.map((p) => h("option", { value: p.name, selected: p.name === o.activeProfile }, `${p.name} · ${p.tier}${p.credentialsStored ? "" : " · no credentials"}`)));
+  sel.addEventListener("change", async () => {
+    const next = usable.find((p) => p.name === sel.value);
+    if (!next) return;
+    if (next.tier === "production" && !confirm(`Work on the production org "${next.name}" by default?`)) { sel.value = o.activeProfile || ""; return; }
+    try {
+      await api(`/api/profiles/${encodeURIComponent(next.name)}/activate`, { method: "POST", body: {} });
+      state.profile = next.name;
+      await refreshOverview();
+      await render();
+    } catch (err) { sel.value = o.activeProfile || ""; showError(err); }
+  });
+  box.replaceChildren(...[h("span", {}, "Working on"), sel, active ? pill(active.tier, `t-${active.tier}`) : null].filter(Boolean));
+}
+
+async function refreshOverview() {
+  state.overview = await api("/api/overview");
+  if (!state.profile) state.profile = state.overview.activeProfile || state.overview.profiles[0]?.name || null;
+  renderNav();
+}
+
+function go(view) {
+  state.view = view;
+  try { sessionStorage.setItem("gctk-view", view); } catch {}
+  render();
+}
+const main = () => document.getElementById("main");
+async function stopUi() {
+  if (!confirm("Stop the gctk UI? The AI can open it again any time.")) return;
+  try { await api("/api/shutdown", { method: "POST", body: {} }); main().replaceChildren(h("div", { class: "panel empty" }, "The gctk UI was stopped. Ask the AI to open it again, or run `gctk ui`.")); }
+  catch (err) { showError(err); }
+}
+function showError(err) { main().prepend(h("div", { class: "error" }, err.message || String(err))); }
+
+async function render() {
+  renderNav();
+  state.cleanup?.();
+  state.cleanup = null;
+  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
+  try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }
+}
+
+// ----------------------------------------------------------------- home
+function copyButton(text) {
+  const btn = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");
+  btn.addEventListener("click", () => { try { navigator.clipboard.writeText(text); btn.textContent = "Copied"; setTimeout(() => (btn.textContent = "Copy"), 1200); } catch {} });
+  return btn;
+}
+const navLink = (view, text) => h("a", { href: "#", onclick: (e) => { e.preventDefault(); go(view); } }, text);
+
+// -------------------------------------------------------------- website
+// The customer's side of the demo: a fake website on its own origin (site.gctk.localhost) with the
+// org's Web Messenger. Choices are remembered in this browser.
+const SITE_KEY = "gctk-site";
+async function viewSite() {
+  const meta = state.siteMeta || (state.siteMeta = await api("/api/site"));
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SITE_KEY) || "{}") || {}; } catch {}
+  const industryOf = (id) => meta.industries.find((i) => i.id === id) || meta.industries[0];
+  const cfg = { industry: industryOf(saved.industry).id, lang: saved.lang === "de" ? "de" : "en", phone: saved.phone || "+49 30 1234 5678", logo: saved.logo || "", deploymentId: saved.deploymentId || "", domain: saved.domain || meta.defaultDomain };
+  cfg.brand = saved.brand || industryOf(cfg.industry).brand;
+  cfg.color = saved.color || industryOf(cfg.industry).color;
+  if (!meta.regions.some((r) => r.domain === cfg.domain)) cfg.domain = meta.defaultDomain;
+  const save = () => { try { localStorage.setItem(SITE_KEY, JSON.stringify(cfg)); } catch {} drawLink(); };
+  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+  // 1. Industry
+  const cards = h("div", { class: "cards", style: "grid-template-columns:repeat(auto-fill,minmax(200px,1fr))" });
+  const drawIndustries = () => cards.replaceChildren(...meta.industries.map((i) => h("button", {
+    class: "ws-opt", "aria-pressed": String(cfg.industry === i.id), style: "flex-direction:column;gap:6px",
+    onclick: () => {
+      const before = industryOf(cfg.industry);
+      // Brand and colour follow the industry until the user has typed their own.
+      if (cfg.brand === before.brand) { cfg.brand = i.brand; brand.value = i.brand; }
+      if (cfg.color === before.color) { cfg.color = i.color; color.value = i.color; }
+      cfg.industry = i.id; drawIndustries(); save();
+    },
+  }, h("span", { class: "row", style: "flex-wrap:nowrap" }, h("span", { style: `width:18px;height:18px;border-radius:5px;background:${/^#[0-9a-f]{6}$/i.test(i.color) ? i.color : "#888"};flex:none` }), h("strong", {}, i.label[cfg.lang] || i.label.en)),
+    h("small", {}, i.headline))));
+
+  // 2. Brand
+  const brand = h("input", { value: cfg.brand, maxlength: 60 });
+  brand.addEventListener("input", () => { cfg.brand = brand.value.trim(); save(); });
+  const color = h("input", { type: "color", value: cfg.color, style: "height:36px;padding:2px" });
+  color.addEventListener("input", () => { cfg.color = color.value; save(); });
+  const lang = h("select", {}, [["en", "English"], ["de", "Deutsch"]].map(([v, t]) => h("option", { value: v, selected: v === cfg.lang }, t)));
+  lang.addEventListener("change", () => { cfg.lang = lang.value; drawIndustries(); save(); });
+  const phone = h("input", { value: cfg.phone, maxlength: 30 });
+  phone.addEventListener("input", () => { cfg.phone = phone.value; save(); });
+  const logoMsg = h("span", { class: "muted", style: "font-size:12px" }, cfg.logo ? "Logo uploaded." : "No logo: the initials are shown.");
+  const picker = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp", hidden: true });
+  picker.addEventListener("change", async () => {
+    const f = picker.files?.[0];
+    picker.value = "";
+    if (!f) return;
+    try {
+      const data = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = fail; r.readAsDataURL(f); });
+      cfg.logo = (await api("/api/site/files", { method: "POST", body: { data } })).logo;
+      logoMsg.textContent = `${f.name} uploaded.`;
+      save();
+    } catch (err) { logoMsg.textContent = err.message; }
+  });
+  const logoRow = h("div", { class: "row" }, h("button", { class: "btn", onclick: () => picker.click() }, "Upload logo…"),
+    h("button", { class: "btn", onclick: () => { cfg.logo = ""; logoMsg.textContent = "No logo: the initials are shown."; save(); } }, "Remove"), logoMsg, picker);
+
+  // 3. Chat: the deployment ID (Admin → Message → Messenger Deployments), or the whole snippet pasted.
+  const depInput = h("input", { value: cfg.deploymentId, placeholder: "e.g. 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60, or paste the snippet", style: "width:100%", spellcheck: "false" });
+  const regionSel = h("select", {}, meta.regions.map((r) => h("option", { value: r.domain, selected: r.domain === cfg.domain }, `${r.domain} (${r.key})`)));
+  const depInfo = h("div", { style: "font-size:13px;margin-top:6px" });
+  const drawDep = () => {
+    const raw = depInput.value.trim();
+    put(depInfo, !raw ? h("div", { class: "muted" }, "Without a deployment ID the website shows a note instead of the chat.")
+      : cfg.deploymentId ? h("div", { class: "muted" }, `The site loads deployment ${cfg.deploymentId} from apps.${cfg.domain}. In Genesys Cloud, the deployment must allow the domain ${meta.host} (or all domains).`)
+        : h("div", { class: "error" }, "That is not a deployment ID: it looks like 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60."));
+  };
+  depInput.addEventListener("input", () => {
+    const raw = depInput.value;
+    cfg.deploymentId = (raw.match(UUID) || [""])[0].toLowerCase();
+    // A pasted snippet also names the region.
+    const host = raw.match(/https:\/\/apps\.([a-z0-9.-]+)\/genesys-bootstrap/i)?.[1];
+    if (host && meta.regions.some((r) => r.domain === host)) { cfg.domain = host; regionSel.value = host; }
+    if (/^\s*</.test(raw) && cfg.deploymentId) depInput.value = cfg.deploymentId;
+    drawDep(); save();
+  });
+  regionSel.addEventListener("change", () => { cfg.domain = regionSel.value; drawDep(); save(); });
+
+  // 4. Open
+  const link = h("div");
+  const drawLink = () => {
+    const q = new URLSearchParams({ industry: cfg.industry, lang: cfg.lang, brand: cfg.brand, color: cfg.color, phone: cfg.phone, ...(cfg.logo ? { logo: cfg.logo } : {}), ...(cfg.deploymentId ? { deployment: cfg.deploymentId, domain: cfg.domain } : {}) });
+    const url = `http://${meta.host}:${location.port}/site?${q}`;
+    put(link, h("div", { class: "row" },
+      h("button", { class: "btn primary", onclick: () => window.open(url, "_blank", "noopener") }, "Open website"),
+      h("span", { class: "mono muted", style: "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" }, url), copyButton(url)));
+  };
+  drawIndustries();
+  drawLink();
+  drawDep();
+  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));
+  return h("div", {},
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Customer website"),
+    h("p", { class: "lead" }, "The customer's side of the demo: a website for their industry, in their brand, with your Genesys Messenger on it. Chat from it like a real customer while the agent desktop is on the other screen."),
+    step(1, "Industry", cards),
+    step(2, "Brand",
+      h("div", { class: "grid" }, h("label", {}, "Brand name", brand), h("label", {}, "Brand colour", color), h("label", {}, "Language", lang), h("label", {}, "Phone number on the site", phone)),
+      h("div", { style: "margin-top:10px" }, logoRow)),
+    step(3, "Chat",
+      h("div", { class: "grid", style: "grid-template-columns:minmax(0,2fr) minmax(0,1fr)" }, h("label", {}, "Messenger deployment ID", depInput), h("label", {}, "Region of the org", regionSel)),
+      depInfo,
+      h("p", { class: "muted", style: "font-size:13px;margin-bottom:0" }, "Find the ID in Genesys Cloud under Admin → Message → Messenger Deployments (open the deployment; the ID is in its snippet). No deployment yet? Create one there with an inbound message flow to your queue, or ask the AI to help you.")),
+    step(4, "Open", link));
+}
+
+// ----------------------------------------------------------- demo ready
+// Fills one agent's home screen with demo data, one section per component. A button writes to the
+// org right away; the server records what it did, so Clean up removes exactly that.
+const DEMO_KEY = "gctk-demo-pick";
+/** replaceChildren that skips empty parts and flattens lists (DOM would print null and arrays as text). */
+const put = (el, ...kids) => el.replaceChildren(...kids.flat(Infinity).filter((k) => k !== null && k !== undefined && k !== false));
+function demoPick() {
+  if (state.demoPick) return state.demoPick;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(DEMO_KEY) || "{}") || {}; } catch {}
+  return (state.demoPick = { profile: saved.profile || "", userId: saved.userId || "", userName: saved.userName || "" });
+}
+function saveDemoPick() { try { localStorage.setItem(DEMO_KEY, JSON.stringify(state.demoPick)); } catch {} }
+
+/** The n-th working day from today at a local time, for template dates. */
+function workday(offset, time) {
+  const d = new Date();
+  for (let n = 0; n < offset;) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n++; }
+  const [hh, mm] = time.split(":").map(Number);
+  d.setHours(hh, mm, 0, 0);
+  return d;
+}
+const localInput = (d) => { const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+async function demoUsers(profile) {
+  state.demoUsers ??= {};
+  return (state.demoUsers[profile] ??= api(`/api/demo/users?profile=${encodeURIComponent(profile)}`).catch((err) => { delete state.demoUsers[profile]; throw err; }));
+}
+
+/** Result of a run: what was applied, notes. */
+function demoResult(r, onRetry) {
+  const failed = r.applied.filter((a) => a.status !== "applied");
+  return h("div", {},
+    r.applied.length ? h("ul", { style: "margin:8px 0;padding-left:20px" }, r.applied.map((a) =>
+      h("li", {}, a.status === "applied" ? "✓ " : "✗ ", a.title.replace(/^Demo ready \([^)]*\): /, ""), a.error ? h("div", { class: "error", style: "margin:4px 0" }, a.error) : null))) : null,
+    r.busy && onRetry ? h("div", { class: "warn row" }, h("span", { style: "flex:1" }, "Genesys Cloud is still working on the last step. Continue in a minute to do the rest."),
+      h("button", { class: "btn primary", onclick: onRetry }, "Continue")) : null,
+    r.notes.map((n) => h("div", { class: "muted", style: "font-size:13px" }, n)),
+    r.done && !failed.length ? h("div", { class: "okbox" }, r.applied.length ? "Done. The agent sees the changes on the Genesys Cloud home screen (reload it there)." : "Nothing to change: everything is already there.") : null);
+}
+
+/** run(input, button): runs a section and shows the result in out. */
+function demoRunner(section, base, out, reload) {
+  let last = null;
+  const run = async (input, btn) => {
+    if (input) last = input;
+    if (!last) return;
+    if (btn) btn.disabled = true;
+    out.replaceChildren(h("div", { class: "muted" }, "Working…"));
+    try {
+      const r = await api(`/api/demo/${section}/run`, { method: "POST", body: { ...base, input: last } });
+      out.replaceChildren(demoResult(r, () => run(last)));
+      reload();
+    } catch (err) { out.replaceChildren(h("div", { class: "error" }, err.message)); }
+    if (btn) btn.disabled = false;
+  };
+  return run;
+}
+
+/**
+ * The two areas of a section: what the agent has in the org now (live) and what can be added
+ * (suggestions and templates, created only when the user presses the button).
+ */
+function demoBlock(kind, title, note, ...children) {
+  return h("div", { class: `dblock ${kind}` },
+    h("div", { class: "dblock-head" }, h("strong", {}, title),
+      kind === "live" ? pill("in Genesys Cloud", "s-applied") : pill("not created yet", "s-pending"),
+      note ? h("span", { class: "muted", style: "font-size:12px" }, note) : null),
+    ...children);
+}
+const DEMO_TAB_KEY = "gctk-demo-tab";
+
+async function viewDemo() {
+  const meta = state.demoMeta || (state.demoMeta = await api("/api/demo"));
+  const profiles = state.overview?.profiles.filter((p) => !p.error && p.credentialsStored) || [];
+  const pick = demoPick();
+  if (!profiles.some((p) => p.name === pick.profile)) { pick.profile = state.profile && profiles.some((p) => p.name === state.profile) ? state.profile : profiles[0]?.name || ""; pick.userId = ""; pick.userName = ""; }
+  const prof = profiles.find((p) => p.name === pick.profile);
+
+  const profileSel = h("select", { onchange: (e) => { pick.profile = e.target.value; pick.userId = ""; pick.userName = ""; saveDemoPick(); render(); } },
+    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier})`)));
+  const agentSel = h("select", { disabled: true, style: "min-width:260px" }, h("option", { value: "" }, "Loading users…"));
+  const filter = h("input", { placeholder: "Filter by name or email", disabled: true, style: "min-width:180px" });
+  const msg = h("div");
+  const sections = h("div");
+  let users = [];
+  const fill = () => {
+    const q = filter.value.trim().toLowerCase();
+    const shown = users.filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id === pick.userId);
+    agentSel.replaceChildren(h("option", { value: "" }, "Choose the agent…"), ...shown.map((u) => h("option", { value: u.id, selected: u.id === pick.userId }, u.email ? `${u.name} · ${u.email}` : u.name)));
+  };
+  filter.addEventListener("input", fill);
+  agentSel.addEventListener("change", () => {
+    const u = users.find((x) => x.id === agentSel.value);
+    pick.userId = u?.id || ""; pick.userName = u?.name || ""; saveDemoPick();
+    drawSections();
+  });
+  // One component at a time, picked in a tab bar; the choice is remembered in this browser.
+  const VIEWS_BY_ID = { coaching: () => demoCoaching(prof, pick, users), learning: () => demoLearning(pick), sta: () => demoSta(pick), evaluations: () => demoEvaluations(pick, users), scorecard: () => demoScorecard(pick), schedule: () => demoSchedule(pick), refresh: () => demoRefresh(pick), cleanup: () => demoCleanup(pick) };
+  const tabs = [...meta.sections.map((s) => ({ id: s.id, title: s.id === "sta" ? "Speech & text analytics" : s.title, ready: s.ready && VIEWS_BY_ID[s.id], what: s.what })),
+    { id: "refresh", title: "Refresh dates", ready: true, what: "Move appointments, due dates and the schedule that lie in the past to the coming days" }, { id: "cleanup", title: "Clean up", ready: true }];
+  let tab = (() => { try { return localStorage.getItem(DEMO_TAB_KEY) || ""; } catch { return ""; } })();
+  if (!tabs.some((t) => t.id === tab && t.ready)) tab = tabs.find((t) => t.ready)?.id || "cleanup";
+  const drawSections = () => {
+    if (!pick.userId) { sections.replaceChildren(h("div", { class: "panel empty" }, "Choose the org and the agent you will log in as during the demo.")); return; }
+    const bar = h("div", { class: "dtabs", role: "tablist" }, tabs.map((t) => h("button", {
+      role: "tab", "aria-selected": t.id === tab ? "true" : "false", disabled: !t.ready, title: t.ready ? t.what || "" : `Coming soon: ${t.what}`,
+      onclick: () => { tab = t.id; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); },
+    }, t.title, t.ready ? null : h("small", {}, "soon"))));
+    // Demo data ages: say so on every tab, with a way to the refresh.
+    const stale = h("div");
+    if (tab !== "refresh" && tab !== "cleanup") {
+      api(`/api/demo/refresh/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`).then((st) => {
+        if (st.stale) put(stale, h("div", { class: "warn row" }, h("span", { style: "flex:1" }, `${st.stale} date${st.stale > 1 ? "s" : ""} on ${pick.userName || "the agent"}'s home screen ${st.stale > 1 ? "lie" : "lies"} in the past, so the demo looks stale.`),
+          h("button", { class: "btn primary", onclick: () => { tab = "refresh"; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); } }, "Refresh dates")));
+      }).catch(() => {});
+    }
+    sections.replaceChildren(bar, stale, VIEWS_BY_ID[tab]());
+  };
+
+  if (pick.profile) {
+    demoUsers(pick.profile).then((list) => {
+      users = list;
+      agentSel.disabled = filter.disabled = false;
+      fill();
+      msg.replaceChildren();
+      if (pick.userId && !users.some((u) => u.id === pick.userId)) { pick.userId = ""; pick.userName = ""; }
+      drawSections();
+    }).catch((err) => msg.replaceChildren(h("div", { class: "error" }, err.message)));
+  }
+
+  return h("div", {},
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demo ready"),
+    h("p", { class: "lead" }, "Make an agent's Genesys Cloud home screen look lived-in before a demo. Pick the org and the agent, then a component in the tabs. Each tab shows what the agent has in Genesys Cloud now (green) and suggestions that are created only when you press the button (orange). Existing objects are reused, and pressing a button twice creates nothing twice."),
+    profiles.length ? h("div", { class: "panel" },
+      h("div", { class: "row" }, h("label", { class: "row" }, "Org", profileSel), filter, h("label", { class: "row" }, "Agent", agentSel)),
+      prof ? h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, `Changes happen in ${prof.name} (${prof.tier}) as soon as you press a button. Clean up removes or restores what this page did.`) : null,
+      msg) : h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first."),
+    sections);
+}
+
+function demoCoaching(prof, pick, users) {
+  const templates = state.demoMeta.coachingTemplates;
+  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";
+  const list = h("div", {}, h("div", { class: "muted" }, "Loading appointments…"));
+  const out = h("div");
+  const base = { profile: pick.profile, userId: pick.userId, agentName: pick.userName };
+
+  const facilitator = h("select", {}, h("option", { value: "" }, "No facilitator"),
+    users.filter((u) => u.id !== pick.userId).map((u) => h("option", { value: u.id }, u.name)));
+  const rows = h("div", { style: "display:grid;gap:10px" });
+  const addRow = (t) => {
+    const r = {
+      use: h("input", { type: "checkbox", checked: true, title: "Include" }),
+      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),
+      when: h("input", { type: "datetime-local", value: localInput(t.date) }),
+      length: h("input", { type: "number", min: 5, max: 480, step: 5, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),
+      completed: h("input", { type: "checkbox", checked: Boolean(t.completed) }),
+      description: h("input", { value: t.description, style: "width:100%" }),
+      state: h("span"),
+    };
+    const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },
+      h("div", { class: "row" }, r.use, r.name, r.when, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min"),
+        h("label", { class: "row", style: "font-size:12px", title: "Created, then set to completed. Completed appointments cannot be deleted later." }, r.completed, "completed"),
+        r.state,
+        h("button", { class: "btn", style: "padding:2px 8px", title: "Remove row", onclick: () => el.remove() }, "×")),
+      r.description);
+    el.demo = r;
+    for (const f of [r.name, r.when]) f.addEventListener("change", () => mark(r, false));
+    rows.append(el);
+    mark(r, true);
+  };
+
+  // Marks suggestions the agent already has (same name and start: nothing would be created).
+  let known = null;
+  const mark = (r, uncheck) => {
+    if (!known) return;
+    const at = new Date(r.when.value).getTime();
+    const same = known.find((a) => a.name === r.name.value && Math.abs(Date.parse(a.dateStart) - at) < 60_000);
+    const named = known.find((a) => a.name === r.name.value);
+    if (same && uncheck) r.use.checked = false;
+    r.state.replaceChildren(same ? pill("already in the org", "s-applied") : named ? h("span", { class: "muted", style: "font-size:12px" }, `same name on ${new Date(named.dateStart).toLocaleDateString()}`) : pill("new", ""));
+  };
+  for (const t of templates) addRow({ ...t, date: workday(t.workdayOffset, t.time) });
+
+  const run = demoRunner("coaching", base, out, () => load());
+
+  const createBtn = h("button", { class: "btn primary" }, "Add to the agent's calendar");
+  createBtn.addEventListener("click", () => {
+    const chosen = [...rows.children].map((el) => el.demo).filter((r) => r.use.checked);
+    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one appointment.")); return; }
+    if (chosen.some((r) => !r.when.value)) { out.replaceChildren(h("div", { class: "error" }, "Every appointment needs a start.")); return; }
+    if (chosen.some((r) => r.completed.checked) && !confirm("Appointments marked completed cannot be deleted afterwards (Genesys Cloud keeps them). Continue?")) return;
+    run({ appointments: chosen.map((r) => ({
+      name: r.name.value, description: r.description.value, dateStart: new Date(r.when.value).toISOString(),
+      lengthInMinutes: Number(r.length.value), completed: r.completed.checked, ...(facilitator.value ? { facilitatorId: facilitator.value } : {}),
+    })) }, createBtn);
+  });
+
+  const load = async () => {
+    try {
+      const s = await api(`/api/demo/coaching/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const now = Date.now();
+      const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= now && a.status !== "Completed").length;
+      known = s.appointments;
+      for (const el of rows.children) mark(el.demo, true);
+      put(list, 
+        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.appointments.length} appointment${s.appointments.length === 1 ? "" : "s"}`),
+          h("span", { class: "muted" }, `(last 60 and next 90 days; ${upcoming} upcoming)`)),
+        !s.appointments.length ? h("div", { class: "muted" }, "The agent has no coaching appointments yet.") : null,
+        s.appointments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},
+          h("tr", {}, ["When", "Appointment", "Length", "Facilitator", "Status", ""].map((t) => h("th", {}, t))),
+          s.appointments.map((a) => h("tr", {},
+            h("td", { style: "white-space:nowrap" }, time(a.dateStart)),
+            h("td", {}, a.name),
+            h("td", {}, a.lengthInMinutes ? `${a.lengthInMinutes} min` : ""),
+            h("td", {}, nameOf(a.facilitatorId)),
+            h("td", {}, pill(a.status || "?", a.status === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),
+            h("td", {}, a.status === "Scheduled" ? h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {
+              if (confirm(`Delete "${a.name}"?`)) run({ appointments: [], remove: [a.id] }, e.target);
+            } }, "Delete") : null))))) : null);
+    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }
+  };
+  load();
+
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Coaching"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Coaching appointments show up in the agent's Development and calendar views. Genesys Cloud only takes appointments that start in the future; tick completed to have a finished session as well."),
+    demoBlock("live", `${pick.userName || "The agent"}'s appointments`, `live from ${pick.profile}`, list),
+    demoBlock("setup", "Suggested appointments", "edit them; nothing is created until you press the button",
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Facilitator", facilitator),
+        h("span", { class: "muted", style: "font-size:12px" }, "The facilitator (and the agent) need the permission coaching:appointment:participate.")),
+      rows,
+      h("div", { class: "row", style: "margin-top:10px" },
+        h("button", { class: "btn", onclick: () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }) }, "+ Appointment"),
+        h("span", { class: "spacer" }), createBtn)),
+    out);
+}
+
+const dateInput = (d) => localInput(d).slice(0, 10);
+/** A due date from a date input: that day, 17:00 local time. */
+const dueIso = (v) => { const d = new Date(`${v}T17:00`); return isNaN(d) ? "" : d.toISOString(); };
+
+function demoLearning(pick) {
+  const templates = state.demoMeta.learningTemplates;
+  const list = h("div", {}, h("div", { class: "muted" }, "Loading learning…"));
+  const pickBox = h("div");
+  const out = h("div");
+  const run = demoRunner("learning", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());
+  let rows = [];
+
+  const newRow = (t, checked) => {
+    const r = {
+      kind: "new",
+      use: h("input", { type: "checkbox", checked }),
+      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),
+      due: h("input", { type: "date", value: dateInput(workday(t.dueWorkdays, "17:00")) }),
+      length: h("input", { type: "number", min: 15, max: 480, step: 15, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),
+      description: h("input", { value: t.description, style: "width:100%" }),
+      content: h("textarea", { style: "min-height:70px;font-family:inherit;font-size:13px" }, t.content),
+    };
+    r.el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },
+      h("div", { class: "row" }, r.use, r.name, h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min")),
+      r.description, r.content);
+    return r;
+  };
+
+  const load = async () => {
+    try {
+      const s = await api(`/api/demo/learning/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const assigned = new Set(s.assignments.map((a) => a.moduleId));
+      const open = s.assignments.filter((a) => a.state !== "Completed").length;
+      put(list, 
+        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.assignments.length} assigned module${s.assignments.length === 1 ? "" : "s"}`),
+          h("span", { class: "muted" }, `(${open} open)`)),
+        !s.assignments.length ? h("div", { class: "muted" }, "The agent has no learning assignments yet.") : null,
+        s.assignments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},
+          h("tr", {}, ["Module", "Due", "Progress", "State", ""].map((t) => h("th", {}, t))),
+          s.assignments.map((a) => h("tr", {},
+            h("td", {}, a.moduleName),
+            h("td", { style: "white-space:nowrap" }, a.dueDate ? new Date(a.dueDate).toLocaleDateString() : ""),
+            h("td", {}, `${Math.round(a.completionPercentage || 0)} %`),
+            h("td", {}, pill(a.isOverdue ? "overdue" : a.state || "?", a.state === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),
+            h("td", {}, h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {
+              if (confirm(`Remove "${a.moduleName}" from the agent?`)) run({ assignments: [], remove: [a.id] }, e.target);
+            } }, "Remove")))))) : null);
+
+      // What can be assigned: published modules of the org that the agent does not have yet, and new ones.
+      const available = s.modules.filter((m) => m.isPublished && !assigned.has(m.id));
+      const filter = h("input", { placeholder: "Filter modules", style: "min-width:200px" });
+      const orgRows = available.map((m, i) => {
+        const r = { kind: "org", id: m.id, name: m.name, use: h("input", { type: "checkbox", checked: i < 3 }), due: h("input", { type: "date", value: dateInput(workday(3 + 2 * Math.min(i, 5), "17:00")) }) };
+        r.el = h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:4px 0" }, r.use,
+          h("span", { style: "flex:1;min-width:220px" }, m.name, m.source === "GenesysBeyond" ? h("span", { class: "muted", style: "font-size:12px" }, " · Genesys Beyond") : null,
+            m.lengthInMinutes ? h("span", { class: "muted", style: "font-size:12px" }, ` · ${m.lengthInMinutes} min`) : null),
+          h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due);
+        return r;
+      });
+      filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const r of orgRows) r.el.style.display = !q || r.name.toLowerCase().includes(q) ? "" : "none"; });
+      const existingNames = new Set(s.modules.map((m) => m.name));
+      const newRows = templates.filter((t) => !existingNames.has(t.name)).map((t) => newRow(t, !available.length));
+      const newBox = h("div", { style: "display:grid;gap:10px" }, newRows.map((r) => r.el));
+      rows = [...orgRows, ...newRows];
+      put(pickBox, 
+        h("h3", { style: "margin-top:0" }, "Modules of the org the agent does not have yet"),
+        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "These modules exist in the org; ticking one assigns it to the agent."),
+        available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, `${available.length} published module${available.length === 1 ? "" : "s"} the agent does not have yet`)),
+          h("div", { style: "max-height:260px;overflow:auto" }, orgRows.map((r) => r.el)))
+          : h("div", { class: "muted" }, s.modules.some((m) => m.isPublished) ? "The agent already has every published module." : "The org has no published learning modules yet; create some below."),
+        h("h3", {}, "Or new modules (templates)"),
+        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Not in the org yet: created as learning modules with the text below, published, then assigned. A module with the same name is reused, not created again."),
+        newBox,
+        h("div", { class: "row", style: "margin-top:10px" },
+          h("button", { class: "btn", onclick: () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); } }, "+ New module"),
+          h("span", { class: "spacer" }), assignBtn));
+    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }
+  };
+
+  const assignBtn = h("button", { class: "btn primary" }, "Assign to the agent");
+  assignBtn.addEventListener("click", () => {
+    const chosen = rows.filter((r) => r.use.checked);
+    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one module.")); return; }
+    if (chosen.some((r) => !dueIso(r.due.value))) { out.replaceChildren(h("div", { class: "error" }, "Every module needs a due date.")); return; }
+    run({ assignments: chosen.map((r) => r.kind === "org"
+      ? { moduleId: r.id, dueDate: dueIso(r.due.value) }
+      : { newModule: { name: r.name.value, description: r.description.value, content: r.content.value, lengthInMinutes: Number(r.length.value) }, dueDate: dueIso(r.due.value) }) }, assignBtn);
+  });
+  load();
+
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Learning"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up in the agent's Development view and on the home screen. Due dates must be in the future. Only the agent can complete a module: to show a completed one, open it once as the agent."),
+    demoBlock("live", `${pick.userName || "The agent"}'s learning`, `live from ${pick.profile}`, list),
+    demoBlock("setup", "Assign modules", "nothing changes until you press the button", pickBox),
+    out);
+}
+
+function demoSta(pick) {
+  const info = h("div", {}, h("div", { class: "muted" }, "Loading speech and text analytics…"));
+  const form = h("div");
+  const out = h("div");
+  const run = demoRunner("sta", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));
+  const onOff = (v) => pill(v ? "on" : "off", v ? "s-applied" : "s-pending");
+  const TRANSCRIPTION = { EnabledQueueFlow: "on for queues and flows that enable it", EnabledGlobally: "on for all interactions", Disabled: "off" };
+  const load = async (withForm) => {
+    try {
+      const s = await api(`/api/demo/sta/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const programName = (id) => s.programs.find((p) => p.id === id)?.name || (id ? "another program" : "");
+      put(info, 
+        h("dl", { class: "kv", style: "margin:0 0 8px" },
+          h("dt", {}, "Text analytics"), h("dd", {}, onOff(s.settings.text), " sentiment ", onOff(s.settings.sentiment), " agent empathy ", onOff(s.settings.empathy)),
+          h("dt", {}, "Expected dialects"), h("dd", {}, s.settings.dialects.length ? s.settings.dialects.join(", ") : h("span", { class: "muted" }, "none")),
+          h("dt", {}, "Voice transcription"), h("dd", {}, TRANSCRIPTION[s.transcription] || s.transcription),
+          h("dt", {}, "Agent's queues"), h("dd", {}, s.agentQueues.length ? s.agentQueues.map((id) => {
+            const q = s.queues.find((x) => x.id === id);
+            const prog = programName(s.queuePrograms[id]);
+            return h("div", {}, q?.name || id, h("span", { class: "muted", style: "font-size:12px" }, ` · ${prog ? `program ${prog}` : "in no program"} · transcription ${s.transcribed[id] ? "on" : "off"}`));
+          }) : h("span", { class: "muted" }, "none"))));
+      if (withForm) drawForm(s);
+    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }
+  };
+  const drawForm = (s) => {
+    const NEW = "__new__";
+    const agentQs = s.queues.filter((q) => s.agentQueues.includes(q.id));
+    const otherQs = s.queues.filter((q) => !s.agentQueues.includes(q.id));
+    const queueSel = h("select", {},
+      agentQs.length ? h("optgroup", { label: "The agent's queues" }, agentQs.map((q) => h("option", { value: q.id }, q.name))) : null,
+      otherQs.length ? h("optgroup", { label: "Other queues" }, otherQs.map((q) => h("option", { value: q.id }, q.name))) : null);
+    const addAgent = h("input", { type: "checkbox", checked: true });
+    const addAgentRow = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, addAgent, "Add the agent to this queue");
+    const analytics = h("input", { type: "checkbox", checked: true });
+    const dialect = h("select", {}, h("option", { value: "" }, "keep the expected dialects"), s.dialects.map((d) => h("option", { value: d, selected: !s.settings.dialects.length && d === "en-US" }, d)));
+    const transcription = h("input", { type: "checkbox", checked: true });
+    const byName = s.programs.find((p) => p.name === s.defaults.program);
+    const programSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New program…"),
+      s.programs.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.id === s.settings.defaultProgram ? " (default program)" : ""}${p.published ? "" : " (not published)"}`)));
+    const programName = h("input", { value: s.defaults.program, style: "min-width:220px" });
+    const filter = h("input", { placeholder: "Filter topics", style: "min-width:200px" });
+    const topicBoxes = s.topics.map((t) => {
+      const box = h("input", { type: "checkbox", checked: s.defaults.topics.includes(t.name) });
+      const el = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, box, t.name, t.dialect ? h("span", { class: "muted", style: "font-size:11px" }, t.dialect) : null);
+      return { t, box, el };
+    });
+    filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const b of topicBoxes) b.el.style.display = !q || b.t.name.toLowerCase().includes(q) ? "" : "none"; });
+    const topicsWrap = h("div", {},
+      h("div", { class: "row", style: "margin:8px 0 4px" }, h("span", { class: "muted", style: "font-size:12px" }, "Topics of the new program: these exist in the org (published); tick the ones the program should use"), filter),
+      h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px;max-height:220px;overflow:auto" }, topicBoxes.map((b) => b.el)));
+    // Own topics, for when the org's topics do not fit.
+    const topicRows = h("div", { style: "display:grid;gap:10px" });
+    const addTopic = (t) => {
+      const r = {
+        name: h("input", { value: t.name, placeholder: "Topic name, e.g. Parcel not delivered", style: "flex:1;min-width:220px" }),
+        dialect: h("select", {}, s.dialects.map((d) => h("option", { value: d, selected: d === t.dialect }, d))),
+        strictness: h("select", { title: "How closely the conversation must match a phrase" }, [["1", "1 · loose"], ["55", "55"], ["65", "65"], ["72", "72 · default"], ["85", "85"], ["90", "90 · strict"]].map(([v, l]) => h("option", { value: v, selected: v === "72" }, l))),
+        description: h("input", { value: t.description || "", placeholder: "Description (optional)", style: "width:100%" }),
+        phrases: h("textarea", { placeholder: "One phrase per line, the way customers or agents say it", style: "min-height:70px;font-family:inherit;font-size:13px" }, (t.phrases || []).join("\n")),
+      };
+      const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },
+        h("div", { class: "row" }, r.name, r.dialect, h("label", { class: "row" }, "Strictness", r.strictness), h("span", { class: "spacer" }),
+          h("button", { class: "btn", style: "padding:2px 8px", title: "Remove topic", onclick: () => el.remove() }, "×")),
+        r.description, r.phrases);
+      el.demo = r;
+      topicRows.append(el);
+    };
+    const defaultDialect = () => dialect.value || s.settings.dialects[0] || "en-US";
+    const newTopicsWrap = h("div", {},
+      h("div", { class: "row", style: "margin:8px 0 4px" }, h("strong", { style: "font-size:13px" }, "New topics"),
+        h("span", { class: "muted", style: "font-size:12px" }, "when the org's topics do not fit: created, published and added to the program (also to an existing one); Clean up deletes them again")),
+      topicRows,
+      h("div", { style: "margin-top:6px" }, h("button", { class: "btn", onclick: () => addTopic({ name: "", dialect: defaultDialect(), phrases: [] }) }, "+ Topic")));
+    const queueInfo = h("div", { class: "muted", style: "font-size:13px" });
+    const sync = () => {
+      const inQueue = s.agentQueues.includes(queueSel.value);
+      addAgentRow.style.display = inQueue ? "none" : "";
+      const now = s.queuePrograms[queueSel.value];
+      const target = programSel.value;
+      queueInfo.textContent = now && now !== target
+        ? `The queue is in program "${s.programs.find((p) => p.id === now)?.name || now}" now; a queue belongs to one program, so it moves (Clean up moves it back).`
+        : now === target ? "The queue is in this program already." : "";
+      programName.style.display = topicsWrap.style.display = target === NEW ? "" : "none";
+    };
+    queueSel.addEventListener("change", sync);
+    programSel.addEventListener("change", sync);
+    const btn = h("button", { class: "btn primary" }, "Set up speech and text analytics");
+    btn.addEventListener("click", () => {
+      if (!queueSel.value) { out.replaceChildren(h("div", { class: "error" }, "Choose a queue.")); return; }
+      run({
+        queueId: queueSel.value,
+        addAgent: addAgent.checked && !s.agentQueues.includes(queueSel.value),
+        analytics: analytics.checked,
+        dialect: dialect.value,
+        transcription: transcription.checked,
+        program: programSel.value === NEW ? { name: programName.value, topicIds: topicBoxes.filter((b) => b.box.checked).map((b) => b.t.id) } : { id: programSel.value },
+        newTopics: [...topicRows.children].map((el) => el.demo).filter((r) => r.name.value.trim() || r.phrases.value.trim()).map((r) => ({
+          name: r.name.value, dialect: r.dialect.value, strictness: r.strictness.value, description: r.description.value, phrases: r.phrases.value.split("\n"),
+        })),
+      }, btn);
+    });
+    put(form, 
+      s.queues.length ? h("div", { style: "display:grid;gap:8px" },
+        h("div", { class: "row" }, h("label", { class: "row" }, "Queue", queueSel), addAgentRow),
+        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, analytics, "Text analytics, sentiment and agent empathy (org-wide)"),
+        h("div", { class: "row" }, h("label", { class: "row" }, "Expected dialect", dialect), h("span", { class: "muted", style: "font-size:12px" }, "the language voice interactions are transcribed in")),
+        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, transcription, "Voice transcription for this queue"),
+        h("div", { class: "row" }, h("label", { class: "row" }, "Program", programSel), programName),
+        topicsWrap, newTopicsWrap, queueInfo,
+        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn))
+        : h("div", { class: "warn" }, "The org has no queues yet."));
+    sync();
+  };
+  load(true);
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Speech and text analytics"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Sets up what speech and text analytics needs and puts the agent's queue into a program, so the agent's calls and messages get transcripts, sentiment, empathy and topics. Voice also needs the calls to be recorded (the default in Genesys Cloud)."),
+    demoBlock("live", "Speech and text analytics in the org now", `live from ${pick.profile}`, info),
+    demoBlock("setup", "Set up", "settings, queue and program as chosen below; nothing changes until you press the button", form),
+    out);
+}
+
+function demoEvaluations(pick, users) {
+  const info = h("div", {}, h("div", { class: "muted" }, "Loading evaluations…"));
+  const form = h("div");
+  const out = h("div");
+  const run = demoRunner("evaluations", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(true));
+  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";
+  const MEDIA = { email: "Email", message: "Message", voice: "Call", callback: "Callback", chat: "Chat" };
+  const RESULTS = [["strong", "strong"], ["mixed", "mixed"], ["weak", "needs work"]];
+  const load = async (withForm) => {
+    try {
+      const s = await api(`/api/demo/evaluations/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const failed = (v) => v && !Array.isArray(v);
+      const evals = failed(s.evaluations) ? [] : s.evaluations;
+      const convs = failed(s.conversations) ? [] : s.conversations;
+      const formName = (id) => s.forms.find((f) => f.id === id)?.name || "a form";
+      const evaluated = new Set(evals.map((e) => e.conversationId));
+      put(info,
+        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${evals.length} evaluation${evals.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 90 days)")),
+        failed(s.evaluations) ? h("div", { class: "error" }, s.evaluations.error) : null,
+        evals.length ? h("div", { style: "overflow-x:auto" }, h("table", {},
+          h("tr", {}, ["Created", "Conversation", "Form", "Score", "Evaluator", "Agent sees it"].map((t) => h("th", {}, t))),
+          evals.map((e) => h("tr", {},
+            h("td", { style: "white-space:nowrap" }, time(e.createdDate)),
+            h("td", { class: "mono" }, (e.conversationId || "").slice(0, 8)),
+            h("td", {}, formName(e.formId)),
+            h("td", {}, e.score !== undefined ? pill(`${Math.round(e.score)} %`, e.score >= 80 ? "s-applied" : e.score >= 50 ? "s-pending" : "s-failed") : ""),
+            h("td", {}, nameOf(e.evaluatorId)),
+            h("td", {}, e.released ? pill("released", "s-applied") : pill("not released", "s-pending")))))) : h("div", { class: "muted" }, "The agent has no evaluations yet."),
+        h("div", { class: "row", style: "margin:12px 0 6px" }, h("strong", {}, `${convs.length} handled conversation${convs.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 4 weeks)")),
+        failed(s.conversations) ? h("div", { class: "error" }, s.conversations.error) : null,
+        !convs.length && !failed(s.conversations) ? h("div", { class: "muted" }, "The agent has not handled any conversation in the last 4 weeks. Evaluations need one: log in as the agent and take a few calls, chats or emails first.") : null);
+      if (withForm) drawForm(s, convs.filter((c) => !evaluated.has(c.id)));
+    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }
+  };
+  const drawForm = (s, open) => {
+    const NEW = "__new__";
+    const formSel = h("select", {}, h("option", { value: NEW }, "New form from the template…"), s.forms.map((f, i) => h("option", { value: f.id, selected: i === 0 }, f.name)));
+    const formName = h("input", { value: s.defaults.form, style: "min-width:240px" });
+    const syncForm = () => { formName.style.display = formSel.value === NEW ? "" : "none"; };
+    formSel.addEventListener("change", syncForm);
+    const candidates = users.filter((u) => s.evaluators.includes(u.id));
+    const evaluator = h("select", {}, candidates.map((u) => h("option", { value: u.id }, u.name)));
+    const rows = open.map((c, i) => {
+      const result = h("select", {}, RESULTS.map(([v, l]) => h("option", { value: v, selected: v === ["strong", "mixed", "strong", "weak"][i % 4] }, l)));
+      const comment = h("input", { value: s.defaults.comments[result.value], style: "flex:1;min-width:260px" });
+      let edited = false;
+      comment.addEventListener("input", () => { edited = true; });
+      result.addEventListener("change", () => { if (!edited) comment.value = s.defaults.comments[result.value]; });
+      const use = h("input", { type: "checkbox", checked: i < 3 });
+      return { c, use, result, comment, el: h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:6px 0" }, use,
+        h("span", { style: "min-width:230px" }, time(c.start), h("span", { class: "muted", style: "font-size:12px" }, ` · ${MEDIA[c.mediaType] || c.mediaType || ""}${c.customer ? ` · ${c.customer}` : ""}`)),
+        result, comment) };
+    });
+    const btn = h("button", { class: "btn primary", disabled: !rows.length || !candidates.length }, "Create evaluations");
+    btn.addEventListener("click", () => {
+      const chosen = rows.filter((r) => r.use.checked);
+      if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one conversation.")); return; }
+      run({
+        form: formSel.value === NEW ? { name: formName.value } : { id: formSel.value },
+        evaluatorId: evaluator.value,
+        evaluations: chosen.map((r) => ({ conversationId: r.c.id, result: r.result.value, comment: r.comment.value })),
+      }, btn);
+    });
+    put(form,
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Form", formSel), formName,
+        h("span", { class: "muted", style: "font-size:12px" }, "existing forms are published forms of the org; a new form is created from the template and published (published forms stay in the org)")),
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Evaluator", evaluator),
+        candidates.length ? h("span", { class: "muted", style: "font-size:12px" }, "users who may score evaluations (quality:evaluation:edit)") : h("span", { class: "error", style: "margin:0" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),),
+      h("div", { class: "muted", style: "font-size:12px;margin:6px 0" }, "Conversations of the agent without an evaluation yet: tick the ones to evaluate and choose how the agent did; the answers are picked accordingly and the evaluation is released to the agent."),
+      rows.length ? h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)) : h("div", { class: "muted" }, "Every handled conversation of the last 4 weeks is evaluated already, or there is none."),
+      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));
+    syncForm();
+  };
+  load(true);
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Evaluations"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Released evaluations show up in the agent's performance views and feed the quality evaluation score on the scorecard. Genesys Cloud evaluates real conversations, so the agent needs a few handled ones."),
+    demoBlock("live", `${pick.userName || "The agent"}'s evaluations and conversations`, `live from ${pick.profile}`, info),
+    demoBlock("setup", "Evaluate conversations", "nothing is created until you press the button", form),
+    out);
+}
+
+function demoSchedule(pick) {
+  const info = h("div", {}, h("div", { class: "muted" }, "Loading workforce management…"));
+  const form = h("div");
+  const out = h("div");
+  const run = demoRunner("schedule", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));
+  const load = async (withForm) => {
+    try {
+      const s = await api(`/api/demo/schedule/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const bu = s.current && s.businessUnits.find((b) => b.id === s.current.businessUnitId);
+      const mu = bu && bu.managementUnits.find((m) => m.id === s.current.id);
+      put(info,
+        h("dl", { class: "kv", style: "margin:0 0 8px" },
+          h("dt", {}, "Management unit"), h("dd", {}, mu ? `${mu.name} (business unit ${bu.name})` : h("span", { class: "muted" }, "none: the agent has no schedule")),
+          s.week ? [h("dt", {}, "This week"), h("dd", {}, `from ${s.week}`)] : null),
+        s.schedules.length ? h("table", {},
+          h("tr", {}, ["Schedule", "Weeks", "Published", "Agent's shifts"].map((t) => h("th", {}, t))),
+          s.schedules.map((x) => h("tr", {}, h("td", {}, x.description || x.id), h("td", {}, x.weekCount ?? ""), h("td", {}, pill(x.published ? "published" : "not published", x.published ? "s-applied" : "s-pending")), h("td", {}, x.shifts ?? "—"))))
+          : mu ? h("div", { class: "muted" }, "No schedule for this week in the business unit.") : null,
+        !s.businessUnits.length ? h("div", { class: "muted", style: "margin-top:6px" }, "The org has no business unit yet.") : null);
+      if (withForm) drawForm(s);
+    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }
+  };
+  const drawForm = (s) => {
+    const NEW = "__new__";
+    const buSel = h("select", {}, h("option", { value: NEW }, "New business unit…"), s.businessUnits.map((b) => h("option", { value: b.id, selected: b.name === s.defaults.businessUnit || b.id === s.current?.businessUnitId }, b.name)));
+    const buName = h("input", { value: s.defaults.businessUnit, style: "min-width:200px" });
+    const tz = h("input", { value: Intl.DateTimeFormat().resolvedOptions().timeZone || s.defaults.timeZone, title: "Time zone of the business unit, e.g. Europe/London", style: "min-width:160px" });
+    const muSel = h("select");
+    const muName = h("input", { value: s.defaults.managementUnit, style: "min-width:200px" });
+    const syncBu = () => {
+      const bu = s.businessUnits.find((b) => b.id === buSel.value);
+      buName.style.display = tz.style.display = bu ? "none" : "";
+      muSel.replaceChildren(h("option", { value: NEW }, "New management unit…"), ...(bu?.managementUnits ?? []).map((m) => h("option", { value: m.id, selected: m.name === s.defaults.managementUnit || m.id === s.current?.id }, m.name)));
+      syncMu();
+    };
+    const syncMu = () => { muName.style.display = muSel.value === NEW ? "" : "none"; };
+    buSel.addEventListener("change", syncBu);
+    muSel.addEventListener("change", syncMu);
+    const weeks = h("select", {}, [1, 2, 3, 4].map((n) => h("option", { value: n, selected: n === 2 }, `${n} week${n > 1 ? "s" : ""}`)));
+    const start = h("input", { type: "time", value: "09:00" });
+    const length = h("select", {}, [6, 7, 7.5, 8, 9].map((n) => h("option", { value: n * 60, selected: n === 8 }, `${n} h`)));
+    const DAYS = [["Mon", 1], ["Tue", 2], ["Wed", 3], ["Thu", 4], ["Fri", 5], ["Sat", 6], ["Sun", 0]];
+    const days = DAYS.map(([l, d]) => ({ d, box: h("input", { type: "checkbox", checked: d >= 1 && d <= 5 }), l }));
+    const training = h("input", { type: "checkbox", checked: true });
+    const btn = h("button", { class: "btn primary" }, "Set up the schedule");
+    btn.addEventListener("click", () => run({
+      businessUnit: buSel.value === NEW ? { name: buName.value, timeZone: tz.value } : { id: buSel.value },
+      managementUnit: muSel.value === NEW ? { name: muName.value } : { id: muSel.value },
+      weeks: Number(weeks.value),
+      pattern: { start: start.value, lengthMinutes: Number(length.value), days: days.filter((x) => x.box.checked).map((x) => x.d), training: training.checked },
+    }, btn));
+    put(form,
+      h("div", { style: "display:grid;gap:8px" },
+        h("div", { class: "row" }, h("label", { class: "row" }, "Business unit", buSel), buName, tz),
+        h("div", { class: "row" }, h("label", { class: "row" }, "Management unit", muSel), muName,
+          h("span", { class: "muted", style: "font-size:12px" }, "the agent is moved into it")),
+        h("div", { class: "row" }, h("label", { class: "row" }, "Schedule", weeks), h("span", { class: "muted", style: "font-size:12px" }, "from this week"),
+          h("label", { class: "row" }, "Start", start), h("label", { class: "row" }, "Shift", length)),
+        h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:12px" }, "Working days"), days.map((x) => h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, x.box, x.l))),
+        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, training, "Training hour on Wednesdays (besides two breaks and lunch every day)"),
+        h("div", { class: "muted", style: "font-size:12px" }, "An existing business unit that has a schedule for this week already is left alone; the page adds its schedule to new or empty weeks only."),
+        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn)));
+    syncBu();
+  };
+  load(true);
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Schedule"),
+    h("p", { class: "muted", style: "margin-top:0" }, "A published schedule shows up on the agent's home screen and in the schedule view. Workforce management needs a business unit and a management unit with the agent in it; a new business unit takes Genesys Cloud a minute or two to set up."),
+    demoBlock("live", `${pick.userName || "The agent"}'s schedule`, `live from ${pick.profile}`, info),
+    demoBlock("setup", "Set up", "nothing changes until you press the button", form),
+    out);
+}
+
+function demoScorecard(pick) {
+  const info = h("div", {}, h("div", { class: "muted" }, "Loading gamification…"));
+  const form = h("div");
+  const out = h("div");
+  const run = demoRunner("scorecard", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));
+  const load = async (withForm) => {
+    try {
+      const s = await api(`/api/demo/scorecard/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const current = s.profiles.find((p) => p.id === s.currentProfile);
+      put(info, 
+        h("dl", { class: "kv", style: "margin:0 0 8px" },
+          h("dt", {}, "Gamification"), h("dd", {}, s.gamification.active ? [pill("on", "s-applied"), h("span", { class: "muted" }, ` since ${s.gamification.dateStart}`)] : pill("off", "s-pending")),
+          h("dt", {}, "Agent's profile"), h("dd", {}, current ? [current.name, current.active === false ? h("span", { class: "muted" }, " (inactive)") : null] : h("span", { class: "muted" }, "none")),
+          current ? [h("dt", {}, "Metrics"), h("dd", {}, s.currentMetrics.length ? s.currentMetrics.join(", ") : h("span", { class: "muted" }, "none"))] : null),
+        s.gamification.active && current ? h("div", { class: "muted", style: "font-size:13px" }, "Scorecard values come from the agent's real activity and are calculated by Genesys Cloud a few times a day, so new data can take a while to show.") : null);
+      if (withForm) drawForm(s);
+    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }
+  };
+  const drawForm = (s) => {
+    const NEW = "__new__";
+    const byName = s.profiles.find((p) => p.name === s.defaults.profile);
+    const profileSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New profile…"),
+      s.profiles.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.active === false ? " (inactive)" : ""} · ${p.memberCount ?? 0} member${p.memberCount === 1 ? "" : "s"}`)));
+    const profileName = h("input", { value: s.defaults.profile, style: "min-width:220px" });
+    const activate = h("input", { type: "checkbox", checked: true });
+    const boxes = s.definitions.map((d) => ({ d, box: h("input", { type: "checkbox", checked: s.defaults.metrics.includes(d.name) }), tag: h("span", { class: "muted", style: "font-size:11px;white-space:nowrap" }) }));
+    const metricsBox = h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px" },
+      boxes.map(({ d, box, tag }) => h("label", { class: "row", style: "font-size:13px;color:var(--text);flex-wrap:nowrap" }, box, d.label, tag)));
+    // Metrics the agent's current profile has already: shown as such, not as suggestions.
+    const markMetrics = () => {
+      const has = profileSel.value === s.currentProfile ? new Set(s.currentMetrics) : new Set();
+      for (const b of boxes) {
+        const inProfile = has.has(b.d.label);
+        b.box.disabled = inProfile;
+        if (inProfile) b.box.checked = true;
+        b.tag.textContent = inProfile ? "already in the profile" : "";
+      }
+    };
+    const own = (id) => s.own.includes(id);
+    const sync = () => {
+      const editable = profileSel.value === NEW || own(profileSel.value);
+      profileName.style.display = profileSel.value === NEW ? "" : "none";
+      metricsWrap.style.display = editable ? "" : "none";
+      existingNote.style.display = editable ? "none" : "";
+      markMetrics();
+    };
+    const metricsWrap = h("div", {}, h("div", { class: "muted", style: "font-size:12px;margin:8px 0 4px" }, "Metrics of the profile (objectives start today; Genesys Cloud does not accept earlier dates)"), metricsBox);
+    const existingNote = h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, "An existing profile keeps its metrics; only the agent becomes a member.");
+    profileSel.addEventListener("change", sync);
+    const btn = h("button", { class: "btn primary" }, "Set up the scorecard");
+    btn.addEventListener("click", () => run({
+      activate: activate.checked,
+      profile: profileSel.value === NEW ? { name: profileName.value } : { id: profileSel.value },
+      metrics: boxes.filter((b) => b.box.checked).map((b) => b.d.id),
+    }, btn));
+    put(form, 
+      !s.gamification.active ? h("label", { class: "row", style: "font-size:13px;color:var(--text);margin-bottom:8px" }, activate, "Switch gamification on for the org (from today)") : null,
+      h("div", { class: "row" }, h("label", { class: "row" }, "Performance profile", profileSel), profileName),
+      metricsWrap, existingNote,
+      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));
+    sync();
+  };
+  load(true);
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Scorecard"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Puts the agent in a performance profile so the scorecard, leaderboard and performance home show values. Needs gamification switched on in the org."),
+    demoBlock("live", `${pick.userName || "The agent"}'s scorecard setup`, `live from ${pick.profile}`, info),
+    demoBlock("setup", "Set up", "nothing changes until you press the button", form),
+    out);
+}
+
+function demoRefresh(pick) {
+  const list = h("div", {}, h("div", { class: "muted" }, "Checking the dates…"));
+  const out = h("div");
+  const run = demoRunner("refresh", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());
+  const day = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const load = async () => {
+    try {
+      const s = await api(`/api/demo/refresh/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const box = (on, label, note) => { const b = h("input", { type: "checkbox", checked: on, disabled: !on }); return [b, h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600;margin-top:10px" }, b, label, h("span", { class: "muted", style: "font-weight:400" }, note))]; };
+      const [coaching, coachingLabel] = box(s.appointments.length > 0, "Coaching", s.appointments.length ? `${s.appointments.length} appointment${s.appointments.length > 1 ? "s" : ""} in the past` : "all ahead");
+      const [learning, learningLabel] = box(s.assignments.length > 0, "Learning", s.assignments.length ? `${s.assignments.length} due date${s.assignments.length > 1 ? "s" : ""} in the past` : "all ahead");
+      const sch = s.schedule;
+      const [schedule, scheduleLabel] = box(sch.state === "stale", "Schedule",
+        sch.state === "stale" ? `nothing for the week of ${sch.week}` : sch.state === "current" ? "covers this week" : "Demo ready has not made a schedule for this agent");
+      const move = (rows) => rows.length ? h("table", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "Now"), h("th", {}, "After the refresh")),
+        rows.map((r) => h("tr", {}, h("td", {}, r.name || r.moduleName), h("td", { class: "muted" }, day(r.dateStart || r.dueDate)), h("td", {}, day(r.newDate))))) : null;
+      const btn = h("button", { class: "btn primary", disabled: !s.stale }, "Refresh");
+      btn.addEventListener("click", () => run({ coaching: coaching.checked, learning: learning.checked, schedule: schedule.checked }, btn));
+      put(list,
+        s.stale ? null : h("div", { class: "okbox" }, "Everything Demo ready created for this agent lies ahead. Nothing to refresh."),
+        coachingLabel, move(s.appointments),
+        learningLabel, move(s.assignments),
+        scheduleLabel, sch.state === "stale" ? h("div", { class: "muted", style: "font-size:13px" }, `A new ${Math.max(2, sch.weeks || 2)}-week schedule from ${sch.week} in "${sch.businessUnit.name}", with the default shifts (09:00, 8 hours, Monday to Friday).`) : null,
+        h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "spacer" }), btn));
+    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }
+  };
+  load();
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Refresh dates"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Demo data ages: a week later the coaching appointments and due dates lie in the past and the schedule has run out. This moves what Demo ready created forward by whole weeks (same weekday and time) and publishes a new schedule. Completed appointments and objects the page did not create stay as they are; Clean up still removes everything."),
+    list, out);
+}
+
+function demoCleanup(pick) {
+  const list = h("div", {}, h("div", { class: "muted" }, "Loading what Demo ready created…"));
+  const out = h("div");
+  const run = demoRunner("cleanup", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());
+  const TITLES = { coaching: "Coaching", learning: "Learning", sta: "Speech and text analytics", evaluations: "Evaluations", scorecard: "Scorecard", schedule: "Schedule" };
+  const STATE = { remove: ["will be removed", "s-pending"], restore: ["will be restored", "s-pending"], gone: ["already removed", "s-applied"], kept: ["cannot be removed", "s-failed"] };
+  const load = async () => {
+    try {
+      const s = await api(`/api/demo/cleanup/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);
+      const open = s.items.filter((i) => i.state === "remove" || i.state === "restore");
+      const boxes = {};
+      const sections = Object.keys(TITLES).filter((k) => s.items.some((i) => i.section === k));
+      const btn = h("button", { class: "btn danger", disabled: !open.length }, "Remove");
+      btn.addEventListener("click", () => {
+        const chosen = sections.filter((k) => boxes[k]?.checked);
+        if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one section.")); return; }
+        const n = open.filter((i) => chosen.includes(i.section)).length;
+        if (!confirm(`Remove or restore ${n} thing${n === 1 ? "" : "s"} Demo ready created for ${pick.userName || "this agent"} in ${pick.profile}?`)) return;
+        run({ sections: chosen }, btn);
+      });
+      put(list, 
+        s.items.length ? h("div", {},
+          sections.map((k) => {
+            const its = s.items.filter((i) => i.section === k);
+            const todo = its.filter((i) => i.state === "remove" || i.state === "restore").length;
+            boxes[k] = h("input", { type: "checkbox", checked: todo > 0, disabled: !todo });
+            const row = (i) => h("tr", {}, h("td", {}, i.label), h("td", { style: "white-space:nowrap" }, pill(STATE[i.state][0], STATE[i.state][1])), h("td", { class: "muted", style: "font-size:12px" }, i.reason || ""));
+            const gone = its.filter((i) => i.state === "gone");
+            return h("div", { style: "margin-bottom:10px" },
+              h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600" }, boxes[k], TITLES[k], h("span", { class: "muted", style: "font-weight:400" }, todo ? `${todo} to remove or restore` : "nothing left")),
+              h("table", {}, its.filter((i) => i.state !== "gone").map(row)),
+              gone.length ? h("details", {}, h("summary", { style: "font-size:12px" }, `${gone.length} already removed`), h("table", {}, gone.map(row))) : null);
+          }),
+          h("div", { class: "row" }, h("span", { class: "spacer" }), btn))
+          : h("div", { class: "muted" }, "Demo ready has not created anything for this agent in this org yet."),
+        s.notRemovable.map((n) => h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, n)));
+    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }
+  };
+  load();
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Clean up"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Removes what this page created for the agent and restores what it changed. Objects that were already in the org and only reused (queues, modules, wrap-up codes) stay as they are."),
+    list, out);
+}
+
+// ------------------------------------------------------------- profiles
+async function viewProfiles() {
+  const o = state.overview || await api("/api/overview");
+  return h("div", {},
+    h("h2", {}, "Orgs"),
+    h("p", { class: "lead" }, "One entry (profile) per Genesys Cloud org you work in, for example your demo org and a sandbox. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain."),
+    h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),
+    o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),
+    addProfileForm(o));
+}
+
+function profileCard(p) {
+  if (p.error) return h("div", { class: "panel error" }, `${p.name}: ${p.error}`);
+  const msg = h("div");
+  const cid = h("input", { placeholder: "Client ID", autocomplete: "off" });
+  const csec = h("input", { placeholder: "Client secret", type: "password", autocomplete: "off" });
+  const run = async (fn, okText) => {
+    msg.replaceChildren();
+    try { const r = await fn(); await refreshOverview(); msg.replaceChildren(h("div", { class: r && r.verified === false ? "error" : "okbox" }, r && r.verified === false ? `Stored, but verification failed: ${r.error}` : okText(r))); }
+    catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }
+  };
+  return h("div", { class: "panel" },
+    h("div", { class: "row" }, h("strong", {}, p.name), pill(p.tier, `t-${p.tier}`), h("span", { class: "muted" }, p.region),
+      p.active ? pill("working on", "") : null, h("span", { class: "spacer" }),
+      p.credentialsStored ? pill("credentials ok", "a-granted") : pill("no credentials", "a-missing")),
+    p.description ? h("div", { class: "muted" }, p.description) : null,
+    h("details", {}, h("summary", {}, "Credentials"),
+      h("div", { class: "row" }, cid, csec, h("button", { class: "btn", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Store & verify"))),
+    h("div", { class: "row", style: "margin-top:8px" },
+      !p.active ? h("button", { class: "btn", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Work on this org") : null,
+      h("span", { class: "spacer" }),
+      h("button", { class: "btn danger", onclick: () => { if (confirm(`Delete profile ${p.name} and its stored credentials?`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),
+    msg);
+}
+
+function addProfileForm(o) {
+  const f = {
+    name: h("input", { placeholder: "prod-de" }), region: h("input", { placeholder: "mypurecloud.de" }),
+    tier: h("select", {}, o.tiers.map((t) => h("option", { value: t }, t))), description: h("input", { placeholder: "Customer X production" }),
+    clientId: h("input", { placeholder: "Client ID", autocomplete: "off" }), clientSecret: h("input", { type: "password", placeholder: "Client secret", autocomplete: "off" }),
+  };
+  const msg = h("div");
+  const submit = async () => {
+    msg.replaceChildren();
+    try {
+      const r = await api("/api/profiles", { method: "POST", body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) });
+      f.clientSecret.value = "";
+      await refreshOverview();
+      await render();
+      if (r.verified === false) showError(new Error(`Profile created, credentials stored, but verification failed: ${r.error}`));
+    } catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }
+  };
+  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "Connect an org"),
+    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "Region / domain", f.region), h("label", {}, "Tier", f.tier), h("label", {}, "Description", f.description),
+      h("label", {}, "OAuth client ID (Client Credentials)", f.clientId), h("label", {}, "Client secret", f.clientSecret)),
+    h("p", { class: "muted" }, "Name: short, e.g. demo-emea. Region: the domain you log in with, e.g. mypurecloud.de. Tier: sandbox for a personal demo org. Use a dedicated OAuth client (Client Credentials) per org; the secret is stored in the OS keychain and never shown again."),
+    h("button", { class: "btn primary", onclick: submit }, "Connect org"), msg);
+}
+
+// ------------------------------------------------------------------ axl
+// AXL workshops run in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list
+// of workshops here, each with the org the harness works on and the folder opened in Cursor.
+// Everything shown is local state; names and paths are the user's text (text nodes only).
+const AXL_STAGES = [["research", "Research"], ["discovery", "Discovery"], ["build", "Build & test"], ["readout", "Readout"]];
+const AXL_ARTIFACT_LABELS = { pov: "POV deck", spec: "Spec", run: "Run", readout: "Readout" };
+const axlUrl = (id, rest = "") => `/api/axl/workshops/${encodeURIComponent(id)}${rest}`;
+
+/** One word for where a workshop stands, for the overview and the detail view. */
+function axlHarnessState(x) {
+  const w = x.workshop, f = x.folder;
+  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];
+  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];
+  if (!f.connected || f.stale) return [f.connected ? "out of date" : "not set up", "s-pending", "Press Set up folder."];
+  if (x.lastStart?.sinceSetup) return ["running", "s-applied", `Cursor started the harness ${time(x.lastStart.at)} (${x.lastStart.detail}).`];
+  return ["not started in Cursor", "s-pending", "Switch on this project's ava-harness in Cursor (Settings → MCP)."];
+}
+
+function axlOpenInCursor(id, small) {
+  return h("button", { class: "btn", style: small ? "padding:2px 10px;font-size:12px" : null, onclick: async () => {
+    try { const r = await api(axlUrl(id, "/open-cursor"), { method: "POST", body: {} }); if (!r.opened) showError(new Error("Could not open Cursor. Open the folder in Cursor yourself.")); } catch (err) { showError(err); }
+  } }, "Open in Cursor");
+}
+
+async function viewAxl() {
+  const st = await api("/api/axl");
+  const box = h("div", {});
+  const draw = (next) => {
+    const open = state.axlOpen;
+    const x = open && open !== "new" ? next.workshops.find((y) => y.workshop.id === open) : null;
+    if (open && open !== "new" && !x) state.axlOpen = null;
+    box.replaceChildren(state.axlOpen === "new" ? axlNew(next, draw) : x ? axlDetail(next, x, draw) : axlOverview(next, draw));
+  };
+  draw(st);
+  return box;
+}
+
+function axlHarnessMissing(st, draw) {
+  if (st.harnessInstalled) return null;
+  const cmd = h("input", { value: "", placeholder: st.harnessCommand, style: "flex:1;min-width:280px", "aria-label": "Path of ava-mcp" });
+  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "AVA harness not found"),
+    h("p", { class: "muted", style: "font-size:13px" }, `gctk starts the harness (ava-mcp from genesys-ava-skills) from ${st.harnessCommand}, but there is nothing there. Install it, or enter where it is.`),
+    h("div", { class: "row" }, cmd, h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl/settings", { method: "PUT", body: { harnessCommand: cmd.value } })); } catch (err) { showError(err); } } }, "Save")));
+}
+
+function axlOverview(st, draw) {
+  const open = (id) => { state.axlOpen = id; draw(st); };
+  const rows = st.workshops.map((x) => {
+    const w = x.workshop;
+    const [label, cls, hint] = axlHarnessState(x);
+    const latest = x.sessions[0];
+    return h("tr", {},
+      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),
+      h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),
+      h("td", { title: hint }, pill(label, cls)),
+      h("td", {}, x.sessions.length ? [`${x.sessions.length} · `, h("span", { class: "muted" }, `${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`)] : h("span", { class: "muted" }, "–")),
+      h("td", { style: "white-space:nowrap;text-align:right" }, x.folder.exists ? axlOpenInCursor(w.id, true) : null, " ", h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(w.id) }, "Settings")));
+  });
+  return h("div", {},
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "AXL workshops"), h("span", { class: "spacer" }),
+      h("button", { class: "btn" , onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"),
+      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New workshop")),
+    h("p", { class: "lead" }, "Run AI Agent eXperience Labs in the Cursor app with the axl-lab-facilitator skill. Each workshop has its own org and its own folder; gctk gives the folder an AVA harness server that works on that org, with its credentials from the keychain. Other Cursor projects are not affected."),
+    axlHarnessMissing(st, draw),
+    st.globalHarness.present ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a workshop's, so switch it off in each workshop folder (Settings → MCP).`) : null,
+    st.workshops.length
+      ? h("div", { class: "panel" }, h("table", {}, h("tr", {}, h("th", {}, "Workshop"), h("th", {}, "Org"), h("th", {}, "AVA harness"), h("th", {}, "Sessions"), h("th", {}, "")), rows))
+      : h("div", { class: "panel empty" }, "No workshops yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Add the first one"), "."));
+}
+
+function axlOrgSelect(st, value) {
+  return h("select", { "aria-label": "Org for the workshop" },
+    h("option", { value: "" }, st.choices.length ? "choose…" : "no sandbox or dev org"),
+    st.choices.map((c) => h("option", { value: c.name, selected: c.name === value }, `${c.name} · ${c.tier} · ${c.region}`)));
+}
+
+function axlNew(st, draw) {
+  const back = () => { state.axlOpen = null; draw(st); };
+  const name = h("input", { placeholder: "e.g. Acme Bank", style: "min-width:260px", "aria-label": "Workshop name" });
+  const org = axlOrgSelect(st, "");
+  const folder = h("input", { placeholder: "/Users/you/AXL/acme-bank", style: "flex:1;min-width:320px", "aria-label": "Workshop folder" });
+  const create = async () => {
+    try {
+      const r = await api("/api/axl/workshops", { method: "POST", body: { name: name.value, profile: org.value, folder: folder.value } });
+      state.axlOpen = r.id;
+      draw(r);
+    } catch (err) { showError(err); }
+  };
+  return h("div", {},
+    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All workshops")),
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New AXL workshop"),
+    h("div", { class: "panel" },
+      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:10px" },
+        h("label", {}, "Name (usually the customer)", name),
+        h("label", {}, "Org the lab builds in (sandbox or dev)", org),
+        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder)),
+      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder with axl-sessions/ and writes the AVA harness server with this org into its .cursor/mcp.json."),
+      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create workshop"), h("button", { class: "btn", onclick: back }, "Cancel"))));
+}
+
+// A condensed AXL Session Field Guide (2026-09-24): what to do in each step, the prompts to paste
+// into the Cursor agent, and what comes out. `done` names the session artifact that shows the step
+// is finished. Keep it in step with the field guide when that changes. The facilitator skill never
+// loads by itself (disable-model-invocation), so every prompt that starts a job names it; follow-ups
+// in the same chat do not.
+const AXL_GUIDE = [
+  { id: "before", title: "Before the session", when: "days before", done: "spec",
+    todo: [
+      "Log the session in Salesforce as soon as it is agreed: SE/SA Task, Activity Type \"Agentic Experience Lab\".",
+      "Six gates green: CX Activate sandbox org (recording and Architect execution history on), SDD role, SDD OAuth client, coding agent ready (current wheel, axl-lab-facilitator and axl-capsule installed, model: latest Opus, medium effort), SMS/WhatsApp number if needed, the right people incl. an executive sponsor.",
+      "Verify the org connection in this workshop folder, then have the agent read something back from the org.",
+      "Run the research job in the Cursor agent you will keep for the whole engagement. Review the assumptions and the customer's language (45–60 min).",
+      "Nothing gets pre-built in Genesys Cloud.",
+    ],
+    prompts: [
+      { text: "Confirm which Genesys Cloud org you are connected to and show me its name and id.", note: "Check the org (in this workshop folder)" },
+      { dynamic: "research", note: "Job 1: research – starts the agent you keep. Built from the form above." },
+      { text: "Ignore the previous sessions in this workspace and follow the skill instructions for this customer from scratch.", note: "Follow-up, only if the workspace has earlier sessions" },
+    ],
+    out: "Spec artifact (spec-artifact.md, plus the version you present)" },
+  { id: "frame", title: "1 · Frame & point of view", when: "0:00–0:20",
+    todo: [
+      "Set the stage (5 min): AXL Intro Slides, example artifacts to hand. Say that most of the middle is a coding agent working, and that something will break and you will fix it live.",
+      "Reconfirm the six gates, present the spec artifact (intent, success criteria, tools), explain spec-driven building and the anatomy of an AVA.",
+      "Decide: keep the use case (Path A, also with changes) or start from scratch (Path B).",
+    ],
+    out: "Expectations set, gates green, scope agreed" },
+  { id: "discovery", title: "2 · Discovery", when: "0:20–1:00",
+    todo: [
+      "Path A: write the customer's changes in their words at the end of the spec artifact, read them back, get a yes.",
+      "Path B: pick the option to build a new use case during discovery and author it live (costs ~45 min).",
+      "Agree about four success criteria, the happy path and the escalation. One intent, voice-first, at most 6 tools.",
+    ],
+    prompts: [{ text: "/axl-lab-facilitator Let's continue with the <use case>", note: "Job 2: discovery on the chosen use case (Path B: pick the new use case option it offers)" }],
+    out: "Agreed spec artifact and signed-off success criteria" },
+  { id: "build", title: "3 · Create & test the AVA", when: "1:00–2:30", done: "run",
+    todo: [
+      "Hand the build over with the Job 3 prompt; it runs design, build, test, evaluate and critique (30–80 min). Stop it past 90 min and take the best version.",
+      "Don't spectate: work Track 1 in this order – custom summary configuration, DID, inbound and bot flow (After Contact AI on, Deepgram Flux), escalation queue with your own user, wrap-up codes with descriptions, ElevenLabs voice, test end to end.",
+      "Track 2 only when Track 1 is green, one topic (Copilot with knowledge in a second Cursor window, or AI scoring).",
+    ],
+    prompts: [
+      { dynamic: "build", note: "Job 3: build and test, once the plan is confirmed. Test strategy from the form in \"Before the session\"." },
+      { text: "Refine, retest and iterate until all tests are passed.", note: "Follow-up, if it stops on failing tests" },
+    ],
+    out: "Published AVA, run artifact (run-artifact.html), end-to-end path wired" },
+  { id: "review", title: "4 · Review, test manually & refine", when: "2:30–3:10",
+    todo: [
+      "Walk the run artifact with the customer and agree the UAT shortlist from the success criteria.",
+      "With four or more people, split into groups: happy path, guardrails, edge cases & escalation, voice & language quality. Log everything, 5-minute readback, one refine pass.",
+    ],
+    out: "Independently validated AVA and agreed follow-up fixes" },
+  { id: "polish", title: "5 · Polish & dry-run", when: "3:10–3:40", done: "readout",
+    todo: [
+      "One clean rehearsal: real number → Architect → AVA → escalation with summary.",
+      "Then generate the readout artifact (after the last refine) and read it through for overstated claims.",
+    ],
+    prompts: [{ text: "/axl-lab-facilitator The build is complete. Create the readout artifact for this session.", note: "Job 4: readout, after the last refine" }],
+    out: "Showcase-ready AVA and the readout artifact (readout-artifact.html)" },
+  { id: "showcase", title: "6 · Live showcase & readout", when: "3:40–4:00",
+    todo: [
+      "Open with the readout artifact. Show in order: self-service on a real call, seamless escalation, the custom summary and wrap-up code, the scorecard – each tied to a KPI.",
+      "Close with commitment: what happens to the prototype, who owns it and by when, what would need to be true to go live.",
+    ],
+    out: "A committed next step with a named owner and a date" },
+  { id: "after", title: "After the session", when: "same day",
+    todo: [
+      "Send the readout artifact as PDF (never the HTML) with the next steps at the top.",
+      "Package with axl-capsule if the customer continues (always on Kiro Crew, before the instance expires).",
+      "Rotate the SDD OAuth client's secret.",
+    ],
+    prompts: [{ text: "/axl-capsule Package this AXL session so the customer can continue it\nin <their coding agent>.", note: "Only runs when named; after the readout is final" }],
+    out: "Capsule for the customer (if they continue), secret rotated" },
+];
+
+const AXL_BRIEF_DEFAULTS = { moreUseCases: 2, language: (navigator.language || "").startsWith("de") ? "de" : "en", functionPath: true, runsPerCase: 1, threshold: 80, afterThreshold: "decide", maxVersions: 5, parallel: 2 };
+
+/** The research (Job 1) and build (Job 3) prompts from a workshop's brief, in the session language. */
+function axlPrompts(w, brief) {
+  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...brief };
+  const de = b.language === "de";
+  const lines = [];
+  const add = (text) => { if (text) lines.push(text); };
+  const runs = b.runsPerCase === 1 ? (de ? "einmal" : "once") : (de ? `${b.runsPerCase}-mal` : `${b.runsPerCase} times`);
+  const after = {
+    decide: de ? "entscheide ich, ob wir weitermachen oder diese Lösung in die UATs übergeben" : "I decide whether we continue or hand this solution over to the UATs",
+    uat: de ? "übergib die Lösung in die UATs" : "hand the solution over to the UATs",
+    continue: de ? `iteriere weiter, bis alle Testcases bestanden sind, höchstens bis Version ${b.maxVersions}` : `keep iterating until all test cases pass, up to version ${b.maxVersions} at most`,
+  }[b.afterThreshold];
+  const testing = de
+    ? `Das Testing soll später nach folgendem Ziel ablaufen: Nach dem Erstellen der Test Cases soll jeder Testcase pro Iteration ${runs} durchlaufen werden. Wenn mindestens ${b.threshold} % der Testcases bestanden sind, ${after}.`
+    : `Testing later follows this goal: once the test cases are created, run each test case ${runs} per iteration. When at least ${b.threshold}% of the test cases pass, ${after}.`;
+  const parallel = b.parallel > 1
+    ? (de ? `Versuche das Testing mit ${b.parallel} parallelen Testcase Runs. Wenn Rate Limits erreicht werden, gehe zurück auf eine parallele Session.` : `Try testing with ${b.parallel} parallel test case runs. If you hit rate limits, fall back to one session at a time.`)
+    : (de ? "Führe die Testcase Runs nacheinander aus." : "Run the test cases one at a time.");
+
+  add(de ? `/axl-lab-facilitator Recherchiere für eine AXL Session mit ${b.customer} als Kunden.` : `/axl-lab-facilitator Research ${b.customer} for an upcoming AXL session.`);
+  add(b.useCase);
+  if (b.moreUseCases > 0) add(b.useCase
+    ? (de ? `Entwickle außerdem ${b.moreUseCases} weitere mögliche Use Cases als Entscheidungsgrundlage.` : `Also develop ${b.moreUseCases} further possible use cases as a basis for the decision.`)
+    : (de ? `Schlage ${b.moreUseCases} mögliche Use Cases als Entscheidungsgrundlage vor.` : `Propose ${b.moreUseCases} possible use cases as a basis for the decision.`));
+  if (b.knowledge) add(de ? `Außerdem soll es Wissen zu folgenden Themen geben: ${b.knowledge}` : `The agent should also have knowledge about: ${b.knowledge}`);
+  if (b.persona) add(de ? `Der Agentic Agent soll den Namen ${b.persona} tragen.` : `The agentic agent should be called ${b.persona}.`);
+  add(de ? "Alle Assets und diese Session sollen auf Deutsch stattfinden." : "All assets and this session are in English.");
+  if (b.functionPath) add(de ? "Alle Tools sollen soweit möglich den Function Path nutzen und nicht den Echo Path." : "All tools should use the function path rather than the echo path wherever possible.");
+  add(testing);
+  add(parallel);
+  const research = lines.join("\n");
+
+  const build = [
+    de ? "/axl-lab-facilitator Job 3: Baue und teste den AVA." : "/axl-lab-facilitator Job 3: Build and test the AVA.",
+    de ? `Höchstens 10 Testcases; jeder Testcase läuft pro Iteration ${runs}. Wenn mindestens ${b.threshold} % bestanden sind, ${after}. Sonst verfeinere und iteriere, höchstens bis Version ${b.maxVersions}.`
+       : `At most 10 test cases; run each test case ${runs} per iteration. When at least ${b.threshold}% pass, ${after}. Otherwise refine and iterate, up to version ${b.maxVersions} at most.`,
+    parallel,
+  ].join("\n");
+  return { research, build };
+}
+
+/** The form behind the research prompt; saved with the workshop (the user's text, shown as text only). */
+function axlBriefForm(w, onChange) {
+  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...(w.brief || {}) };
+  const field = (label, el, wide) => h("label", { style: wide ? "grid-column:1/-1" : null }, label, el);
+  const input = (key, attrs = {}) => h("input", { value: b[key] ?? "", ...attrs });
+  const area = (key, placeholder) => h("textarea", { placeholder, style: "min-height:70px;font-family:inherit;font-size:13.5px" }, b[key] ?? "");
+  const num = (key, min, max) => h("input", { type: "number", min, max, value: b[key], style: "width:80px" });
+  const select = (key, opts) => h("select", {}, opts.map(([v, l]) => h("option", { value: v, selected: String(b[key]) === v }, l)));
+  const els = {
+    customer: input("customer", { placeholder: w.name }),
+    useCase: area("useCase", "What the agent should do, e.g. a central reservation line: ask for date, tent, lunch or evening, number of tables (10 people each), point out the prices."),
+    moreUseCases: num("moreUseCases", 0, 5),
+    knowledge: area("knowledge", "Optional, e.g. which beer is served where, opening hours"),
+    persona: input("persona", { placeholder: "e.g. Johann" }),
+    language: select("language", [["de", "Deutsch"], ["en", "English"]]),
+    functionPath: h("input", { type: "checkbox", checked: b.functionPath ? true : null, style: "width:auto" }),
+    runsPerCase: num("runsPerCase", 1, 5),
+    threshold: num("threshold", 50, 100),
+    afterThreshold: select("afterThreshold", [["decide", "I decide: continue or hand over to UATs"], ["uat", "hand over to UATs"], ["continue", "keep iterating up to the max version"]]),
+    maxVersions: num("maxVersions", 1, 10),
+    parallel: num("parallel", 1, 4),
+  };
+  const read = () => {
+    const out = {};
+    for (const [k, el] of Object.entries(els)) out[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;
+    return out;
+  };
+  for (const el of Object.values(els)) {
+    el.addEventListener("input", () => onChange(read(), false));
+    el.addEventListener("change", () => onChange(read(), true));
+  }
+  return h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 0" },
+    field("Customer", els.customer),
+    field("Session and assets in", els.language),
+    field("Persona name of the agent", els.persona),
+    field("Use case", els.useCase, true),
+    field("Further use cases to propose", els.moreUseCases),
+    field("Knowledge", els.knowledge, true),
+    h("label", { style: "display:flex;gap:8px;align-items:center;grid-column:1/-1" }, els.functionPath, "Tools use the function path where possible (a tool with a failure path, e.g. for the escalation, still needs the echo path)"),
+    field("Runs per test case and iteration", els.runsPerCase),
+    field("Pass threshold (%)", els.threshold),
+    field("When reached", els.afterThreshold),
+    field("Max version", els.maxVersions),
+    field("Parallel test runs (falls back to 1 on rate limits)", els.parallel));
+}
+
+/** The field guide for one workshop; steps whose artifact exists in the latest session are ticked. */
+function axlGuide(x) {
+  const w = x.workshop;
+  let brief = w.brief || {};
+  const dyn = {};
+  const refresh = () => {
+    const p = axlPrompts(w, brief);
+    for (const [k, el] of Object.entries(dyn)) el.pre.textContent = p[k];
+  };
+  const onChange = (next, persist) => {
+    brief = next;
+    refresh();
+    if (persist) api(axlUrl(w.id), { method: "PUT", body: { brief: next } }).then((r) => { const y = r.workshops.find((z) => z.workshop.id === w.id); if (y) w.brief = y.workshop.brief; }).catch(showError);
+  };
+  const latest = x.sessions[0];
+  const have = new Set(latest ? latest.artifacts : []);
+  const doneIdx = AXL_GUIDE.reduce((n, g, i) => (g.done && have.has(g.done) ? i : n), -1);
+  const fill = (text) => text.replaceAll("<customer>", x.workshop.name);
+  const panel = h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Running the workshop"),
+    h("p", { class: "muted", style: "font-size:13px;margin:0 0 8px" }, latest
+      ? `Progress from the latest session, ${latest.name.replace(/^AXL-/i, "")}. Prompts go into the Cursor agent you started for the research; keep that one agent for the whole engagement.`
+      : "Condensed from the AXL Session Field Guide. Prompts go into the Cursor agent you start for the research; keep that one agent for the whole engagement."),
+    AXL_GUIDE.map((g, i) => {
+      const done = i <= doneIdx;
+      return h("details", { style: "border-top:1px solid var(--line);padding:4px 0", open: i === doneIdx + 1 ? true : null },
+        h("summary", { style: "color:var(--text)" }, done ? "✓ " : "", h("strong", {}, g.title), h("span", { class: "muted" }, `  ${g.when}`)),
+        h("ul", { style: "margin:4px 0 8px;padding-left:20px;font-size:13.5px" }, g.todo.map((t) => h("li", {}, t))),
+        g.id === "before" ? axlBriefForm(w, onChange) : null,
+        (g.prompts || []).map((pr) => {
+          const pre = h("pre", { style: "flex:1;margin:0;white-space:pre-wrap" }, pr.dynamic ? "" : fill(pr.text));
+          if (pr.dynamic) dyn[pr.dynamic] = { pre };
+          const copy = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");
+          copy.addEventListener("click", () => { try { navigator.clipboard.writeText(pre.textContent); copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy"), 1200); } catch {} });
+          return h("div", { style: "margin:6px 0" },
+            h("div", { class: "muted", style: "font-size:12px;margin-bottom:2px" }, pr.note),
+            h("div", { class: "row", style: "align-items:flex-start;flex-wrap:nowrap" }, pre, copy));
+        }),
+        h("div", { style: "font-size:13px;margin:4px 0 6px" }, h("span", { class: "muted" }, "Comes out: "), g.out));
+    }));
+  refresh();
+  return panel;
+}
+
+function axlDetail(st, x, draw) {
+  const w = x.workshop, f = x.folder, org = x.org;
+  const back = () => { state.axlOpen = null; draw(st); };
+  const put = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };
+  const step = (n, title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${n}. ${title}`), ...body);
+  const note = (text) => h("p", { class: "muted", style: "font-size:13px;margin:8px 0" }, text);
+
+  const name = h("input", { value: w.name, style: "font-size:18px;font-weight:600;min-width:260px", "aria-label": "Workshop name" });
+  name.addEventListener("change", () => put({ name: name.value }));
+
+  // 1. Org
+  const sel = axlOrgSelect(st, w.profile);
+  sel.addEventListener("change", () => put({ profile: sel.value }));
+  const orgPanel = step(1, "Org for the workshop",
+    h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),
+    note("Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the workshop folder right away; restart the ava-harness server in Cursor afterwards (step 3)."),
+    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The workshop folder now starts the AVA harness with ${w.profile}. Restart the ava-harness server in Cursor so it takes effect.`) : null,
+    org?.problem ? h("div", { class: "error" }, org.problem) : null,
+    org && !org.credentialsStored ? h("div", { class: "warn" }, "No credentials stored for this org. Enter them on the Orgs page.") : null);
+
+  // 2. Folder
+  const dir = h("input", { value: w.folder || "", placeholder: "/Users/you/AXL/customer", style: "flex:1;min-width:280px", "aria-label": "Workshop folder" });
+  const folderState = !w.folder ? null
+    : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; it is created as soon as an org is chosen.")
+    : f.stale ? h("div", { class: "warn" }, `The folder's harness server is out of date${f.org && f.org !== w.profile ? ` (set to ${f.org})` : ""}. Press Set up folder.`)
+    : f.connected ? h("div", { class: "okbox" }, `Set up: the folder starts the AVA harness with ${f.org}.`)
+    : h("div", { class: "warn" }, "Not set up yet.");
+  const folderPanel = step(2, "Workshop folder",
+    h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put({ folder: dir.value }) }, "Save")),
+    note(`The folder you open in Cursor for this workshop. The lab keeps each customer's session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server with this workshop's org into the folder's .cursor/mcp.json (your other entries there stay).`),
+    folderState,
+    w.folder ? h("div", { class: "row", style: "margin-top:8px" },
+      f.connected && !f.stale ? null : h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder"),
+      f.exists ? h("button", { class: "btn", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: {} }).catch(showError) }, "Show in Finder") : null) : null);
+
+  // 3. Cursor: new project servers start only after the user switches them on.
+  const [label, cls, hint] = axlHarnessState(x);
+  const cursorPanel = step(3, "In Cursor",
+    h("div", { class: cls === "s-applied" ? "okbox" : "warn" }, pill(label, cls), " ", hint),
+    h("ol", { style: "margin:8px 0;padding-left:20px;font-size:13.5px" },
+      h("li", {}, "Open the workshop folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),
+      h("li", {}, "Settings → MCP: switch on this project's ava-harness. Cursor never starts a new project server by itself; after an org change, switch it off and on again."),
+      st.globalHarness.present ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other projects.") : null,
+      h("li", {}, "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator.")),
+    h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"));
+
+  // 4. Sessions
+  const stageIdx = (s) => AXL_STAGES.findIndex(([id]) => id === s.stage);
+  const sessions = x.sessions.length ? h("table", {},
+    h("tr", {}, h("th", {}, "Session"), h("th", {}, "Reached"), h("th", {}, "Artifacts"), h("th", {}, "Changed"), h("th", {}, "")),
+    x.sessions.map((s) => h("tr", {},
+      h("td", {}, h("strong", {}, s.name.replace(/^AXL-/i, ""))),
+      h("td", {}, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, AXL_STAGES.map(([id, lbl], i) => h("span", { class: `pill ${i <= stageIdx(s) ? "s-applied" : ""}`, title: lbl }, lbl)))),
+      h("td", { class: "muted" }, s.artifacts.map((a) => AXL_ARTIFACT_LABELS[a] || a).join(", ") || "–"),
+      h("td", { class: "muted", style: "white-space:nowrap" }, time(s.modified)),
+      h("td", {}, h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: { session: s.name } }).catch(showError) }, "Open")))))
+    : h("div", { class: "muted" }, x.sessionsDir ? "No sessions yet. They appear here when the lab writes its first artifact." : "Set the workshop folder first.");
+
+  const remove = h("button", { class: "btn danger", onclick: async () => {
+    if (!confirm(`Remove the workshop "${w.name}" from gctk? Its AVA harness server is taken out of the folder's .cursor/mcp.json; the folder and its sessions stay.`)) return;
+    try { const r = await api(axlUrl(w.id), { method: "DELETE" }); state.axlOpen = null; draw(r); } catch (err) { showError(err); }
+  } }, "Remove workshop");
+
+  return h("div", {},
+    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All workshops")),
+    h("div", { class: "row", style: "margin-bottom:12px" }, name, pill(label, cls), h("span", { class: "spacer" }), remove),
+    axlHarnessMissing(st, draw),
+    orgPanel, folderPanel, cursorPanel, step(4, "Sessions", sessions), axlGuide(x));
+}
+
+// ----------------------------------------------------------- monitoring
+// Counts of objects in the org next to the org's own limits (organizations/limits API). Read-only.
+const MON_GROUPS = ["Integrations", "Architect", "Routing", "People", "AI and digital", "Other"];
+const monNumber = (n) => Number(n).toLocaleString();
+
+function monCard(m) {
+  const count = m.count === undefined ? "–" : `${monNumber(m.count)}${m.atLeast ? "+" : ""}`;
+  return h("div", { class: `m-${m.level}`, title: m.hint || null },
+    h("div", { class: "muted", style: "font-size:13px" }, m.label),
+    h("div", { class: "n" }, count, m.limit ? h("small", {}, ` / ${monNumber(m.limit)}`) : null),
+    m.note ? h("div", { class: "muted", style: "font-size:12px;overflow-wrap:anywhere" }, m.note) : null,
+    m.error ? h("div", { class: "muted", style: "font-size:12px" }, m.error)
+      : m.limit ? [h("div", { class: "meter" }, h("i", { style: `width:${Math.min(100, Math.max(m.count ? 2 : 0, m.percent))}%` })),
+        h("div", { class: "muted", style: "font-size:12px" }, `${m.percent} % of the limit`)]
+      : h("div", { class: "muted", style: "font-size:12px" }, "No limit in the API"));
+}
+
+async function viewMonitoring() {
+  const o = state.overview || await api("/api/overview");
+  const usable = o.profiles.filter((p) => !p.error);
+  if (!usable.length) return h("div", { class: "panel empty" }, "Add a profile first.");
+  if (!usable.some((p) => p.name === state.profile)) state.profile = usable[0].name;
+  const select = h("select", { "aria-label": "Org", onchange: () => { state.profile = select.value; render(); } },
+    usable.map((p) => h("option", { value: p.name, selected: p.name === state.profile }, `${p.name} (${p.tier})`)));
+  const body = h("div", {}, h("div", { class: "panel empty" }, "Counting objects in the org…"));
+  const refresh = h("button", { class: "btn" }, "Refresh");
+  const load = async (fresh) => {
+    const profile = state.profile;
+    refresh.disabled = true;
+    try {
+      const r = await api(`/api/monitoring?profile=${encodeURIComponent(profile)}${fresh ? "&refresh=1" : ""}`);
+      if (profile === state.profile && state.view === "monitoring") body.replaceChildren(monReport(r));
+    } catch (err) {
+      body.replaceChildren(h("div", { class: "error" }, err.message));
+    } finally { refresh.disabled = false; }
+  };
+  refresh.addEventListener("click", () => load(true));
+  load(false);
+  return h("div", {},
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Monitoring"), h("span", { class: "spacer" }), select, refresh),
+    h("p", { class: "lead" }, "How many objects this org has, next to the limits Genesys Cloud sets for it. The limits come from the org itself, so raised limits show up too. Cards turn amber from 80 % and red from 95 %."),
+    body);
+}
+
+function monReport(r) {
+  const close = r.metrics.filter((m) => m.level === "warn" || m.level === "alert").sort((a, b) => b.percent - a.percent);
+  const failed = r.metrics.filter((m) => m.level === "error").length;
+  return h("div", {},
+    h("div", { class: "muted", style: "margin:-6px 0 10px;font-size:12px" }, `${r.profile} · counted ${time(r.at)}${failed ? ` · ${failed} not readable` : ""}`),
+    close.length
+      ? h("div", { class: "warn" }, h("strong", {}, "Close to a limit: "), close.map((m, i) => [i ? ", " : "", `${m.label} ${monNumber(m.count)} / ${monNumber(m.limit)} (${m.percent} %)`]))
+      : h("div", { class: "okbox" }, "Everything is below 80 % of its limit."),
+    r.limitErrors.length ? h("div", { class: "warn" }, `Limits not readable for: ${r.limitErrors.join(", ")}. Those cards show the count only.`) : null,
+    MON_GROUPS.map((g) => {
+      const items = r.metrics.filter((m) => m.group === g);
+      return items.length ? [h("h3", {}, g), h("div", { class: "mon" }, items.map(monCard)), g === "Integrations" ? monIntegrations(r) : null] : null;
+    }));
+}
+
+const MON_TYPES = { "purecloud-data-actions": "Genesys Cloud", "custom-rest-actions": "Web services", "function-data-actions": "Function", "aws-lambda-data-actions": "AWS Lambda",
+  "google-cloud-data-actions": "Google Cloud", "salesforce-datadip": "Salesforce", "microsoft-dynamics-data-actions": "Dynamics 365", "zendesk-datadip": "Zendesk" };
+
+/** Data actions per integration: where the actions are, and which integration is full. */
+function monIntegrations(r) {
+  const rows = r.integrations || [];
+  if (!rows.length) return null;
+  const limit = r.metrics.find((m) => m.id === "dataactions-per-integration")?.limit;
+  const cell = (n) => h("td", { style: "text-align:right;white-space:nowrap" }, n ? monNumber(n) : h("span", { class: "muted" }, "–"));
+  const tr = (x) => {
+    const share = limit ? x.custom / limit : 0;
+    const level = share >= 0.95 ? "alert" : share >= 0.8 ? "warn" : "ok";
+    return h("tr", {},
+      h("td", {}, x.name, x.enabled === false ? [" ", pill("disabled")] : null),
+      h("td", { class: "muted" }, MON_TYPES[x.type] || x.type || ""),
+      h("td", { class: `m-${level}`, style: "min-width:150px" },
+        h("div", { class: "row", style: "gap:6px;flex-wrap:nowrap" }, h("strong", {}, monNumber(x.custom)), limit ? h("span", { class: "muted" }, `/ ${monNumber(limit)}`) : null),
+        limit ? h("div", { class: "meter", style: "margin-top:3px" }, h("i", { style: `width:${Math.min(100, Math.max(x.custom ? 2 : 0, share * 100))}%` })) : null),
+      cell(x.builtIn),
+      h("td", { style: "text-align:right;white-space:nowrap" }, x.drafts ? [monNumber(x.drafts), x.newDrafts ? h("span", { class: "muted" }, ` (${x.newDrafts} new)`) : null] : h("span", { class: "muted" }, "–")));
+  };
+  const table = (list) => h("table", {},
+    h("tr", {}, h("th", {}, "Integration"), h("th", {}, "Type"), h("th", {}, limit ? "Custom actions (limit per integration)" : "Custom actions"),
+      h("th", { style: "text-align:right" }, "Built-in"), h("th", { style: "text-align:right" }, "Drafts")),
+    list.map(tr));
+  const shown = 15;
+  return h("div", { class: "panel", style: "margin-top:10px" },
+    h("h3", { style: "margin-top:0" }, `Data actions per integration (${rows.length})`),
+    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "Custom actions count towards the limits. Built-in actions come with integrations such as Salesforce or Dynamics and are not counted. New drafts were never published."),
+    table(rows.slice(0, shown)),
+    rows.length > shown ? h("details", {}, h("summary", {}, `Show ${rows.length - shown} more`), table(rows.slice(shown))) : null);
+}
+
+// ---------------------------------------------------------------- demos
+// Whole demos deployed into an org with one button: prerequisites (checked where possible), deploy
+// and remove (background jobs, the page follows their log), commands the demo needs on this
+// computer (Start / Stop / Log), and the manual steps on the day.
+const DEMOS_KEY = "gctk-demos";
+const PREREQ = { ok: ["ready", "s-applied"], missing: ["missing", "s-failed"], manual: ["check yourself", "s-pending"], error: ["could not check", "s-pending"] };
+
+async function viewDemos() {
+  const data = await api("/api/demos");
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(DEMOS_KEY) || "{}") || {}; } catch {}
+  // pick.demo is the open demo; empty = the catalog. The page always starts in the catalog.
+  // A link may open one demo directly: …#token=…&view=demos&demo=<id>.
+  let linked = "";
+  try { linked = sessionStorage.getItem("gctk-open-demo") || ""; sessionStorage.removeItem("gctk-open-demo"); } catch {}
+  const pick = state.demosPick || (state.demosPick = { demo: linked, profile: saved.profile || "", query: "" });
+  const keep = () => { try { localStorage.setItem(DEMOS_KEY, JSON.stringify({ profile: pick.profile })); } catch {} };
+  const open = (id) => { pick.demo = id; render(); window.scrollTo({ top: 0 }); };
+  const msg = h("div");
+  const demo = data.demos.find((d) => d.id === pick.demo);
+  if (demo) {
+    const back = h("button", { class: "btn", onclick: () => open("") }, "← All demos");
+    return h("div", {}, h("div", { class: "row", style: "margin-bottom:10px" }, back, h("span", { class: "muted" }, `Demos / ${demo.manifest?.name || demo.folder.split("/").pop()}`)), msg, demoDetail(demo, data, pick, keep, msg));
+  }
+
+  const head = [h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demos"),
+    h("p", { class: "lead" }, "Pick a demo to see what it contains, what the org needs and how to deploy it. A deploy builds the whole demo in an org with one button: queues, case plans, Copilot, knowledge, bot flow, agent scripts.")];
+  if (!data.demos.length) return h("div", {}, head, msg, h("div", { class: "panel empty" }, "This gctk has no demos."));
+
+  const search = h("input", { type: "search", placeholder: "Search demos", value: pick.query || "", style: "min-width:260px" });
+  const grid = h("div", { class: "cards" });
+  const card = (d) => {
+    const m = d.manifest;
+    if (!m) return h("div", { class: "panel" }, h("strong", {}, d.folder.split("/").pop()), h("div", { class: "error" }, d.error || "This demo cannot be read."));
+    const first = ["Digital bot flow", "Inbound message flow", "Copilot assistant", "Case plan", "Agent script", "Knowledge base", "Speech & text analytics program", "Queue"];
+    const rank = (l) => (first.indexOf(l) + 1 || 99);
+    const kinds = (d.snapshot?.contents || []).map((c) => c.label).sort((a, b) => rank(a) - rank(b));
+    return h("div", { class: "panel", style: "cursor:pointer", role: "button", tabindex: "0", onclick: () => open(d.id), onkeydown: (ev) => { if (ev.key === "Enter") open(d.id); } },
+      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" })),
+      m.description ? h("div", { class: "muted", style: "font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" }, m.description) : null,
+      h("div", { style: "font-size:13px" }, d.snapshot ? `${d.snapshot.objects} objects: ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ` and ${kinds.length - 5} more kinds` : ""}` : h("span", { class: "muted" }, "No snapshot yet")),
+      (m.parameters || []).length ? h("div", { class: "muted", style: "font-size:12px" }, `You enter: ${m.parameters.map((p) => p.label.split(" (")[0]).join(" · ")}`) : null,
+      h("div", { class: "row", style: "margin-top:auto;flex-wrap:wrap;gap:6px" },
+        d.deployments.length ? d.deployments.map((x) => pill(`deployed in ${x.profile}`, "s-applied")) : h("span", { class: "muted", style: "font-size:12px" }, "Not deployed yet"),
+        h("span", { class: "spacer" }),
+        h("button", { class: "btn primary", onclick: (ev) => { ev.stopPropagation(); open(d.id); } }, "Open")));
+  };
+  const draw = () => {
+    const q = (pick.query || "").toLowerCase();
+    const hits = data.demos.filter((d) => !q || `${d.manifest?.name || ""} ${d.manifest?.description || ""} ${(d.snapshot?.contents || []).map((c) => c.label).join(" ")}`.toLowerCase().includes(q));
+    put(grid, hits.length ? hits.map(card) : h("div", { class: "panel empty" }, "No demo matches the search."));
+  };
+  search.oninput = () => { pick.query = search.value; draw(); };
+  draw();
+  return h("div", {}, head, msg, data.demos.length > 3 ? h("div", { class: "row", style: "margin-bottom:12px" }, search) : null, grid);
+}
+
+// The demo story: scenes in stage order (who says or does what, and what it triggers), plus a
+// reference of all triggers read from the demo's Copilot, NLU, checklists and analytics topics.
+const STORY_WHO = { customer: ["Customer types", "#2a5c9c"], bot: ["Bot", "#6b5aa6"], agent: ["Agent writes", "#2f8f43"], you: ["You", "#7a6a50"] };
+function storyPanel(d) {
+  const s = d.story;
+  if (!s) return null;
+  const m = d.manifest;
+  const chLabel = (id) => (m.channels || []).find((c) => c.id === id)?.label.replace(/^Lumea /, "") || id;
+  const block = (title, ...body) => h("div", { style: "margin-top:12px" }, h("strong", { style: "font-size:13px" }, title), ...body);
+  const list = (items) => h("ul", { style: "margin:4px 0 0;padding-left:20px;font-size:14px" }, items.map((x) => h("li", {}, x)));
+  const triggerTable = (rows) => h("table", { style: "margin-top:6px;font-size:13px" },
+    h("tr", {}, h("th", { style: "text-align:left;width:38%" }, "When"), h("th", { style: "text-align:left" }, "Then")),
+    rows.map((r) => h("tr", {}, h("td", { style: "vertical-align:top" }, r.when), h("td", { style: "vertical-align:top" }, Array.isArray(r.then) ? r.then.join(" + ") : r.then))));
+  const scene = (sc, i) => h("details", { class: "panel", style: "margin:8px 0 0", open: i === 0 },
+    h("summary", { style: "margin:0" }, h("strong", {}, sc.title), sc.duration ? h("span", { class: "muted" }, ` · ${sc.duration}`) : null),
+    sc.screen ? h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, `Screen: ${sc.screen}`) : null,
+    (sc.steps || []).map((st) => {
+      const [label, color] = STORY_WHO[st.who] || [st.who, "#666"];
+      return h("div", { style: "display:flex;gap:10px;margin-top:8px;align-items:flex-start" },
+        h("span", { class: "pill", style: `flex:none;min-width:104px;text-align:center;color:#fff;background:${color}` }, label),
+        h("div", { style: "font-size:14px" }, st.channel ? h("span", { class: "pill", style: "margin-right:6px" }, `${chLabel(st.channel)} only`) : null, st.text));
+    }),
+    (sc.triggers || []).length ? block("What triggers what", triggerTable(sc.triggers)) : null,
+    (sc.notes || []).map((n) => h("div", { class: "warn", style: "margin-top:8px;font-size:13px" }, n)));
+  const ref = s.reference;
+  const reference = h("details", { class: "panel", style: "margin:12px 0 0" },
+    h("summary", { style: "margin:0" }, h("strong", {}, "Trigger reference"), h("span", { class: "muted" }, " · read from the demo's Copilot, NLU, checklists and analytics")),
+    ref.copilot.length ? block("Copilot rules", triggerTable(ref.copilot)) : null,
+    ref.intents.length ? block("NLU intents and the phrases they are trained on", ref.intents.map((it) => h("details", { style: "margin-top:6px" },
+      h("summary", {}, `${it.name} (${it.phrases.length} phrases)${it.rule ? "" : " · no rule of its own: falls back to the knowledge search"}`),
+      list(it.phrases)))) : null,
+    ref.checklists.length ? block("Checklist items and when Copilot ticks them", ref.checklists.map((c) => h("div", { style: "margin-top:6px" },
+      h("div", { style: "font-size:13px;font-weight:600" }, c.name),
+      h("table", { style: "font-size:13px;margin-top:4px" }, c.items.map((it) => h("tr", {}, h("td", { style: "vertical-align:top;white-space:nowrap;padding-right:12px" }, it.name), h("td", { class: "muted" }, it.ticksWhen))))))) : null,
+    ref.topics.length ? block("Speech & text analytics topics (marked in the conversation afterwards)", ref.topics.map((tp) => h("div", { style: "font-size:13px;margin-top:4px" }, h("b", {}, tp.name), h("span", { class: "muted" }, `: ${tp.phrases.join(" · ")}`)))) : null);
+  return h("details", { class: "panel" },
+    h("summary", { style: "margin:0" }, h("strong", {}, "Demo story"), h("span", { class: "muted" }, ` · ${s.scenes.length} scenes${s.duration ? `, ${s.duration}` : ""}`)),
+    s.summary ? h("p", { style: "margin:10px 0 0" }, s.summary) : null,
+    s.persona ? block("Persona", h("div", { style: "font-size:14px" }, s.persona)) : null,
+    (s.rules || []).length ? block("Stage rules", list(s.rules)) : null,
+    (s.before || []).length ? block("Before the demo", list(s.before)) : null,
+    block("Scenes", s.scenes.map(scene)),
+    reference);
+}
+
+// What the org's OAuth client needs for this demo, from the API spec. "a | b" means one of them is enough.
+function permissionsPanel(d) {
+  const groups = d.permissions || [];
+  if (!groups.length) return null;
+  const total = new Set(groups.flatMap((g) => g.items)).size;
+  const text = groups.map((g) => `${g.title}\n${g.items.map((x) => `  ${x.split(" | ").join(" or ")}`).join("\n")}`).join("\n\n");
+  return h("details", { class: "panel" },
+    h("summary", { style: "margin:0" }, `Permissions the org's OAuth client needs (${total})`),
+    h("p", { class: "muted", style: "font-size:13px" }, "Give the OAuth client of the org (Client Credentials) a role with these permissions. Without them the deploy stops at the first object it may not create. Where it says \"or\", one of the two is enough."),
+    h("div", { class: "row", style: "margin-bottom:8px" }, h("button", { class: "btn", onclick: async (ev) => { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; setTimeout(() => (ev.target.textContent = "Copy list"), 1500); } }, "Copy list")),
+    groups.map((g) => h("div", { style: "margin-top:10px" },
+      h("strong", { style: "font-size:13px" }, `${g.title} (${g.items.length})`),
+      h("div", { class: "mono", style: "font-size:12px;columns:2 320px;column-gap:24px;margin-top:4px" }, g.items.map((x) => h("div", {}, x.split(" | ").join(" or ")))))));
+}
+
+function demoDetail(d, data, pick, keep, msg) {
+  if (d.error) return h("div", { class: "error" }, d.error);
+  const m = d.manifest;
+  const profiles = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  if (!profiles.some((p) => p.name === pick.profile)) pick.profile = profiles.find((p) => p.name !== d.sourceProfile)?.name || profiles[0]?.name || "";
+  const orgSel = h("select", { onchange: () => { pick.profile = orgSel.value; keep(); render(); } },
+    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier}, ${p.region})${p.name === d.sourceProfile ? " · the snapshot source" : ""}`)));
+  const deployed = d.deployments.find((x) => x.profile === pick.profile);
+  const prereqBox = h("div", {}, h("div", { class: "muted" }, "Checking the org …"));
+  const divSel = h("select", {}, h("option", {}, "…"));
+  const userSel = h("select", { style: "min-width:240px" }, h("option", {}, "…"));
+  const waSel = h("select", { style: "min-width:240px" }, h("option", { value: "" }, "…"));
+  let whatsapp = [];
+  // Parameters: the presenter's own values (e.g. the phone that plays the customer), prefilled from the last deploy into this org.
+  const paramInputs = (m.parameters || []).map((p) => ({ p, el: h("input", { type: p.format === "email" ? "email" : p.format === "phone" ? "tel" : "text", value: deployed?.params?.[p.id] || "", placeholder: p.format === "phone" ? "+4915112345678" : p.format === "email" ? "name@example.com" : "", style: "min-width:240px" }) }));
+  const cmdBox = h("div");
+  const out = h("div");
+
+  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));
+  // Background job: start it, then follow its log until it is done.
+  const follow = async (url, body, title, after) => {
+    const logEl = h("pre", { style: "max-height:300px;white-space:pre-wrap" }, "");
+    put(out, h("div", { class: "panel" }, h("strong", {}, title), logEl));
+    out.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    try {
+      const { job } = await api(url, { method: "POST", body });
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const j = await api(`/api/demos/jobs/${job}`);
+        logEl.textContent = j.lines.join("\n");
+        logEl.scrollTop = logEl.scrollHeight;
+        if (j.done) {
+          if (j.error) out.firstChild.append(h("div", { class: "error" }, j.error));
+          else out.firstChild.append(h("div", { class: "okbox" }, after(j.result)));
+          break;
+        }
+      }
+    } catch (err) { out.firstChild.append(h("div", { class: "error" }, err.message)); }
+    const fresh = await api("/api/demos");
+    Object.assign(d, fresh.demos.find((x) => x.id === d.id));
+    drawDeploy();
+  };
+
+  const deployBox = h("div");
+  // Customer channel: preselected from the last deploy into this org, else the demo's first channel.
+  const channels = m.channels || [];
+  pick.channel = channels.some((ch) => ch.id === pick.channel) ? pick.channel : (deployed?.channel || channels[0]?.id || "");
+  const routingHere = () => m.messageRouting && (!m.messageRouting.channel || m.messageRouting.channel === pick.channel);
+  const channelLabel = (id) => channels.find((ch) => ch.id === id)?.label || id;
+  const channelPick = () => channels.length ? h("div", { style: "margin-top:10px" },
+    h("div", { style: "font-weight:600;margin-bottom:6px" }, "How does the customer write to you?"),
+    h("div", { class: "grid" }, channels.map((ch) => h("label", { class: "panel", style: `margin:0;cursor:pointer;display:flex;gap:10px;align-items:flex-start;${ch.id === pick.channel ? "border-color:var(--accent)" : ""}` },
+      h("input", { type: "radio", name: `channel-${d.id}`, checked: ch.id === pick.channel, onchange: () => { pick.channel = ch.id; drawDeploy(); }, style: "margin-top:4px" }),
+      h("span", {}, h("strong", {}, ch.label), ch.description ? h("div", { class: "muted", style: "font-size:13px" }, ch.description) : null))))) : null;
+  const drawDeploy = () => {
+    const dep = d.deployments.find((x) => x.profile === pick.profile);
+    put(deployBox,
+      d.snapshot ? null : h("div", { class: "warn" }, d.canSnapshot ? `No snapshot yet: take one from ${d.sourceProfile} under "What the demo contains" first.` : "No snapshot yet, so this demo cannot be deployed. Update gctk to get it."),
+      dep ? h("div", { class: "okbox" }, `Deployed into ${pick.profile} on ${time(dep.at)}: ${dep.created} objects created${dep.reused ? `, ${dep.reused} were already there` : ""}${dep.division ? `, division ${dep.division}` : ""}${dep.presenter ? `, presenter ${dep.presenter}` : ""}${dep.channel ? `, customer channel: ${channelLabel(dep.channel)}` : ""}.${dep.routing ? ` WhatsApp ${dep.routing.integration}${dep.routing.phone ? ` (${dep.routing.phone})` : ""} routes to the demo.` : ""}`) : null,
+      channelPick(),
+      h("div", { class: "grid", style: "margin-top:12px" }, h("label", {}, "Division", divSel), h("label", {}, "Presenter (member of the demo's queues)", userSel),
+        routingHere() ? h("label", {}, `WhatsApp number (routed to "${m.messageRouting.flow}")`, waSel) : null,
+        paramInputs.map(({ p, el }) => h("label", {}, `${p.label}${p.optional ? "" : " *"}`, el))),
+      h("div", { class: "row", style: "margin-top:10px" },
+        h("button", { class: "btn primary", disabled: !d.snapshot, onclick: () => {
+          const wa = routingHere() ? whatsapp.find((w) => w.id === waSel.value) : undefined;
+          if (routingHere() && !wa && !confirm("No WhatsApp number is selected, so no message routing changes and the customer cannot write via WhatsApp. Deploy anyway?")) return;
+          const route = wa ? `\n\nMessages to WhatsApp ${wa.name}${wa.phone ? ` (${wa.phone})` : ""} then go to "${m.messageRouting.flow}"${wa.flow && wa.flow !== m.messageRouting.flow ? ` instead of "${wa.flow}" (Remove puts "${wa.flow}" back)` : ""}.` : "";
+          const params = Object.fromEntries(paramInputs.map(({ p, el }) => [p.id, el.value.trim()]));
+          const empty = paramInputs.find(({ p, el }) => !p.optional && !el.value.trim());
+          if (empty) { empty.el.focus(); put(msg, h("div", { class: "error" }, `Enter "${empty.p.label}".`)); return; }
+          put(msg);
+          const via = channels.length ? `\n\nCustomer channel: ${channelLabel(pick.channel)}.` : "";
+          if (!confirm(`Deploy "${m.name}" into ${pick.profile}?${via} Objects that already exist with the same name are reused; everything else is created.${route}`)) return;
+          follow(`/api/demos/${d.id}/deploy`, { profile: pick.profile, divisionId: divSel.value, presenterId: userSel.value, whatsappIntegrationId: wa ? wa.id : "", channel: pick.channel, params }, `Deploying into ${pick.profile}`, (r) => `Done: ${r.created.length} objects in ${pick.profile}${r.reused.length ? `, ${r.reused.length} were already there` : ""}.`);
+        } }, dep ? "Deploy again (adds what is missing)" : `Deploy into ${pick.profile}`),
+        dep ? h("button", { class: "btn danger", onclick: () => {
+          if (!confirm(`Remove everything this page created in ${pick.profile} (${dep.created} objects)? Objects that were already there stay.`)) return;
+          follow(`/api/demos/${d.id}/remove`, { profile: pick.profile }, `Removing from ${pick.profile}`, (r) => `Removed ${r.removed} objects.${r.failed.length ? ` Not removed: ${r.failed.join("; ")}` : ""}`);
+        } }, "Remove from this org") : null));
+  };
+
+  const drawCommands = (cmds) => put(cmdBox, (cmds || []).length ? cmds.map((c) => {
+    const logEl = h("pre", { style: "max-height:260px;white-space:pre-wrap", hidden: true });
+    const showLog = async () => { logEl.hidden = !logEl.hidden; if (!logEl.hidden) logEl.textContent = (await api(`/api/demos/${d.id}/commands/${c.id}/log`)).log || "(no output yet)"; };
+    const act = async (what) => {
+      try {
+        if (what === "start") await api(`/api/demos/${d.id}/commands/${c.id}/start`, { method: "POST", body: { profile: pick.profile } });
+        else await api(`/api/demos/${d.id}/commands/${c.id}/stop`, { method: "POST", body: {} });
+        setTimeout(async () => drawCommands(await api(`/api/demos/${d.id}/commands`)), what === "start" ? 2500 : 800);
+      } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    };
+    return h("div", { class: "todo-row", style: "flex-wrap:wrap" },
+      h("strong", {}, c.label), c.running ? pill(`running for ${c.profile}`, "s-applied") : pill("stopped", ""),
+      c.running && c.links?.length ? c.links.map((l) => h("a", { href: l.url, target: "_blank", rel: "noopener", style: "margin-right:10px" }, l.label)) : c.running && c.url ? h("a", { href: c.url, target: "_blank", rel: "noopener" }, c.url) : null,
+      h("span", { class: "spacer" }),
+      c.running ? h("button", { class: "btn", onclick: () => act("start") }, "Restart") : h("button", { class: "btn primary", onclick: () => act("start") }, `Start for ${pick.profile}`),
+      c.running ? h("button", { class: "btn danger", onclick: () => act("stop") }, "Stop") : null,
+      h("button", { class: "btn", onclick: showLog }, "Log"),
+      logEl);
+  }) : h("div", { class: "muted" }, "This demo needs nothing running on this computer."));
+
+  if (pick.profile) api(`/api/demos/${d.id}/org?profile=${encodeURIComponent(pick.profile)}`).then((o) => {
+    put(prereqBox, h("div", { class: "prereqs" }, o.prerequisites.map((r) => [
+      h("span", {}, pill(PREREQ[r.state][0], PREREQ[r.state][1])),
+      h("span", {}, r.text, r.detail ? h("span", { class: "muted", style: "font-size:12px" }, ` · ${r.detail}`) : null)])));
+    put(divSel, o.divisions.map((x) => h("option", { value: x.id, selected: x.home }, x.name + (x.home ? " (home)" : ""))));
+    const me = (state.overview?.user || "").toLowerCase();
+    put(userSel, h("option", { value: "" }, "Nobody (add members later)"), o.users.map((u) => h("option", { value: u.id, selected: me && (u.email || "").toLowerCase().startsWith(me.replace(/\./g, ".")) }, u.email ? `${u.name} · ${u.email}` : u.name)));
+    whatsapp = o.whatsapp || [];
+    put(waSel, h("option", { value: "" }, whatsapp.length ? "Do not change message routing" : "No WhatsApp integration in this org"),
+      whatsapp.map((w, i) => h("option", { value: w.id, selected: i === 0 }, `${w.name}${w.phone ? ` · ${w.phone}` : ""}${w.flow ? ` · now → ${w.flow}` : " · no flow yet"}`)));
+    drawCommands(o.commands);
+  }).catch((err) => put(prereqBox, h("div", { class: "error" }, err.message)));
+  drawDeploy();
+
+  const snap = d.snapshot;
+  return h("div", {},
+    h("div", { class: "panel" },
+      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" }), h("label", { class: "row" }, "Org", orgSel)),
+      m.description ? h("p", { class: "muted", style: "margin:6px 0 0" }, m.description) : null),
+    storyPanel(d),
+    step(1, "Prerequisites in the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. The ones it can check show their state; check the others yourself."), prereqBox),
+    permissionsPanel(d),
+    step(2, "Deploy", deployBox),
+    out,
+    step(3, "Run on this computer", cmdBox),
+    m.manual?.length ? step(4, "On the day", h("ul", { style: "margin:0;padding-left:20px" }, m.manual.map((x) => h("li", {}, x)))) : null,
+    h("details", { class: "panel" }, h("summary", { style: "margin:0" }, `What the demo contains${snap ? ` (${snap.objects} objects, ${time(snap.at)})` : ""}`),
+      snap ? h("table", { style: "margin-top:8px" }, snap.contents.map((c) => h("tr", {}, h("td", { style: "white-space:nowrap" }, c.label), h("td", { class: "muted" }, c.names.join(" · "))))) : h("p", { class: "muted" }, "No snapshot yet."),
+      snap?.unresolved ? h("div", { class: "warn" }, `${snap.unresolved} id(s) point to objects outside the demo; they stay as they are.`) : null,
+      h("div", { class: "row", style: "margin-top:10px" }, d.canSnapshot ? h("button", { class: "btn", onclick: () => {
+        if (!confirm(`Read the demo's objects again from ${d.sourceProfile}? The new snapshot replaces snapshot.json in ${d.folder}.`)) return;
+        follow(`/api/demos/${d.id}/snapshot`, {}, `Snapshot from ${d.sourceProfile}`, (r) => `Snapshot taken: ${r.objects.length} objects.`);
+      } }, snap ? `Take snapshot again from ${d.sourceProfile}` : `Take snapshot from ${d.sourceProfile}`) : null,
+        h("span", { class: "muted", style: "font-size:12px" }, "Comes with gctk: everything it needs, pages included, is part of the plugin."))));
+}
+
+// ------------------------------------------------------------ your data
+// Where gctk keeps what on this computer: its folder, the keychain entries (names only), and what
+// it wrote elsewhere. Nothing here leaves the computer.
+const fmtBytes = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+
+async function viewData() {
+  const d = await api("/api/data");
+  const tilde = (p) => (d.userHome && p.startsWith(d.userHome + "/") ? `~${p.slice(d.userHome.length)}` : p);
+  const msg = h("div");
+  const open = async (key) => { try { await api("/api/data/open", { method: "POST", body: { key } }); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); } };
+  const openBtn = (p) => p.exists ? h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(p.key) }, "Open") : h("span", { class: "muted", style: "font-size:12px" }, "not created yet");
+  const table = (list) => h("table", {}, h("tr", {}, h("th", {}, "What"), h("th", {}, "Where"), h("th", { style: "text-align:right" }, "Size"), h("th", {}, "")),
+    list.map((p) => h("tr", {},
+      h("td", {}, h("strong", {}, p.label), h("div", { class: "muted", style: "font-size:12px" }, p.what)),
+      h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere", title: p.path }, tilde(p.path)),
+      h("td", { class: "muted", style: "text-align:right;white-space:nowrap" }, p.exists ? `${fmtBytes(p.bytes)}${p.items !== undefined ? ` · ${p.items}` : ""}` : "–"),
+      h("td", {}, openBtn(p)))));
+  const total = d.places.reduce((n, p) => n + p.bytes, 0);
+  return h("div", {},
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Your data"),
+    h("p", { class: "lead" }, "Everything gctk keeps stays on this computer: settings and records in one folder, secrets in the keychain. The AI never sees the secrets."),
+    msg,
+    h("div", { class: "panel" },
+      h("div", { class: "row" }, h("strong", {}, "gctk's folder"), h("span", { class: "mono", title: d.home }, tilde(d.home)), h("span", { class: "muted" }, fmtBytes(total)), h("span", { class: "spacer" }),
+        h("button", { class: "btn primary", onclick: () => open("home") }, "Open in Finder")),
+      d.homeFromEnv ? h("div", { class: "muted", style: "font-size:13px;margin-top:4px" }, "Set by GCTK_HOME for this UI.") : null,
+      h("div", { style: "margin-top:10px" }, table(d.places))),
+    h("div", { class: "panel" },
+      h("div", { class: "row" }, h("strong", {}, "Secrets"), h("span", { class: "muted" }, `${d.keychain}, service "gctk"`)),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, AI setup secrets on the AI setup page."),
+      h("table", {}, h("tr", {}, h("th", {}, "Entry"), h("th", {}, "What it is"), h("th", {}, "")),
+        d.secrets.map((x) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, x.account), h("td", {}, x.what), h("td", {}, x.stored ? pill("stored", "s-applied") : pill("missing", "s-failed")))))),
+    d.elsewhere.length ? h("div", { class: "panel" },
+      h("strong", {}, "Written outside gctk's folder"),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and editor config files whose entries the AI setup page changed."),
+      table(d.elsewhere)) : null);
+}
+
+// ------------------------------------------------------------- AI setup
+// The MCP servers and skills of the user's editors, read from their config files by the gctk server.
+// Secrets arrive masked; the fix buttons change the user's config files (server side).
+const EDITORS = { cursor: "Cursor", "claude-code": "Claude Code", "claude-desktop": "Claude Desktop", vscode: "VS Code", windsurf: "Windsurf", other: "Other" };
+const CREDS = {
+  none: ["no credentials", ""],
+  plain: ["secret in plain text in the file", "s-failed"],
+  reference: ["secret from a variable", ""],
+  keychain: ["secret in the keychain, started through gctk", "s-applied"],
+  "gctk-profile": ["gctk profiles (keychain)", "s-applied"],
+  axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],
+};
+const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable" };
+const RELOAD_HINT = "Reload the server in your editor so it picks up the change: in Cursor under Settings → MCP (switch it off and on), in Claude Code by restarting it.";
+
+const AI_TAB_KEY = "gctk-ai-tab";
+const projName = (p) => (p ? p.split(/[\\/]/).filter(Boolean).pop() : "");
+const whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `project ${projName(x.project)}` : "all projects";
+
+async function viewAiSetup() {
+  const msg = h("div");
+  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading the config files of your editors…"));
+  const refresh = h("button", { class: "btn" }, "Refresh");
+  const draw = (s) => put(body, aiSetupReport(s, msg, draw));
+  const load = async () => {
+    refresh.disabled = true;
+    try { draw(await api("/api/ai-setup")); } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
+  };
+  refresh.addEventListener("click", () => { msg.replaceChildren(); load(); });
+  load();
+  return h("div", {},
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "AI setup"), h("span", { class: "spacer" }), refresh),
+    h("p", { class: "lead" }, "What Cursor, Claude Code and your other editors load: MCP servers and skills, which Genesys Cloud org each server works on, and where its secret is. Secrets are never shown."),
+    msg, body);
+}
+
+function aiSetupReport(s, msg, draw) {
+  const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINT)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });
+  const ctx = {
+    msg, draw,
+    async fix(x, kind) {
+      const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");
+      const ask = {
+        keychain: `Move ${names} of "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) into the keychain? The secret is then no longer in\n${x.file}\n\nScripts that read the secret from this file themselves stop working (a demo started from the Demos page gets it from gctk).`,
+        restore: `Write the secret of "${x.name}" back into\n${x.file}\nin plain text?`,
+        remove: `Remove the server "${x.name}" from\n${x.file}?`,
+        "clean-env": `Remove the old variable from "${x.name}"?`,
+      }[kind];
+      if (!confirm(ask)) return;
+      try { done(`Done: ${FIX_LABELS[kind].toLowerCase()} (${x.name}).`, await post(x, kind)); } catch (err) { failed(err); }
+    },
+    async removeSkill(k) {
+      const others = s.skills.filter((t) => t !== k && t.editor === k.editor && t.name === k.name).map((t) => `• ${t.path}`).join("\n");
+      if (!confirm(`Remove this copy of "${k.name}" from ${EDITORS[k.editor]}?\n${k.path}${k.link ? `\n(a link to ${k.link}; that folder stays)` : ""}\n\nStill there:\n${others}\n\ngctk keeps it under Removed skills, so you can restore it.`)) return;
+      try { done(`Removed ${k.name} from ${k.path}.`, await api("/api/ai-setup/skills/remove", { method: "POST", body: { path: k.path } })); } catch (err) { failed(err); }
+    },
+    async removeSkills(list, what) {
+      if (!confirm(`${what}?\n\n${list.map((k) => `• ${k.name}  ${k.path}`).join("\n")}\n\ngctk keeps them under Removed skills, so you can restore them.`)) return;
+      let next;
+      try { for (const k of list) next = await api("/api/ai-setup/skills/remove", { method: "POST", body: { path: k.path } }); done(`Removed ${list.length} skills.`, next); } catch (err) { failed(err); if (next) draw(next); }
+    },
+    async restoreSkill(r) {
+      try { done(`Restored ${r.name} to ${r.from}.`, await api("/api/ai-setup/skills/restore", { method: "POST", body: { id: r.id } })); } catch (err) { failed(err); }
+    },
+    async setCredentials(x, body) {
+      try { done(`Saved the new credentials of ${x.name}.`, await api("/api/ai-setup/credentials", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body } })); } catch (err) { failed(err); }
+    },
+    async fixAll(list, kind, what) {
+      if (!confirm(`${what}?\n\n${list.map((x) => `• ${x.name} (${EDITORS[x.editor]}, ${whereText(x)})`).join("\n")}`)) return;
+      let next;
+      try { for (const x of list) next = await post(x, kind); done(`Done for ${list.length} entries.`, next); } catch (err) { failed(err); if (next) draw(next); }
+    },
+  };
+  const found = s.files.filter((f) => f.exists);
+  const plain = s.servers.filter((x) => x.credentials === "plain");
+  const stat = (label, n, note, alert) => h("div", { class: alert && n ? "m-alert" : "" }, h("div", { class: "muted", style: "font-size:13px" }, label), h("div", { class: "n" }, n), h("div", { class: "muted", style: "font-size:12px" }, note));
+  const tabs = [["org", "By org", () => byOrg(s, ctx)], ["project", "By project", () => byProject(s, ctx)], ["editor", "By editor", () => byEditor(s, ctx)], ["skills", `Skills (${s.skills.length})`, () => skillsTab(s, ctx)], ["files", `Config files (${found.length})`, () => filesPanel(s, msg, draw)]];
+  let tab = (() => { try { return localStorage.getItem(AI_TAB_KEY) || "org"; } catch { return "org"; } })();
+  if (!tabs.some(([id]) => id === tab)) tab = "org";
+  const pane = h("div");
+  const bar = h("div", { class: "dtabs", role: "tablist" });
+  const show = () => {
+    bar.replaceChildren(...tabs.map(([id, label]) => h("button", { role: "tab", "aria-selected": id === tab ? "true" : "false", onclick: () => { tab = id; try { localStorage.setItem(AI_TAB_KEY, id); } catch {} show(); } }, label)));
+    put(pane, tabs.find(([id]) => id === tab)[2]());
+  };
+  show();
+  return [
+    h("div", { class: "mon", style: "margin-bottom:14px" },
+      stat("MCP servers", s.servers.length, `in ${found.length} config files`),
+      stat("Genesys Cloud", s.servers.filter((x) => x.genesys).length, "servers that talk to an org"),
+      stat("Secrets in plain text", plain.length, plain.length ? "should go into the keychain" : "none", true),
+      stat("Skills", s.skills.length, `Cursor ${s.skills.filter((k) => k.editor === "cursor").length} · Claude Code ${s.skills.filter((k) => k.editor === "claude-code").length}`)),
+    todoPanel(s, ctx),
+    bar, pane,
+  ];
+}
+
+/** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */
+function todoPanel(s, ctx) {
+  const having = (kind) => s.servers.filter((x) => x.problems.some((p) => p.kind === kind));
+  const fixable = (kind, fix) => having(kind).filter((x) => x.problems.some((p) => p.kind === kind && p.fix === fix));
+  const SAYS_MORE = ["missing-command", "launch-invalid"];
+  const row = (x, kind, btn) => h("div", { class: "todo-row" },
+    h("strong", {}, x.name), h("span", { class: "muted" }, `${EDITORS[x.editor]} · ${whereText(x)}`),
+    SAYS_MORE.includes(kind) ? h("span", { class: "muted", style: "font-size:12px;flex-basis:100%" }, x.problems.filter((p) => p.kind === kind).map((p) => p.text).join(" ")) : null,
+    h("span", { class: "spacer" }), btn);
+  // Each kind folds open on click; only the first group starts open.
+  let first = true;
+  const group = (title, why, rows, all) => {
+    if (!rows.length) return null;
+    const open = first;
+    first = false;
+    return h("details", { class: "todo-group", open },
+      h("summary", {}, h("strong", {}, title), pill(String(rows.length), "s-pending"), why ? h("span", { class: "muted", style: "font-size:13px" }, why) : null),
+      all ? h("div", { class: "row", style: "margin:4px 0 6px" }, all) : null, rows);
+  };
+
+  const secrets = having("plain-secret");
+  const canMove = fixable("plain-secret", "keychain");
+  const shared = secrets.some((x) => x.problems.some((p) => p.kind === "same-secret"));
+  const broken = [...having("missing-command"), ...having("launch-invalid")];
+  const leftovers = having("obsolete-env");
+  const headers = having("header-secret");
+  const unknown = having("unknown-client");
+  const twice = new Map();
+  for (const k of s.skills) if (k.problems.some((p) => p.kind === "skill-twice")) {
+    const key = `${k.editor}:${k.name}`;
+    (twice.get(key) || twice.set(key, { name: k.name, editor: k.editor, copies: [] }).get(key)).copies.push(k);
+  }
+  const badSkills = s.skills.filter((k) => k.problems.some((p) => p.kind === "skill-broken-link" || p.kind === "skill-no-description"));
+
+  const groups = [
+    group("Secrets in plain text", `Anyone who can read these files can use the secret.${shared ? " Several share one secret; in the keychain it becomes one entry." : ""}`,
+      secrets.map((x) => row(x, "plain-secret", canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null)),
+      canMove.length > 1 ? h("button", { class: "btn primary", onclick: () => ctx.fixAll(canMove, "keychain", `Move the secrets of ${canMove.length} entries into the keychain`) }, `Move all ${canMove.length} to the keychain`) : null),
+    group("Entries that cannot start", "The program or script they point to is gone, so the editor shows an error for them.",
+      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", x.editable ? h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove") : null)),
+      broken.filter((x) => x.editable).length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(broken.filter((x) => x.editable), "remove", `Remove ${broken.filter((x) => x.editable).length} entries that cannot start`) }, "Remove all") : null),
+    group("Leftovers from an earlier gctk", "", leftovers.map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
+    group("Secrets in headers", "Remote servers: gctk cannot move these. Use your editor's variables (for example ${env:NAME}) instead.", headers.map((x) => row(x, "header-secret", null))),
+    group("Skills loaded twice", "The AI may pick either copy. Remove the one you do not need; gctk keeps it, so you can restore it.",
+      [...twice.values()].map((t) => h("div", { class: "twin" },
+        h("div", { class: "row" }, h("strong", {}, t.name), h("span", { class: "muted" }, `${EDITORS[t.editor]} · ${t.copies.length} copies`)),
+        t.copies.map((k) => h("div", { class: "todo-row" },
+          h("span", { style: "min-width:150px" }, skillOrigin(k)),
+          h("span", { class: "mono muted twin-path", title: k.link ? `${k.path} → ${k.link}` : k.path }, `\u200e${k.path}${k.link ? ` → ${k.link}` : ""}`),
+          k.removable ? h("button", { class: "btn", onclick: () => ctx.removeSkill(k) }, "Remove this copy") : h("span", { class: "muted", style: "font-size:12px;white-space:nowrap" }, k.source === "plugin" ? "comes with a plugin" : "built in"))))),
+      (() => {
+        // Often one project carries copies of skills the user has anyway: one button for all of them.
+        const byProject = new Map();
+        for (const t of twice.values()) for (const k of t.copies) if (k.source === "project" && k.removable) (byProject.get(k.project) || byProject.set(k.project, []).get(k.project)).push(k);
+        return [...byProject.entries()].filter(([, l]) => l.length > 1).map(([pr, l]) => h("button", { class: "btn primary", onclick: () => ctx.removeSkills(l, `Remove the ${l.length} copies in project ${projName(pr)}`) }, `Remove the ${l.length} copies in project ${projName(pr)}`));
+      })()),
+    group("Skills that do not work", "", badSkills.map((k) => h("div", { class: "todo-row" }, h("strong", {}, k.name), h("span", { class: "muted" }, EDITORS[k.editor]), h("span", { class: "muted", style: "font-size:12px" }, k.problems.map((p) => p.text).join(" "))))),
+    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", unknown.map((x) => row(x, "unknown-client", null))),
+  ].filter(Boolean);
+  return groups.length
+    ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)
+    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, every entry can start, no skill is loaded twice.");
+}
+
+/** One server as a compact line; the details open on click. */
+function serverRow(x, ctx, opts = {}) {
+  const [credText, credCls] = CREDS[x.credentials] || [x.credentials, ""];
+  const issues = x.problems.filter((p) => p.level === "warn" && p.kind !== "plain-secret" && p.kind !== "same-secret").length;
+  const restore = x.credentials === "keychain" && x.launch?.valid && x.editable;
+  const vars = [...x.env, ...x.headers.map((v) => ({ ...v, name: `header ${v.name}` }))];
+  const org = x.org;
+  return h("details", { class: "srv" },
+    h("summary", {}, h("strong", {}, x.name),
+      opts.hideEditor ? null : pill(EDITORS[x.editor] || x.editor),
+      h("span", { class: "muted" }, whereText(x)),
+      x.disabled ? pill("switched off") : null,
+      opts.extra || null,
+      h("span", { class: "spacer" }),
+      issues ? pill(`${issues} to fix`, "s-failed") : null,
+      pill(credText, credCls)),
+    h("div", { class: "body" },
+      h("dl", { class: "kv" },
+        h("dt", {}, "File"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.file),
+        x.project && x.scope === "project" ? [h("dt", {}, "Project"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.project)] : null,
+        h("dt", {}, "Org"), h("dd", {}, org?.profile ? org.profile : org?.clientId ? "not one of your gctk orgs" : x.credentials === "gctk-profile" ? "the org you work on in gctk" : "—"),
+        org?.region ? [h("dt", {}, "Region"), h("dd", { class: "mono" }, org.region)] : null,
+        org?.clientId ? [h("dt", {}, "OAuth client"), h("dd", { class: "mono" }, org.clientId)] : null,
+        h("dt", {}, x.transport === "http" ? "URL" : "Starts"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.transport === "http" ? x.url : [x.command, ...x.args].join(" "))),
+      vars.length ? h("table", {}, vars.map((v) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, v.name), h("td", { class: "v" }, v.value, v.plain ? [" ", pill("plain text", "s-failed")] : "")))) : null,
+      x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,
+      x.credentialKeys ? credentialsForm(x, ctx)
+        : x.credentials === "gctk-profile" ? h("div", { class: "muted", style: "font-size:13px" }, "Its credentials are the orgs on the Orgs page.")
+        : x.credentials === "axl" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the AXL page.") : null,
+      x.editable ? h("div", { class: "row" },
+        x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,
+        x.problems.some((p) => p.fix === "clean-env") ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, FIX_LABELS["clean-env"]) : null,
+        restore ? h("button", { class: "btn", onclick: () => ctx.fix(x, "restore") }, FIX_LABELS.restore) : null,
+        h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, FIX_LABELS.remove))
+        : h("div", { class: "muted", style: "font-size:12px" }, x.scope === "plugin" ? "Comes with a plugin; change it there." : "gctk does not change this file.")));
+}
+
+/** New client ID, secret or region for a Genesys server, or those of one of the user's gctk orgs. */
+function credentialsForm(x, ctx) {
+  const keys = x.credentialKeys;
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  const org = h("select", {}, h("option", { value: "" }, "Enter them below"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier}, ${p.region})`)));
+  const clientId = keys.clientId ? h("input", { placeholder: x.org?.clientId ? `now ${x.org.clientId}` : "Client ID", autocomplete: "off", style: "min-width:280px" }) : null;
+  const secret = keys.secret ? h("input", { type: "password", placeholder: "Client secret (empty: keep the current one)", autocomplete: "new-password", style: "min-width:280px" }) : null;
+  const region = keys.region || keys.habitat ? h("input", { placeholder: x.org?.region ? `now ${x.org.region}` : "Region, e.g. mypurecloud.de", style: "min-width:200px" }) : null;
+  const plain = x.credentials !== "keychain";
+  const keychain = h("input", { type: "checkbox", checked: true });
+  const typed = [clientId, secret, region].filter(Boolean);
+  org.addEventListener("change", () => { for (const el of typed) el.disabled = Boolean(org.value); });
+  const save = () => ctx.setCredentials(x, org.value
+    ? { profile: org.value, keychain: plain ? keychain.checked : true }
+    : { clientId: clientId?.value || "", secret: secret?.value || "", region: region?.value || "", keychain: plain ? keychain.checked : true });
+  const field = (label, el) => el ? h("label", {}, label, el) : null;
+  return h("details", { class: "creds" },
+    h("summary", {}, "Change credentials"),
+    h("div", { class: "grid", style: "margin-top:6px" },
+      h("label", {}, "Take them from an org", org),
+      field(`Client ID (${keys.clientId})`, clientId), field(`Secret (${keys.secret})`, secret), field(`Region (${[keys.region, keys.habitat].filter(Boolean).join(", ")})`, region)),
+    plain && keys.secret ? h("label", { class: "row", style: "margin-top:8px;color:var(--text)" }, keychain, "Keep the secret in the keychain, not in the file") : null,
+    h("div", { class: "row", style: "margin-top:8px" }, h("button", { class: "btn primary", onclick: save }, "Save credentials"),
+      h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));
+}
+
+const AI_PROJECT_KEY = "gctk-ai-project";
+
+/** What the AI loads in one project, per editor: the project's own config, the user config and plugins. */
+function byProject(s, ctx) {
+  if (!s.projects.length) return h("div", { class: "panel empty" }, "No project folders found. Add one under Config files.");
+  const own = (p) => p.servers + p.skills;
+  const list = [...s.projects].sort((a, b) => (own(b) > 0) - (own(a) > 0) || projName(a.path).localeCompare(projName(b.path)));
+  let current = (() => { try { return localStorage.getItem(AI_PROJECT_KEY) || ""; } catch { return ""; } })();
+  if (!list.some((p) => p.path === current)) current = list[0].path;
+  const pane = h("div");
+  const sel = h("select", { style: "min-width:320px" }, list.map((p) => h("option", { value: p.path, selected: p.path === current },
+    `${projName(p.path)}${own(p) ? ` · own config: ${[p.servers ? `${p.servers} server${p.servers > 1 ? "s" : ""}` : "", p.skills ? `${p.skills} skill${p.skills > 1 ? "s" : ""}` : ""].filter(Boolean).join(", ")}` : " · no own config"}`)));
+  const draw = () => {
+    const P = sel.value;
+    // Claude Code: local (~/.claude.json) beats the project's .mcp.json, which beats the user config.
+    const rank = (x) => x.section.startsWith("projects:") ? 0 : x.scope === "project" ? 1 : x.scope === "user" ? 2 : 3;
+    put(pane, h("div", { class: "muted mono", style: "font-size:12px;margin:-4px 0 10px" }, P), ["cursor", "claude-code"].map((e) => {
+      const servers = s.servers.filter((x) => x.editor === e && ((x.scope === "user") || x.scope === "plugin" || x.project === P));
+      const skills = s.skills.filter((k) => k.editor === e && (k.source !== "project" || k.project === P));
+      const byName = new Map();
+      for (const x of servers) (byName.get(x.name) || byName.set(x.name, []).get(x.name)).push(x);
+      const clash = (x) => {
+        const same = byName.get(x.name);
+        if (same.length < 2) return null;
+        if (e !== "claude-code") return pill("same name twice", "s-pending");
+        const winner = [...same].sort((a, b) => rank(a) - rank(b))[0];
+        return winner === x ? pill("used", "s-applied") : pill(`not used: ${winner.section.startsWith("projects:") ? "the private entry" : winner.scope === "project" ? "the project's entry" : "the user entry"} wins`, "s-pending");
+      };
+      const part = (title, l) => l.length ? h("div", { style: "margin-top:8px" }, h("div", { class: "sub-head" }, title), sortServers(l).map((x) => serverRow(x, ctx, { hideEditor: true, extra: clash(x) }))) : null;
+      const projectServers = servers.filter((x) => x.project === P);
+      const skillPart = (title, l, open) => l.length ? h("details", { class: "skill-group", open }, h("summary", { class: "sub-head" }, `${title} (${l.length})`), [...l].sort((a, b) => a.name.localeCompare(b.name)).map((k) => skillLine(k, ctx))) : null;
+      const twice = new Set([...new Set(skills.map((k) => k.name))].filter((n) => skills.filter((k) => k.name === n && k.source !== "built-in").length > 1));
+      return h("div", { class: "panel" },
+        h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, `In ${EDITORS[e]}`), h("span", { class: "muted" }, `${servers.length} server${servers.length === 1 ? "" : "s"} · ${skills.length} skills`),
+          twice.size ? pill(`${twice.size} skill name${twice.size > 1 ? "s" : ""} twice`, "s-failed") : null),
+        e === "claude-code" && projectServers.length ? h("div", { class: "muted", style: "font-size:12px" }, "Claude Code asks once before it uses the servers of a project's shared .mcp.json.") : null,
+        part("This project's own config", projectServers.filter((x) => !x.section.startsWith("projects:"))),
+        part("Only you, in this project (~/.claude.json)", projectServers.filter((x) => x.section.startsWith("projects:"))),
+        part("From your user config (all projects)", servers.filter((x) => x.scope === "user")),
+        part("From plugins", servers.filter((x) => x.scope === "plugin")),
+        servers.length ? null : h("div", { class: "muted", style: "margin-top:6px" }, "No MCP servers."),
+        h("h3", { style: "margin:14px 0 2px;font-size:14px" }, "Skills"),
+        skillPart("This project's own skills", skills.filter((k) => k.source === "project"), true),
+        skillPart("Your skills", skills.filter((k) => k.source === "user"), twice.size > 0),
+        skillPart("From plugins", skills.filter((k) => k.source === "plugin"), false),
+        skillPart("Built into Cursor", skills.filter((k) => k.source === "built-in"), false));
+    }));
+  };
+  sel.addEventListener("change", () => { try { localStorage.setItem(AI_PROJECT_KEY, sel.value); } catch {} draw(); });
+  draw();
+  return [h("div", { class: "row", style: "margin-bottom:10px" }, h("label", { class: "row" }, "Project", sel)), pane];
+}
+
+const sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || a.editor.localeCompare(b.editor) || whereText(a).localeCompare(whereText(b)));
+
+/** Servers grouped by the org they work on: what uses my demo org, and where its secret is. */
+function byOrg(s, ctx) {
+  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
+  const groups = new Map();
+  const add = (key, title, x) => (groups.get(key) || groups.set(key, { title, servers: [] }).get(key)).servers.push(x);
+  for (const x of s.servers) {
+    if (x.org?.profile) add(`p:${x.org.profile}`, x.org.profile, x);
+    else if (x.credentials === "gctk-profile") add("gctk", "gctk itself", x);
+    else if (x.org?.clientId) add(`c:${x.org.clientId}`, `Unknown OAuth client ${x.org.clientId}`, x);
+    else if (x.genesys) add("g", "Genesys Cloud, org not known", x);
+    else add("none", "Other servers", x);
+  }
+  const order = (k) => (k.startsWith("p:") ? 0 : k === "gctk" ? 1 : k.startsWith("c:") || k === "g" ? 2 : 3);
+  const keys = [...groups.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b));
+  const note = { gctk: "gctk's own MCP server: it uses the orgs on the Orgs page, with their secrets in the keychain.", none: "Servers that do not talk to Genesys Cloud." };
+  return [
+    keys.map((k) => {
+      const g = groups.get(k);
+      const tier = k.startsWith("p:") ? tierOf(g.title) : null;
+      const region = g.servers.find((x) => x.org?.region)?.org.region;
+      const plainN = g.servers.filter((x) => x.credentials === "plain").length;
+      const secret = k.startsWith("p:") ? s.secrets.filter((m) => m.profile === g.title) : [];
+      return h("div", { class: "panel" },
+        h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, g.title), tier ? pill(tier, `t-${tier}`) : null, region ? h("span", { class: "muted mono" }, region) : null,
+          h("span", { class: "muted" }, `${g.servers.length} server${g.servers.length > 1 ? "s" : ""}`), h("span", { class: "spacer" }),
+          plainN ? pill(`secret in plain text in ${plainN}`, "s-failed") : null),
+        note[k] ? h("div", { class: "muted", style: "font-size:13px;margin-bottom:4px" }, note[k]) : null,
+        sortServers(g.servers).map((x) => serverRow(x, ctx)),
+        secret.map((m) => secretCard(m, ctx.msg, ctx.draw)));
+    }),
+    s.secrets.filter((m) => !m.profile).length ? [h("h3", {}, "Other secrets gctk keeps in the keychain"), s.secrets.filter((m) => !m.profile).map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,
+  ];
+}
+
+/** Servers grouped by editor, then by where they apply: all projects, one project, a plugin. */
+function byEditor(s, ctx) {
+  const editors = [...new Set(s.servers.map((x) => x.editor))].sort((a, b) => Object.keys(EDITORS).indexOf(a) - Object.keys(EDITORS).indexOf(b));
+  if (!editors.length) return h("div", { class: "panel empty" }, "No MCP servers found. Add a config file under Config files.");
+  return editors.map((e) => {
+    const list = s.servers.filter((x) => x.editor === e);
+    const parts = [
+      ["All projects", list.filter((x) => x.scope === "user")],
+      ...[...new Set(list.filter((x) => x.scope === "project").map((x) => x.project))].sort().map((p) => [`Project ${projName(p)}`, list.filter((x) => x.scope === "project" && x.project === p), p]),
+      ["From plugins", list.filter((x) => x.scope === "plugin")],
+    ].filter(([, l]) => l.length);
+    return h("div", { class: "panel" },
+      h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, EDITORS[e]), h("span", { class: "muted" }, `${list.length} server${list.length > 1 ? "s" : ""}`)),
+      parts.map(([title, l, full]) => h("div", { style: "margin-top:8px" },
+        h("div", { class: "sub-head" }, title, full ? h("span", { class: "mono" }, ` ${full}`) : null),
+        sortServers(l).map((x) => serverRow(x, ctx, { hideEditor: true })))));
+  });
+}
+
+/** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */
+function secretCard(m, msg, draw) {
+  const inputs = m.names.map((n) => [n, h("input", { type: "password", autocomplete: "new-password", placeholder: "new value", style: "flex:1;min-width:220px" })]);
+  const save = async () => {
+    try {
+      const next = await api(`/api/ai-setup/secrets/${encodeURIComponent(m.account)}`, { method: "PUT", body: { values: Object.fromEntries(inputs.map(([n, el]) => [n, el.value])) } });
+      put(msg, h("div", { class: "okbox" }, `Saved the new secret for ${m.usedBy.map((u) => u.server).join(", ")}. `, RELOAD_HINT));
+      draw(next);
+    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+  };
+  return h("div", { class: "keybox" },
+    h("div", { class: "row" }, "🔑", h("strong", {}, `Secret in the keychain: ${m.names.join(", ")}`), m.stored ? null : pill("missing in the keychain", "s-failed"),
+      h("span", { class: "muted", style: "font-size:13px" }, `used by ${m.usedBy.length} entr${m.usedBy.length > 1 ? "ies" : "y"}`)),
+    h("details", {}, h("summary", {}, "Enter a new secret (after rotating it in Genesys Cloud)"),
+      inputs.map(([n, el]) => h("div", { class: "row", style: "margin:6px 0" }, h("span", { class: "mono", style: "min-width:220px" }, n), el)),
+      h("button", { class: "btn primary", onclick: save }, "Save in the keychain")));
+}
+
+const skillOrigin = (k) => k.source === "plugin" ? `Plugin ${k.plugin}` : k.source === "project" ? `Project ${projName(k.project)}` : k.source === "built-in" ? "Built into Cursor" : "Your skills folder";
+const skillLine = (k, ctx) => h("div", { class: "skill-row", title: k.description },
+    h("strong", {}, k.name),
+    h("span", { class: "muted" }, k.description.length > 140 ? `${k.description.slice(0, 139)}…` : k.description || "no description"),
+    h("span", { class: "row", style: "gap:6px;flex-wrap:nowrap" },
+      k.problems.some((p) => p.level === "warn") ? pill(k.problems.some((p) => p.kind === "skill-twice") ? "loaded twice" : "does not work", "s-failed") : null,
+      ctx && k.removable && k.problems.some((p) => p.kind === "skill-twice") ? h("button", { class: "btn", style: "padding:1px 8px;font-size:12px", onclick: () => ctx.removeSkill(k) }, "Remove") : null));
+
+/** Skills per editor, grouped by where they come from; the built-in ones folded away. */
+function skillsTab(s, ctx) {
+  const skills = s.skills;
+  if (!skills.length && !s.removedSkills.length) return h("div", { class: "panel empty" }, "No skills found.");
+  const origin = skillOrigin;
+  return ["cursor", "claude-code"].map((e) => {
+    const mine = skills.filter((k) => k.editor === e);
+    if (!mine.length) return null;
+    const byOrigin = new Map();
+    for (const k of mine) (byOrigin.get(origin(k)) || byOrigin.set(origin(k), []).get(origin(k))).push(k);
+    const rank = (o) => (o === "Your skills folder" ? 0 : o.startsWith("Plugin") ? 1 : o.startsWith("Project") ? 2 : 3);
+    return h("div", { class: "panel" },
+      h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, EDITORS[e]), h("span", { class: "muted" }, `${mine.length} skills`)),
+      [...byOrigin.entries()].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b)).map(([o, list]) => {
+        const items = [...list].sort((a, b) => a.name.localeCompare(b.name)).map((k) => skillLine(k, ctx));
+        const where = list[0].path.replace(/[\\/][^\\/]+$/, "");
+        const flagged = list.some((k) => k.problems.some((p) => p.level === "warn"));
+        return h("details", { class: "skill-group", open: o === "Your skills folder" || flagged },
+          h("summary", { class: "sub-head" }, `${o} (${list.length})`, o === "Built into Cursor" ? null : h("span", { class: "mono" }, ` ${where}`)), items);
+      }));
+  }).concat(s.removedSkills.length ? [h("div", { class: "panel" },
+    h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, "Removed skills"), h("span", { class: "muted" }, "gctk keeps them; the editors no longer load them")),
+    s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "muted" }, EDITORS[r.editor]),
+      h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "muted", style: "font-size:12px" }, time(r.removedAt)),
+      h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore"))))] : []);
+}
+
+function filesPanel(s, msg, draw) {
+  const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/mcp.json", style: "flex:1;min-width:280px" });
+  const call = async (url, body) => {
+    try { draw(await api(url, { method: "POST", body })); msg.replaceChildren(); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  };
+  const status = (f) => !f.exists ? h("span", { class: "muted" }, "not there") : f.error ? h("span", { class: "muted" }, f.error) : f.scope === "plugin" ? h("span", { class: "muted" }, "read-only (plugin)") : pill("found", "s-applied");
+  const added = s.locations.filter((l) => !s.files.some((f) => f.path === l && f.added));
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Config files"),
+    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk looks in the standard places of each editor and in the project folders they know (Cursor's recent folders, Claude Code's projects, your AXL workshop folders). Add a file or a project folder that is somewhere else."),
+    h("table", {}, h("tr", {}, h("th", {}, "File"), h("th", {}, "Editor"), h("th", {}, "For"), h("th", {}, "")),
+      s.files.map((f) => h("tr", {},
+        h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, f.path),
+        h("td", {}, EDITORS[f.editor] || f.editor),
+        h("td", { class: "muted" }, f.scope === "plugin" ? `plugin ${f.plugin}` : f.scope === "project" ? "one project" : "all projects"),
+        h("td", { style: "white-space:nowrap" }, status(f), f.added ? [" ", h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: f.path }) }, "Remove")] : null)))),
+    added.length ? h("div", { style: "margin-top:10px" }, h("strong", { style: "font-size:13px" }, "Added folders"), added.map((l) => h("div", { class: "row", style: "margin-top:4px" }, h("span", { class: "mono", style: "font-size:12px;flex:1" }, l),
+      h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: l }) }, "Remove")))) : null,
+    h("div", { class: "row", style: "margin-top:12px" }, input, h("button", { class: "btn primary", onclick: () => input.value.trim() && call("/api/ai-setup/locations", { path: input.value }) }, "Add")));
+}
+
+// ---------------------------------------------------------------- start
+(async () => {
+  if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "No session token. Ask the AI to open the gctk UI again, or run `gctk ui`.")); return; }
+  try {
+    await refreshOverview();
+    // A page this tab remembers that no longer exists opens Orgs.
+    if (![...VIEWS, ...MINOR_VIEWS].some(([id]) => id === state.view)) {
+      state.view = "profiles";
+      try { sessionStorage.setItem("gctk-view", "profiles"); } catch {}
+    }
+    await render();
+  }
+  catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); return; }
+})();
+</script>
+</body>
+</html>

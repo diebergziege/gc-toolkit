@@ -1,0 +1,28 @@
+{
+  "name": "genesys-cloud-toolkit",
+  "displayName": "Genesys Cloud Toolkit",
+  "version": "0.24.0",
+  "description": "A local UI that makes your AI setup and Genesys Cloud demos transparent and easy: orgs with credentials in the OS keychain, your editors' MCP servers and skills (which org each server uses, where its secret is), a demo customer website, Demo ready data for the agent's home screen, AXL workshops and org monitoring.",
+  "author": {
+    "name": "diebergziege"
+  },
+  "homepage": "https://github.com/diebergziege/gc-toolkit",
+  "repository": "https://github.com/diebergziege/gc-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "genesys cloud",
+    "contact-center",
+    "ccaas",
+    "admin",
+    "configuration",
+    "mcp"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "genesys",
+    "contact-center",
+    "demo",
+    "mcp"
+  ],
+  "mcpServers": "./mcp.json"
+}

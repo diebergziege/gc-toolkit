@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumea ServiceCockpit · Beratung &amp; Angebot</title>
+<link rel="stylesheet" href="assets/lumea.css?v=14">
+</head>
+<body>
+
+<div class="wrap single">
+  <div class="col">
+
+    <!-- ========================================================== Angebot -->
+    <section id="tab-angebot">
+      <div class="panel">
+        <header>Empfehlung
+          <span class="chip green"><span class="dot"></span>PV-Potenzial</span>
+          <span class="chip amber"><span class="dot"></span>Dyn. Tarif angefragt</span>
+          <span class="sp"></span><span class="src">Regelwerk Vertrieb</span></header>
+        <div class="metrics" id="reco"></div>
+        <div class="body flush"><table class="grid" id="reason"></table></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <header>LumeaSolar Flex <span class="sp"></span><span class="src">Produktkatalog</span></header>
+        <div class="body flush"><table class="grid" id="offer"></table></div>
+        <div class="body" style="border-top:1px solid var(--line-soft); padding-bottom:0">
+          <table class="grid" id="kanaele"></table>
+        </div>
+        <div class="actionbar" id="actions"></div>
+        <div class="body" id="angebotTextBox" hidden></div>
+        <div class="body" id="caseBox" hidden></div>
+        <div class="body" id="smsBox" hidden style="padding-top:0"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="assets/lumea.js?v=14"></script>
+<script>
+renderChrome(2);
+
+/* Das Angebot ist EIN Produkt, nicht drei - Verlaengerung, dynamischer Tarif und
+   PV-Beratung in einem. Der Grund steht nicht in der Dramaturgie, sondern im eigenen
+   Wissensartikel 09: ein dynamischer Tarif OHNE verschiebbare Lasten ist ausdruecklich
+   "nicht empfehlen". Berger hat heute keine - keine Waermepumpe, keine Wallbox, keine
+   PV. Erst mit der Anlage wird er richtig. Einzeln ist keines von beiden die richtige
+   Empfehlung fuer diesen Kunden, zusammen sind sie es. */
+const ANGEBOT = {
+  name:       'LumeaSolar Flex',
+  preis:      0.342,   // fest bis zum Smart-Meter-Einbau, danach stuendlich Boersenpreis
+  grund:      12.90,   // Grundpreis unveraendert
+  messstelle:  4.90,   // Servicepauschale Messstellenbetrieb (Artikel 09)
+  laufzeit:   24,
+  kwp:         9.8,    // Vorpruefung Dach sued bei 4.750 kWh (Artikel 10)
+  speicher:    8,
+  // Deckungsbeitraege aus dem Produktkatalog: Strom nach Verlaengerung 198 EUR,
+  // Messstellenbetrieb 59 EUR, PV-Wartung 149 EUR. Eine Katalogangabe, kein Modell -
+  // das fruehere Wertmodell mit Churn-Score und CLV ist am 19.09.2026 entfallen.
+  dbJahr:    406,
+  dbEinmalig: 2400,
+};
+
+/* Die Zusage kommt von Seite 1 über den localStorage. Ist der im Agent-Script-iframe
+   gesperrt, weiss Seite 2 nichts davon – dann gilt sie als erteilt, denn diese Seite
+   wird in der Demo erst nach der Zusage geoeffnet. `?zusage=0` erzwingt den Ausgangswert. */
+const zusage = () => QS.get('zusage') === '0' ? false
+                   : (S.committed || !STORAGE_OK || QS.get('zusage') === '1');
+const SAVING = (LUMEA.preis - ANGEBOT.preis) * KWH;
+const tile = (k, v, d, cls = '') =>
+  `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="d">${d}</div></div>`;
+
+/* ---------------------------------------------------------------- Angebot */
+function renderReco() {
+  const p = zusage() ? 72 : 34;
+  $('#reco').innerHTML = [
+    tile('Empfehlung', 'Solar Flex', 'Verlängerung + PV-Beratung', ''),
+    tile('Abschlusswahrscheinlichkeit', p + ' %',
+         zusage() ? 'nach verbindlicher Zusage' : 'vor der Zusage', zusage() ? 'up' : ''),
+    tile('Deckungsbeitrag', eur0(ANGEBOT.dbJahr), 'p. a. · ' + eur0(ANGEBOT.dbEinmalig) + ' einmalig'),
+    tile('Ersparnis für den Kunden', eur0(SAVING), 'pro Jahr'),
+  ].join('');
+}
+
+/* Jede Zeile ist ein Datenpunkt aus der Akte, keine Produkteigenschaft. Das ist der
+   Unterschied zwischen "wir haben ein Angebot" und "wir haben IHN gelesen" - und die
+   zweite und vierte Zeile verbinden das Angebot mit der Beschwerde aus Szene 4. */
+$('#reason').innerHTML =
+  '<thead><tr><th>Warum diese Empfehlung</th><th>Wert</th></tr></thead><tbody>' +
+  [['PV-Potenzial', 'Dach süd-ausgerichtet · keine Anlage · Vorprüfung ' +
+     num(ANGEBOT.kwp, 1) + ' kWp mit ' + ANGEBOT.speicher + ' kWh Speicher'],
+   ['Dynamischer Tarif', 'vor 8 Monaten angefragt – Smart Meter fehlte, kein Follow-up'],
+   ['Gasversorgung', LUMEA.gas + ' – PV mit Wärmepumpe deckt den Gesamtbedarf'],
+   ['Vertragsende', dDate(LUMEA.contractEnd) + ' – Kündigungsfrist ' + dDate(LUMEA.noticeDeadline)],
+   ['Verbrauch über Prognose', num(LUMEA.verbrauchIst) + ' statt ' + num(LUMEA.verbrauchPlan) + ' kWh']]
+    .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('') + '</tbody>';
+
+$('#offer').innerHTML =
+  `<thead><tr><th>Merkmal</th><th>Bestand</th><th>Angebot</th></tr></thead><tbody>
+    <tr><td>Arbeitspreis</td><td class="num">${num(LUMEA.preis * 100, 1)} ct/kWh</td>
+        <td class="num">${num(ANGEBOT.preis * 100, 1)} ct/kWh</td></tr>
+    <tr><td>ab Smart Meter</td><td>–</td><td>stündlich zum Börsenpreis</td></tr>
+    <tr><td>Grundpreis</td><td class="num">${eur(LUMEA.grundpreis)}</td>
+        <td class="num">${eur(ANGEBOT.grund)} + ${eur(ANGEBOT.messstelle)} Messstellenbetrieb</td></tr>
+    <tr><td>Laufzeit</td><td>läuft aus</td><td>${ANGEBOT.laufzeit} Monate</td></tr>
+    <tr><td>Photovoltaik</td><td>keine Anlage</td>
+        <td>Beratungstermin · Vorprüfung ${num(ANGEBOT.kwp, 1)} kWp mit ${ANGEBOT.speicher} kWh Speicher</td></tr>
+    <tr class="total"><td>Ersparnis</td><td class="num"></td><td class="num">${eur0(SAVING)} / Jahr</td></tr>
+  </tbody>`;
+
+/* Hinterlegte Kanäle – der Beleg für „auf seinem Kanal, nicht auf unserem" */
+$('#kanaele').innerHTML =
+  '<thead><tr><th>Hinterlegte Kanäle</th><th>Kennung</th><th>Verwendung</th></tr></thead><tbody>' +
+  [['WhatsApp', '@{param:customerPhone.masked}', 'laufendes Gespräch'],
+   ['SMS', '@{param:customerPhone.masked}', '<b>bevorzugt für Verbindliches</b>'],
+   ['E-Mail', 'markus.berger@••••••.de', 'Beschwerdekanal, Rechnungen']]
+    .map(([k, v, u]) => `<tr><td>${k}</td><td class="mono">${v}</td><td>${u}</td></tr>`).join('') +
+  '</tbody>';
+
+/* --------------------------------------------------- Vorgang anlegen (echt) */
+function renderActions() {
+  const a = $('#actions');
+  a.innerHTML = '';
+
+  // Der Erlaeuterungstext zum Angebot - aus denselben Daten, aus denen die Tabelle
+  // darueber gerendert wird. Aus demselben Grund wie auf Seite 1: die Wissensdatenbank
+  // kennt den Tarif, aber nicht die Frist und den Verbrauch dieses Kunden.
+  //
+  // Reihenfolge ist Absicht: erst die Frist, dann der Preis. Der Kunde entscheidet unter
+  // Zeitdruck - wer mit dem Preis anfaengt, klingt nach Verkauf.
+  const erl = document.createElement('button');
+  erl.className = 'btn primary';
+  erl.textContent = 'Angebotstext für den Kunden erzeugen';
+  erl.onclick = () => {
+    const tage = Math.max(0, Math.round((LUMEA.noticeDeadline - new Date()) / 864e5));
+    // NUR DAS ANGEBOT. Keine Gespraechsbezuege.
+    //
+    // Der Text war bis zum 21.09.2026 auf genau dieses Gespraech geschnitten: "Eine Sache
+    // ist davon unabhaengig und zeitkritisch", "egal wie die Rechnungspruefung ausgeht",
+    // "Und eines gehoert zu Ihrer Rechnung dazu". Das las sich wie ein Drehbuch - ein
+    // Fachsystem, das solche Saetze erzeugt, ist fuer diesen einen Fall gebaut.
+    //
+    // Jetzt beschreibt er das Produkt und sonst nichts: Konditionen, dynamischer Tarif,
+    // PV-Beratung, naechster Schritt. Die Ueberleitung aus dem Gespraech macht der Agent
+    // selbst - dafuer braucht es keinen Knopf.
+    //
+    // PV muss drinstehen: Das Stammdatenblatt legt "PV-Potenzial und frueheres Interesse
+    // an dynamischem Tarif" in die Akte, und Situation 3 verlangt die passende Next Best
+    // Action darauf. Ein Angebotstext ohne PV beantwortet sie nicht.
+    const text =
+      `Ihr Angebot: ${ANGEBOT.name}\n\n` +
+      `Ihr Vertrag läuft am ${dDate(LUMEA.contractEnd)} aus, die Kündigungsfrist endet am ` +
+      `${dDate(LUMEA.noticeDeadline)} – das sind noch ${tage} Tage.\n\n` +
+      `Arbeitspreis ${num(ANGEBOT.preis * 100, 1)} ct/kWh statt bisher ` +
+      `${num(LUMEA.preis * 100, 1)} ct/kWh, Grundpreis unverändert ${eur(ANGEBOT.grund)} im ` +
+      `Monat, Laufzeit ${ANGEBOT.laufzeit} Monate. Bei Ihrem Verbrauch von ` +
+      `${num(LUMEA.verbrauchIst)} kWh sind das rund ${eur0(SAVING)} im Jahr weniger.\n\n` +
+      `Enthalten ist der Wechsel in den dynamischen Tarif, sobald Ihr Smart Meter eingebaut ` +
+      `ist: Der Arbeitspreis richtet sich dann stündlich nach dem Börsenpreis, dazu ` +
+      `${eur(ANGEBOT.messstelle)} im Monat für den Messstellenbetrieb. Den Einbau übernimmt ` +
+      `der Messstellenbetreiber, Vorlaufzeit vier bis sechs Wochen.\n\n` +
+      `Dazu eine Photovoltaik-Beratung: Ihr Dach ist nach Süden ausgerichtet, nach unserer ` +
+      `Vorprüfung sind ${num(ANGEBOT.kwp, 1)} kWp mit ${ANGEBOT.speicher} kWh Speicher ` +
+      `möglich. Die Fachberatung meldet sich innerhalb von drei Werktagen und prüft das Dach ` +
+      `vor Ort. Der Termin ist unverbindlich.`;
+
+    const box = $('#angebotTextBox');
+    box.hidden = false;
+    box.innerHTML = `<div class="hint" style="white-space:pre-wrap">${text}</div>`;
+    copy(text, 'Angebotstext');
+  };
+  a.appendChild(erl);
+
+  const b = document.createElement('button');
+  b.className = 'btn ' + (S.angebotCase ? 'done' : 'primary');
+  b.textContent = S.angebotCase ? '✓ Vorgang ' + S.angebotCase + ' angelegt' : 'Angebot verbindlich anlegen';
+  // Nie durch fehlenden Zustand sperren: auf der Buehne muss dieser Knopf immer gehen.
+  b.disabled = !!S.angebotCase;
+  b.onclick = async () => {
+    b.disabled = true; b.textContent = 'Vorgang wird angelegt …';
+    try {
+      const r = await fetch('/api/angebot', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Fehler ' + r.status);
+      Store.patch({ angebotCase: d.reference, angebotCaseId: d.id, angebotCaseAt: Date.now() });
+      toast('Vorgang ' + d.reference + ' angelegt');
+    } catch (e) {
+      // Rückfallebene: die Demo läuft weiter, der Vorgang wird von Hand angelegt
+      Store.patch({ angebotCase: 'manuell', angebotCaseAt: Date.now(), angebotFehler: String(e.message) });
+      toast('Anlage fehlgeschlagen – Vorgang bitte im Desktop anlegen');
+    }
+  };
+  a.appendChild(b);
+
+  // Zweiter Knopf: Bestätigung auf den hinterlegten Kanal. Ebenfalls nie gesperrt.
+  const s2 = document.createElement('button');
+  s2.className = 'btn ' + (S.smsGesendet ? 'done' : '');
+  s2.textContent = S.smsGesendet ? '✓ Bestätigung per SMS gesendet' : 'Bestätigung per SMS senden';
+  s2.disabled = !!S.smsGesendet;
+  s2.onclick = async () => {
+    s2.disabled = true; s2.textContent = 'Wird gesendet …';
+    try {
+      const r = await fetch('/api/bestaetigung', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referenz: S.angebotCase || 'wird nachgereicht' }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Fehler ' + r.status);
+      Store.patch({ smsGesendet: true, smsAn: d.an, smsAt: Date.now(), smsFehler: null });
+      // Wie bei der Abschlagskorrektur: Der Text entsteht aus dem, was gerade passiert
+      // ist, und traegt die echte Vorgangsnummer. ANTWORT 06 konnte sie nicht kennen.
+      copy(bestaetigungstext(), 'Bestätigung');
+      toast('SMS an ' + d.an + ' gesendet · Text in der Zwischenablage');
+    } catch (e) {
+      Store.patch({ smsGesendet: true, smsFehler: String(e.message), smsAt: Date.now() });
+      // Auch im Fehlerfall: Der Vorgang IST angelegt, das darf der Kunde erfahren. Der
+      // Text laesst nur die Behauptung weg, die SMS sei unterwegs.
+      copy(bestaetigungstext(), 'Bestätigung');
+      toast('Versand fehlgeschlagen · Text liegt trotzdem bereit');
+    }
+  };
+  a.appendChild(s2);
+
+  const sp = document.createElement('div'); sp.className = 'sp'; a.appendChild(sp);
+  const note = document.createElement('div'); note.className = 'note';
+  note.textContent = S.smsGesendet
+    ? 'Der Kunde hat die Bestätigung auf seinem Kanal – ohne dass er danach fragen musste.'
+    : 'Vorgang anlegen, dann die Bestätigung auf den hinterlegten Kanal schicken.';
+  a.appendChild(note);
+}
+
+function renderCaseBox() {
+  const el = $('#caseBox');
+  if (!S.angebotCase) { el.hidden = true; return; }
+  el.hidden = false;
+  if (S.angebotFehler) {
+    el.innerHTML = `<div class="result err">Vorgang konnte nicht automatisch angelegt werden
+      (${S.angebotFehler}). Bitte im Desktop anlegen – Plan „Lumea Vertragsangebot".</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="result">Vorgang <b>${S.angebotCase}</b> angelegt ·
+    Stufe 1 <b>Angebot erfassen</b> · Warteschlange Lumea Kundenservice ·
+    ${new Date(S.angebotCaseAt).toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'})} Uhr<br>
+    Die Arbeit daraus wird nach dem Gespräch zugewiesen.</div>`;
+}
+
+/* --------------------------------------------------- Bestaetigung im Chat */
+/* Loest ANTWORT 06 ab. Der Baustein bleibt als Rueckfallebene in der Library, steht aber
+   in keiner Anweisung mehr: Er konnte die Vorgangsnummer nicht nennen, weil sie erst im
+   Gespraech entsteht. Bei gescheitertem Versand faellt der SMS-Satz weg - der Vorgang
+   ist trotzdem angelegt, und genau das soll der Kunde hoeren. */
+function bestaetigungstext() {
+  const ref = S.angebotCase && S.angebotCase !== 'manuell' ? ' ' + S.angebotCase : '';
+  const weg = S.smsFehler
+    ? 'Die Bestätigung mit allen Vertragsdaten bekommen Sie schriftlich'
+    : 'Die Bestätigung mit allen Vertragsdaten ist gerade per SMS an Ihre hinterlegte Nummer unterwegs';
+  return `Erledigt. Ihre Verlängerung ist als Vorgang${ref} angelegt. ${weg} – ohne dass Sie ` +
+         `hinterhertelefonieren müssen.\n\nUnd die Fachberatung zur Photovoltaik meldet sich ` +
+         `innerhalb von drei Werktagen bei Ihnen.`;
+}
+
+function renderSmsBox() {
+  const el = $('#smsBox');
+  if (!S.smsGesendet) { el.hidden = true; return; }
+  el.hidden = false;
+  const zeit = new Date(S.smsAt).toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = S.smsFehler
+    ? `<div class="result err">SMS konnte nicht gesendet werden (${S.smsFehler}).
+       Bestätigung im Desktop über eine Outbound-Nachricht schicken.</div>`
+    : `<div class="result"><b>SMS</b> an ${S.smsAn} gesendet · ${zeit} Uhr<br>
+       Tarif, Laufzeit, Ersparnis, PV-Beratungstermin und Vorgangsnummer – auf dem Kanal,
+       den der Kunde für Verbindliches hinterlegt hat.</div>`;
+  el.innerHTML +=
+    `<div class="hint" style="white-space:pre-wrap; margin-top:8px">${bestaetigungstext()}</div>
+     <div class="note" style="margin-top:6px">Text liegt in der Zwischenablage – im Chat einfügen.</div>`;
+}
+
+function renderAll() { renderReco(); renderActions(); renderCaseBox(); renderSmsBox(); }
+renderAll();
+Store.onChange(renderAll);
+
+renderStatusbar(['Produktkatalog', 'Regelwerk Vertrieb']);
+</script>
+</body>
+</html>

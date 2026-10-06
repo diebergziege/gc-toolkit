@@ -1,0 +1,3614 @@
+{
+  "at": "2026-10-01T16:42:54.300Z",
+  "region": "mypurecloud.de",
+  "objects": [
+    {
+      "type": "wrapupcode",
+      "name": "Abwanderung",
+      "spec": {
+        "name": "Abwanderung",
+        "description": "Gespraech endet ohne Bindung, Wechselabsicht bleibt bestehen - der Nenner der Quote"
+      }
+    },
+    {
+      "type": "wrapupcode",
+      "name": "Nachzahlung",
+      "spec": {
+        "name": "Nachzahlung",
+        "description": "Kunde hat Frage oder Problem mit einer Nachzahlung"
+      }
+    },
+    {
+      "type": "wrapupcode",
+      "name": "Vertragsverlaengerung",
+      "spec": {
+        "name": "Vertragsverlaengerung",
+        "description": "Gespraech endet mit einer zugesagten Vertragsverlaengerung - das gezaehlte Ergebnis"
+      }
+    },
+    {
+      "type": "queue",
+      "name": "Lumea Kundenservice",
+      "spec": {
+        "name": "Lumea Kundenservice",
+        "description": "Vendor Battle – Serviceschlange für die Lumea-Demo (Persona Familie Berger).",
+        "mediaSettings": {
+          "call": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            }
+          },
+          "callback": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            },
+            "mode": "AgentFirst",
+            "enableAutoDialAndEnd": false,
+            "autoDialDelaySeconds": 300,
+            "autoEndDelaySeconds": 300
+          },
+          "chat": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            }
+          },
+          "email": {
+            "alertingTimeoutSeconds": 300,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 86400000
+            }
+          },
+          "message": {
+            "alertingTimeoutSeconds": 300,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 300000
+            },
+            "autoAnswerAlertToneSeconds": 0,
+            "manualAnswerAlertToneSeconds": 0,
+            "subTypeSettings": {
+              "whatsapp": {
+                "enableAutoAnswer": false
+              },
+              "apple": {
+                "enableAutoAnswer": false
+              },
+              "twitter": {
+                "enableAutoAnswer": false
+              },
+              "webmessaging": {
+                "enableAutoAnswer": false
+              },
+              "facebook": {
+                "enableAutoAnswer": false
+              },
+              "sms": {
+                "enableAutoAnswer": false
+              },
+              "instagram": {
+                "enableAutoAnswer": false
+              },
+              "open": {
+                "enableAutoAnswer": false
+              }
+            },
+            "enableInactivityTimeout": false
+          }
+        },
+        "acwSettings": {
+          "wrapupPrompt": "OPTIONAL"
+        },
+        "skillEvaluationMethod": "BEST",
+        "cannedResponseLibraries": {
+          "mode": "SelectedOnly",
+          "libraryIds": [
+            "@{responselibrary:Lumea – Vendor Battle}"
+          ]
+        },
+        "wrapupCodes": [
+          "@{wrapupcode:Abwanderung}",
+          "@{wrapupcode:Nachzahlung}",
+          "@{wrapupcode:Vertragsverlaengerung}"
+        ]
+      }
+    },
+    {
+      "type": "queue",
+      "name": "Lumea Vorgangsbearbeitung",
+      "spec": {
+        "name": "Lumea Vorgangsbearbeitung",
+        "description": "Vendor Battle: Work Items des Angebots-Case. Bewusst NICHT die Gespraechs-Queue.",
+        "mediaSettings": {
+          "call": {
+            "alertingTimeoutSeconds": 8,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            }
+          },
+          "callback": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            },
+            "mode": "AgentFirst",
+            "enableAutoDialAndEnd": false,
+            "autoDialDelaySeconds": 300,
+            "autoEndDelaySeconds": 300
+          },
+          "chat": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            }
+          },
+          "email": {
+            "alertingTimeoutSeconds": 300,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 86400000
+            }
+          },
+          "message": {
+            "alertingTimeoutSeconds": 30,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            }
+          },
+          "workitem": {
+            "alertingTimeoutSeconds": 300,
+            "serviceLevel": {
+              "percentage": 0.8,
+              "durationMs": 20000
+            },
+            "manualAnswerAlertToneSeconds": 0
+          }
+        },
+        "acwSettings": {
+          "wrapupPrompt": "OPTIONAL"
+        },
+        "skillEvaluationMethod": "ALL",
+        "wrapupCodes": []
+      }
+    },
+    {
+      "type": "intentcategory",
+      "name": "Reklamation",
+      "spec": {
+        "name": "Reklamation",
+        "description": "Beinhaltet alle Gründe für Reklamationen"
+      }
+    },
+    {
+      "type": "intentcategory",
+      "name": "Nachlass",
+      "spec": {
+        "name": "Nachlass",
+        "description": "Alles, was mit der Aktivierung von Nachlass/Erbe zu tun hat. Zugriff auf Konten nach dem Sterbefall.\n\nZ.B. meine Mutter ist verstorben und ich muss zugriff auf die Konten haben."
+      }
+    },
+    {
+      "type": "customerintent",
+      "name": "Rechnungsbeschwerde Privatkunden",
+      "spec": {
+        "name": "Rechnungsbeschwerde Privatkunden",
+        "description": "Beanstandung einer Jahresabrechnung im Privatkundengeschaeft",
+        "expiryTime": 720,
+        "categoryId": "@{intentcategory:Reklamation}"
+      }
+    },
+    {
+      "type": "customerintent",
+      "name": "Vertragsverlaengerung Privatkunden",
+      "spec": {
+        "name": "Vertragsverlaengerung Privatkunden",
+        "description": "Vertragsverlaengerung im Privatkundengeschaeft",
+        "expiryTime": 720,
+        "categoryId": "@{intentcategory:Nachlass}"
+      }
+    },
+    {
+      "type": "workbin",
+      "name": "Lumea Workbin",
+      "spec": {
+        "name": "Lumea Workbin"
+      }
+    },
+    {
+      "type": "workitemschema",
+      "name": "Lumea Rechnungsbeschwerde",
+      "spec": {
+        "name": "Lumea Rechnungsbeschwerde",
+        "appliesTo": [
+          "WORKITEM"
+        ],
+        "enabled": true,
+        "jsonSchema": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "title": "Lumea Rechnungsbeschwerde",
+          "description": "Felder einer Abrechnungsbeschwerde im Privatkundengeschaeft",
+          "properties": {
+            "belegnummer_identifier": {
+              "title": "Belegnummer",
+              "description": "Rechnung, auf die sich die Beschwerde bezieht",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/identifier"
+                }
+              ]
+            },
+            "forderungsbetrag_text": {
+              "title": "Forderungsbetrag",
+              "description": "Strittiger Betrag",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            },
+            "eingangskanal_enum": {
+              "title": "Eingangskanal",
+              "description": "",
+              "enum": [
+                "email",
+                "telefon",
+                "whatsapp",
+                "formular"
+              ],
+              "_enumProperties": {
+                "email": {
+                  "title": "E-Mail",
+                  "_disabled": false
+                },
+                "telefon": {
+                  "title": "Telefon",
+                  "_disabled": false
+                },
+                "whatsapp": {
+                  "title": "WhatsApp",
+                  "_disabled": false
+                },
+                "formular": {
+                  "title": "Kontaktformular",
+                  "_disabled": false
+                }
+              },
+              "allOf": [
+                {
+                  "$ref": "#/definitions/enum"
+                }
+              ]
+            },
+            "eingang_am_date": {
+              "title": "Eingegangen am",
+              "description": "Datum der Beschwerde",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/date"
+                }
+              ]
+            },
+            "bearbeitungsstand_longtext": {
+              "title": "Bearbeitungsstand",
+              "description": "Warum der Vorgang steht, wo er steht - fuer die Auskunft an den Kunden",
+              "minLength": 0,
+              "maxLength": 1000,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/longtext"
+                }
+              ]
+            },
+            "naechster_schritt_text": {
+              "title": "Naechster Schritt",
+              "description": "",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            }
+          },
+          "definitions": {
+            "text": {
+              "title": "Text",
+              "description": "A single line string",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/text"
+            },
+            "longtext": {
+              "title": "Long Text",
+              "description": "A multi-line string",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/longtext"
+            },
+            "url": {
+              "title": "URL",
+              "description": "A single-line string containing a URL",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/url"
+            },
+            "identifier": {
+              "title": "Identifier",
+              "description": "A single line string identifier",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/identifier"
+            },
+            "enum": {
+              "title": "Enum",
+              "description": "A unique list of strings",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/enum"
+            },
+            "date": {
+              "title": "Date",
+              "description": "An ISO-8601 date with format YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}\\-(0[1-9]|1[012])\\-(0[1-9]|[12][0-9]|3[01])$",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/date"
+            },
+            "datetime": {
+              "title": "Date Time",
+              "description": "An ISO-8601 GMT date with time. Format: YYYY-MM-DDTHH:mm:ss.sssZ",
+              "type": "string",
+              "pattern": "^\\d{4}\\-(0[1-9]|1[012])\\-(0[1-9]|[12][0-9]|3[01])T(0[0-9]|1[0-9]|2[0-3])\\:([0-5][0-9])\\:([0-5][0-9])\\.\\d{3}Z$",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/datetime"
+            },
+            "integer": {
+              "title": "Integer",
+              "description": "An integer",
+              "type": "integer",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/integer"
+            },
+            "number": {
+              "title": "Number",
+              "description": "A decimal number",
+              "type": "number",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/number"
+            },
+            "checkbox": {
+              "title": "Checkbox",
+              "description": "Represents a selection toggle that can be in one of three states: true, false, or null",
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/checkbox"
+            },
+            "tag": {
+              "title": "Tag",
+              "description": "Represents a tag string value. Tags must be associated with an array and added to the items list.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[\\S]+$"
+              },
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/tag"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "workitemschema",
+      "name": "Lumea Vertragsangebot",
+      "spec": {
+        "name": "Lumea Vertragsangebot",
+        "appliesTo": [
+          "WORKITEM"
+        ],
+        "enabled": true,
+        "jsonSchema": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "title": "Lumea Vertragsangebot",
+          "description": "Felder eines Vertragsangebots",
+          "properties": {
+            "tarif_text": {
+              "title": "Tarif",
+              "description": "",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            },
+            "arbeitspreis_text": {
+              "title": "Arbeitspreis",
+              "description": "",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            },
+            "laufzeit_text": {
+              "title": "Laufzeit",
+              "description": "",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            },
+            "ersparnis_text": {
+              "title": "Ersparnis p.a.",
+              "description": "",
+              "minLength": 0,
+              "maxLength": 100,
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ]
+            }
+          },
+          "definitions": {
+            "text": {
+              "title": "Text",
+              "description": "A single line string",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/text"
+            },
+            "longtext": {
+              "title": "Long Text",
+              "description": "A multi-line string",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/longtext"
+            },
+            "url": {
+              "title": "URL",
+              "description": "A single-line string containing a URL",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/url"
+            },
+            "identifier": {
+              "title": "Identifier",
+              "description": "A single line string identifier",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/identifier"
+            },
+            "enum": {
+              "title": "Enum",
+              "description": "A unique list of strings",
+              "type": "string",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/enum"
+            },
+            "date": {
+              "title": "Date",
+              "description": "An ISO-8601 date with format YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}\\-(0[1-9]|1[012])\\-(0[1-9]|[12][0-9]|3[01])$",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/date"
+            },
+            "datetime": {
+              "title": "Date Time",
+              "description": "An ISO-8601 GMT date with time. Format: YYYY-MM-DDTHH:mm:ss.sssZ",
+              "type": "string",
+              "pattern": "^\\d{4}\\-(0[1-9]|1[012])\\-(0[1-9]|[12][0-9]|3[01])T(0[0-9]|1[0-9]|2[0-3])\\:([0-5][0-9])\\:([0-5][0-9])\\.\\d{3}Z$",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/datetime"
+            },
+            "integer": {
+              "title": "Integer",
+              "description": "An integer",
+              "type": "integer",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/integer"
+            },
+            "number": {
+              "title": "Number",
+              "description": "A decimal number",
+              "type": "number",
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/number"
+            },
+            "checkbox": {
+              "title": "Checkbox",
+              "description": "Represents a selection toggle that can be in one of three states: true, false, or null",
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/checkbox"
+            },
+            "tag": {
+              "title": "Tag",
+              "description": "Represents a tag string value. Tags must be associated with an array and added to the items list.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[\\S]+$"
+              },
+              "selfUri": "/api/v2/taskmanagement/workitems/schemas/coretypes/tag"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "worktype",
+      "name": "Lumea Rechnungsbeschwerde",
+      "spec": {
+        "name": "Lumea Rechnungsbeschwerde",
+        "description": "Vendor-Battle-Demo Lumea: Beschwerde zur Jahresabrechnung. Drei Stufen.",
+        "defaultWorkbinId": "@{workbin:Lumea Workbin}",
+        "schemaId": "@{workitemschema:Lumea Rechnungsbeschwerde}",
+        "defaultQueueId": "@{queue:Lumea Kundenservice}",
+        "defaultDurationSeconds": 604800,
+        "defaultExpirationSeconds": 2592000,
+        "defaultDueDurationSeconds": 432000,
+        "defaultPriority": 100,
+        "defaultTtlSeconds": 2678400,
+        "assignmentEnabled": false,
+        "serviceLevelTarget": 95,
+        "statuses": [
+          {
+            "name": "Eingegangen",
+            "category": "Open",
+            "description": "Beschwerde erfasst, noch nicht in Bearbeitung.",
+            "destinations": [
+              "In Klaerung",
+              "Abgeschlossen"
+            ],
+            "autoTerminateWorkitem": null
+          },
+          {
+            "name": "In Klaerung",
+            "category": "InProgress",
+            "description": "Abrechnung wird geprueft.",
+            "destinations": [
+              "Abgeschlossen"
+            ],
+            "autoTerminateWorkitem": null
+          },
+          {
+            "name": "Abgeschlossen",
+            "category": "Closed",
+            "description": "Geklaert und dem Kunden mitgeteilt.",
+            "destinations": [],
+            "autoTerminateWorkitem": null
+          }
+        ],
+        "defaultStatus": "Eingegangen"
+      }
+    },
+    {
+      "type": "worktype",
+      "name": "Lumea Vertragsangebot",
+      "spec": {
+        "name": "Lumea Vertragsangebot",
+        "description": "Vendor-Battle-Demo Lumea: Arbeit aus einem Vertragsangebot.",
+        "defaultWorkbinId": "@{workbin:Lumea Workbin}",
+        "schemaId": "@{workitemschema:Lumea Vertragsangebot}",
+        "defaultQueueId": "@{queue:Lumea Vorgangsbearbeitung}",
+        "defaultDurationSeconds": 86400,
+        "defaultExpirationSeconds": 2592000,
+        "defaultDueDurationSeconds": 86400,
+        "defaultPriority": 200,
+        "defaultTtlSeconds": 2678400,
+        "assignmentEnabled": true,
+        "serviceLevelTarget": 95,
+        "statuses": [
+          {
+            "name": "Offen",
+            "category": "Open",
+            "destinations": [
+              "Erledigt"
+            ],
+            "autoTerminateWorkitem": null
+          },
+          {
+            "name": "Erledigt",
+            "category": "Closed",
+            "destinations": [],
+            "autoTerminateWorkitem": null
+          }
+        ],
+        "defaultStatus": "Offen"
+      }
+    },
+    {
+      "type": "caseplan",
+      "name": "Lumea Rechnungsbeschwerde",
+      "spec": {
+        "name": "Lumea Rechnungsbeschwerde",
+        "description": "Vendor-Battle-Demo: Beschwerde zur Jahresabrechnung, drei Stufen",
+        "referencePrefix": "LUM",
+        "defaultDueDurationInSeconds": 432000,
+        "defaultTtlSeconds": 2678400,
+        "customerIntentId": "@{customerintent:Rechnungsbeschwerde Privatkunden}",
+        "dataSchemas": [
+          "@{workitemschema:Lumea Rechnungsbeschwerde}"
+        ],
+        "intakeSettings": [
+          {
+            "property": "belegnummer_identifier",
+            "required": true,
+            "displayOrder": 1
+          },
+          {
+            "property": "forderungsbetrag_text",
+            "required": true,
+            "displayOrder": 2
+          },
+          {
+            "property": "eingangskanal_enum",
+            "required": true,
+            "displayOrder": 3
+          },
+          {
+            "property": "eingang_am_date",
+            "required": false,
+            "displayOrder": 4
+          },
+          {
+            "property": "bearbeitungsstand_longtext",
+            "required": false,
+            "displayOrder": 5
+          },
+          {
+            "property": "naechster_schritt_text",
+            "required": false,
+            "displayOrder": 6
+          }
+        ],
+        "stages": [
+          {
+            "name": "Eingegangen",
+            "description": "Beschwerde erfasst, noch nicht in Bearbeitung.",
+            "steps": [
+              {
+                "name": "Beschwerde erfassen",
+                "description": "Beschwerde aufnehmen und Pruefauftrag anlegen",
+                "activityType": "Workitem",
+                "worktypeId": "@{worktype:Lumea Rechnungsbeschwerde}"
+              }
+            ]
+          },
+          {
+            "name": "In Klaerung",
+            "description": "Verbrauchsabrechnung und Abschlagshoehe werden geprueft.",
+            "steps": [
+              {
+                "name": "Abrechnung pruefen",
+                "description": "Verbrauchsabrechnung und Abschlagshoehe pruefen",
+                "activityType": "Workitem",
+                "worktypeId": "@{worktype:Lumea Rechnungsbeschwerde}"
+              }
+            ]
+          },
+          {
+            "name": "Abgeschlossen",
+            "description": "Ergebnis geklaert und dem Kunden mitgeteilt.",
+            "steps": [
+              {
+                "name": "Ergebnis mitteilen",
+                "description": "Kunden ueber das Ergebnis informieren",
+                "activityType": "Workitem",
+                "worktypeId": "@{worktype:Lumea Rechnungsbeschwerde}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "caseplan",
+      "name": "Lumea Vertragsangebot",
+      "spec": {
+        "name": "Lumea Vertragsangebot",
+        "description": "Vendor-Battle-Demo: Vertragsangebot nach dem Gespraech",
+        "referencePrefix": "ANG",
+        "defaultDueDurationInSeconds": 86400,
+        "defaultTtlSeconds": 2678400,
+        "customerIntentId": "@{customerintent:Vertragsverlaengerung Privatkunden}",
+        "dataSchemas": [
+          "@{workitemschema:Lumea Vertragsangebot}"
+        ],
+        "intakeSettings": [
+          {
+            "property": "tarif_text",
+            "required": false,
+            "displayOrder": 1
+          },
+          {
+            "property": "arbeitspreis_text",
+            "required": false,
+            "displayOrder": 2
+          },
+          {
+            "property": "laufzeit_text",
+            "required": false,
+            "displayOrder": 3
+          },
+          {
+            "property": "ersparnis_text",
+            "required": false,
+            "displayOrder": 4
+          }
+        ],
+        "stages": [
+          {
+            "name": "Angebot erfassen",
+            "description": "Angebot im Vertragssystem hinterlegen.",
+            "steps": [
+              {
+                "name": "Angebot erfassen",
+                "description": "Tarifwechsel im Vertragssystem anlegen.",
+                "activityType": "Workitem",
+                "worktypeId": "@{worktype:Lumea Vertragsangebot}"
+              }
+            ]
+          },
+          {
+            "name": "Bestaetigung senden",
+            "description": "Schriftliche Bestaetigung an den Kunden.",
+            "steps": [
+              {
+                "name": "Bestaetigung senden",
+                "description": "Bestaetigung mit Vertragsdaten an den Kunden senden.",
+                "activityType": "Workitem",
+                "worktypeId": "@{worktype:Lumea Vertragsangebot}"
+              }
+            ]
+          },
+          {
+            "name": "Abgeschlossen",
+            "description": "Angebot dokumentiert und bestaetigt.",
+            "steps": [
+              {
+                "name": "Abschluss",
+                "description": "Laeuft automatisch.",
+                "activityType": "None"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "externalcontact",
+      "name": "Markus Berger",
+      "spec": {
+        "firstName": "Markus",
+        "lastName": "Berger",
+        "salutation": "Herr",
+        "workPhone": {
+          "acceptsSMS": true,
+          "normalizationCountryCode": "DE",
+          "display": "@{param:customerPhone}"
+        },
+        "workEmail": "@{param:customerEmail}",
+        "personalEmail": "markus.berger@muster.de",
+        "address": {
+          "address1": "Musterstraße 1",
+          "city": "Hamburg",
+          "state": "Hamburg",
+          "postalCode": "22767",
+          "countryCode": "DE"
+        },
+        "whatsAppId": {
+          "phoneNumber": {
+            "display": "@{param:customerPhone.digits}",
+            "userInput": "@{param:customerPhone.digits}",
+            "acceptsSMS": false
+          },
+          "displayName": "Markus Berger"
+        }
+      }
+    },
+    {
+      "type": "knowledgebase",
+      "name": "Lumea Energie & Smart Home",
+      "spec": {
+        "name": "Lumea Energie & Smart Home",
+        "description": "Wissensbasis für Agent Copilot – Vendor Battle, Persona Familie Berger.",
+        "coreLanguage": "de-DE",
+        "contentSearchEnabled": true,
+        "categories": [
+          {
+            "name": "Abrechnung"
+          },
+          {
+            "name": "Vertrag & Tarife"
+          },
+          {
+            "name": "Vorgangsbearbeitung"
+          }
+        ],
+        "documents": [
+          {
+            "title": "Vertragsende, Kündigungsfrist und das Angebot für Bestandskunden",
+            "visible": true,
+            "alternatives": [
+              {
+                "phrase": "Was koennten Sie mir anbieten damit ich bleibe?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Bis wann muesste ich mich entscheiden?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie lange ist meine Kuendigungsfrist?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Mein Vertrag laeuft bald aus was kostet eine Verlaengerung?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Gibt es ein Angebot fuer Bestandskunden?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Was kostet ein neuer Vertrag bei Ihnen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Lohnt sich eine Photovoltaikanlage bei mir?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie funktioniert ein dynamischer Stromtarif?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Welches Angebot bekommt ein Bestandskunde dessen Vertrag auslaeuft?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Was ist LumeaSolar Flex?",
+                "autocomplete": true
+              }
+            ],
+            "category": "Vertrag & Tarife",
+            "variations": [
+              {
+                "name": "Variation 1",
+                "priority": 1,
+                "contexts": [],
+                "body": {
+                  "blocks": [
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Antwort",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Im Tarif LumeaPrivat Klassik beträgt die Kündigungsfrist "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "vier Wochen zum Laufzeitende",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": ". Wer verlängern oder wechseln möchte, muss sich also spätestens vier Wochen vor Vertragsende entscheiden – unabhängig davon, ob noch eine Rechnungsprüfung läuft."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Für die Verlängerung steht "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "LumeaSolar Flex",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": " zur Verfügung. Es ist ein Angebot, nicht drei: Vertragsverlängerung, dynamischer Tarif und Photovoltaik-Beratung in einem."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Was darin enthalten ist",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Bestandteil — Konditionen"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Arbeitspreis — 34,2 Cent je kWh, fest bis zum Einbau des Smart Meters"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• danach — stündlich zum Börsenpreis, zuzüglich Netzentgelte und Abgaben"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Grundpreis — 12,90 € im Monat, dazu 4,90 € Messstellenbetrieb ab Smart Meter"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Laufzeit — 24 Monate, keine Wechselgebühr"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• PV-Beratung — unverbindlicher Termin, die Fachberatung meldet sich innerhalb von drei Werktagen"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Gegenüber dem Arbeitspreis von LumeaPrivat Klassik (36,8 Cent) sind das zunächst "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "2,6 Cent weniger je Kilowattstunde",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": ". Was das im Jahr ausmacht, hängt vom Verbrauch ab und steht im Abrechnungssystem."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Warum die drei Teile zusammengehören",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Ein dynamischer Tarif rechnet sich nur, wenn Verbrauch "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "verschoben",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": " werden kann – typischerweise bei Wärmepumpe, Wallbox oder Photovoltaik mit Speicher. Ohne solche Lasten liegt der Vorteil im niedrigen einstelligen Prozentbereich und der Kunde trägt zusätzlich das Preisrisiko. "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Dann ist er nicht zu empfehlen",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": " – das ist eine Beratungs-, keine Verkaufsfrage."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Umgekehrt braucht der dynamische Tarif ein "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "intelligentes Messsystem",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": ", das den Verbrauch viertelstündlich erfasst. Der Einbau läuft über den Messstellenbetreiber, Vorlaufzeit vier bis sechs Wochen – und er kommt mit der PV-Anlage ohnehin."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Deshalb der feste Arbeitspreis in der Zwischenzeit: Der Kunde steht ab sofort besser da und wechselt erst dann in die stündliche Abrechnung, wenn sie für ihn auch funktioniert."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Wann ein Dach für Photovoltaik geeignet ist",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Kriterium — Günstig"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Ausrichtung — Süd, Südost, Südwest"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Dachneigung — 25–45 Grad"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Verschattung — keine dauerhafte durch Bäume oder Nachbargebäude"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Baujahr / Statik — ab 1990 in der Regel unproblematisch"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "• Jahresverbrauch — ab 3.500 kWh wirtschaftlich sinnvoll"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Die genaue Auslegung macht die Fachberatung nach einer Dachprüfung. "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Im Servicegespräch werden keine Erträge und keine Amortisationszeiten zugesagt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": " – dort wird der Termin vereinbart, mehr nicht."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Bei Haushalten ohne Gas bei Lumea ist Photovoltaik zusammen mit einer Wärmepumpe der Weg, den gesamten Energiebedarf zu übernehmen."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Ablauf",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Nach der Zusage wird die Verlängerung als Vorgang angelegt; die Bestätigung mit allen Vertragsdaten geht schriftlich an den Kunden. Der monatliche Abschlag wird auf den neuen Arbeitspreis umgerechnet und sinkt dadurch leicht. Der PV-Beratungstermin läuft im selben Vorgang mit – der Kunde behält seinen Ansprechpartner und muss nichts wiederholen."
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "title": "Bearbeitungsrückstau nach dem Abrechnungslauf im August – Auskunft an den Kunden",
+            "visible": true,
+            "alternatives": [
+              {
+                "phrase": "Warum hat sich drei Wochen lang niemand gemeldet?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum bekomme ich keine Antwort auf meine E-Mail?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Ist meine Beschwerde untergegangen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie lange dauert die Bearbeitung meiner Beschwerde?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Niemand hat auf meine E-Mail reagiert",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum hat ein Kunde drei Wochen lang keine Antwort bekommen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum wurde die E-Mail eines Kunden nicht beantwortet?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum dauert die Bearbeitung einer schriftlichen Beschwerde laenger?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Was sagt man einem Kunden der seit Wochen auf eine Rueckmeldung wartet?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum blieb die Beschwerde eines Kunden liegen?",
+                "autocomplete": true
+              }
+            ],
+            "category": "Vorgangsbearbeitung",
+            "variations": [
+              {
+                "name": "Variation 1",
+                "priority": 1,
+                "contexts": [],
+                "body": {
+                  "blocks": [
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Antwort",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Nach dem Abrechnungslauf im August ist bei uns ein Bearbeitungsrückstau bei schriftlichen Rückfragen entstanden. Ihre E-Mail ist dabei nicht untergegangen – sie ist liegen geblieben. Das ist ärgerlich, und dafür entschuldigen wir uns."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Woran es lag",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Im Rückstau hat die automatische Eskalation Ihres Vorgangs zwar ausgelöst, sie ist aber ins Leere gelaufen, weil dem Vorgang kein Bearbeiter zugewiesen war. Der Vorgang war also die ganze Zeit im System sichtbar, nur hat ihn niemand übernommen. Das ist ein Fehler auf unserer Seite und keine Frage der Auslastung."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Was jetzt gilt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Betroffene Vorgänge werden mit erhöhter Priorität bearbeitet und einem festen Bearbeiter zugewiesen. Sie bekommen eine verbindliche Rückmeldefrist genannt und müssen nicht selbst nachfassen."
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "title": "Abschlag anpassen – damit sich die Nachzahlung nicht wiederholt",
+            "visible": true,
+            "alternatives": [
+              {
+                "phrase": "Wie verhindere ich dass das naechstes Jahr wieder passiert?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Soll ich meinen Abschlag erhoehen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Kann ich meinen monatlichen Abschlag aendern?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie hoch muesste mein Abschlag eigentlich sein?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Passiert mir das naechstes Jahr wieder?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie kann ein Kunde verhindern dass er wieder nachzahlen muss?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie hoch sollte der monatliche Abschlag eines Kunden sein?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Ab wann wirkt eine Abschlagsanpassung?",
+                "autocomplete": true
+              }
+            ],
+            "category": "Abrechnung",
+            "variations": [
+              {
+                "name": "Variation 1",
+                "priority": 1,
+                "contexts": [],
+                "body": {
+                  "blocks": [
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Antwort",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Damit sich eine Nachzahlung nicht wiederholt, muss der monatliche Abschlag zum tatsächlichen Verbrauch passen. Er wird nicht automatisch mitgeführt – wer ihn nicht anpasst, zahlt die Differenz einmal im Jahr nach. Durch eine Anpassung zahlen Sie nicht mehr, sondern nur gleichmäßiger über das Jahr verteilt."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Wie der passende Betrag ermittelt wird",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Der Abschlag ergibt sich aus dem erwarteten Jahresverbrauch mal Arbeitspreis, plus zwölf Grundpreisen, geteilt durch zwölf Monate. Grundlage ist der Verbrauch der letzten zwölf Monate, nicht der Prognosewert aus dem Vertragsabschluss."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Ab wann die Änderung wirkt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Die Anpassung wirkt ab dem Folgemonat. Ein niedrigerer Abschlag als der rechnerische Wert ist möglich, führt dann aber absehbar wieder zu einer Nachforderung."
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "title": "Warum in der Jahresabrechnung eine Nachzahlung entsteht",
+            "visible": true,
+            "alternatives": [
+              {
+                "phrase": "Warum soll ich nachzahlen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Ich habe doch jeden Monat puenktlich meinen Abschlag gezahlt",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Meine Jahresabrechnung ist viel zu hoch",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wieso bekomme ich eine Nachforderung?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Habt ihr die Preise erhoeht?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Die Rechnung stimmt nicht",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum muss ein Kunde in der Jahresabrechnung nachzahlen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Wie setzt sich der Nachzahlungsbetrag einer Jahresabrechnung zusammen?",
+                "autocomplete": true
+              },
+              {
+                "phrase": "Warum entsteht eine Nachforderung obwohl der Abschlag puenktlich gezahlt wurde?",
+                "autocomplete": true
+              }
+            ],
+            "category": "Abrechnung",
+            "variations": [
+              {
+                "name": "Variation 1",
+                "priority": 1,
+                "contexts": [],
+                "body": {
+                  "blocks": [
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Antwort",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Eine Nachzahlung entsteht fast nie durch einen höheren Preis, sondern dadurch, dass der tatsächliche Verbrauch über der Prognose lag, während der monatliche Abschlag gleich geblieben ist. Der Abschlag ist eine Vorauszahlung auf den erwarteten Verbrauch – weicht der Verbrauch davon ab, gleicht die Jahresabrechnung die Differenz aus."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Wie sich der Betrag zusammensetzt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Der Rechnungsbetrag ergibt sich aus dem Verbrauch mal Arbeitspreis, zuzüglich zwölf Grundpreisen. Davon werden die im Jahr geleisteten Abschläge abgezogen. Was übrig bleibt, ist die Nachzahlung."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Eine Nachzahlung bedeutet also nicht, dass zu wenig gezahlt wurde – sondern dass über das Jahr verteilt zu wenig "
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "vorausgezahlt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": " wurde."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Was sich dabei prüfen lässt",
+                              "marks": [
+                                "Bold"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Ob der Arbeitspreis im Abrechnungszeitraum tatsächlich unverändert war. Wie weit der Verbrauch über dem im Vertrag hinterlegten Prognosewert lag. Und ob es in den Vorjahren bereits Nachzahlungen gab, ohne dass der Abschlag danach angepasst wurde."
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Paragraph",
+                      "paragraph": {
+                        "blocks": [
+                          {
+                            "type": "Text",
+                            "text": {
+                              "text": "Der letzte Punkt ist der wichtigste: Wiederholt sich eine Nachforderung Jahr für Jahr, liegt das nicht am Verbrauchsverhalten, sondern an einem zu niedrig angesetzten Abschlag."
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "responselibrary",
+      "name": "Lumea – Vendor Battle",
+      "spec": {
+        "name": "Lumea – Vendor Battle",
+        "responses": [
+          {
+            "name": "01 Begruessung nach Uebergabe",
+            "texts": [
+              {
+                "content": "<p>Guten Tag, mein Name ist @{presenter.name} vom Lumea Kundenservice.</p><p>Ich kümmere mich um Ihr Anliegen. Geben Sie mir einen kurzen Moment, ich verschaffe mir gerade einen Überblick.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "02 Unbeantwortete E-Mail",
+            "texts": [
+              {
+                "content": "<p>Ich sehe Ihre E-Mail von vor drei Wochen hier vor mir – und ich sehe auch, dass sie bei uns liegen geblieben ist und nie beantwortet wurde.</p><p>Das tut mir leid, so soll das nicht laufen.</p><p>Ich kümmere mich ab jetzt persönlich darum.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "03 Nachzahlung erklaeren",
+            "texts": [
+              {
+                "content": "<p>Ihre Rechnung setzt sich so zusammen: 4.750 kWh zu 36,8 Cent sind 1.748 €, dazu 154,80 € Grundpreis – zusammen 1.902,80 €. Gezahlt haben Sie 1.656 € an Abschlägen. Die Differenz sind die 246,80 €.</p><p>Der Preis ist unverändert. Ihr Verbrauch lag über der Prognose – und Ihr Abschlag ist trotzdem gleich geblieben.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "04 Abschlag korrigiert und Zusage",
+            "texts": [
+              {
+                "content": "<p>Ihr Abschlag ist angepasst – zum Folgemonat, auf den rechnerisch passenden Betrag. Damit wiederholt sich das nächstes Jahr nicht.</p><p>Und Ihren Vorgang habe ich übernommen. Er liegt jetzt nicht mehr herum: Er hat einen Namen dran, und das ist meiner.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "05 Frist und Angebot",
+            "texts": [
+              {
+                "content": "<p>Eine Sache ist davon unabhängig und zeitkritisch: Ihr Vertrag läuft in sechs Wochen aus, die Kündigungsfrist endet in 14 Tagen.</p><p>Die will ich Ihnen nicht verstreichen lassen – egal wie die Rechnungsprüfung ausgeht. Ich kann Ihnen heute LumeaSolar Flex geben: 34,2 Cent statt 36,8, Grundpreis unverändert, 24 Monate. Bei Ihrem Verbrauch sind das rund 123 € im Jahr weniger.</p><p>Und eines gehört zu Ihrer Rechnung dazu: Die Nachzahlung kam nicht vom Preis, sie kam vom Verbrauch. Ein anderer Preis ändert daran nichts. Ihr Dach liegt nach Süden – dazu der dynamische Tarif, nach dem Sie vor acht Monaten schon einmal gefragt hatten. Damals fehlte der Smart Meter, der kommt mit der Anlage. Den Beratungstermin lege ich Ihnen unverbindlich an.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "06 Bestaetigung Vertragsverlaengerung",
+            "texts": [
+              {
+                "content": "<p>Erledigt. Ihre Verlängerung und der PV-Beratungstermin sind als Vorgang angelegt, die Bestätigung mit allen Vertragsdaten bekommen Sie schriftlich – ohne dass Sie hinterhertelefonieren müssen. Die Fachberatung meldet sich innerhalb von drei Werktagen bei Ihnen.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          },
+          {
+            "name": "07 Abschluss",
+            "texts": [
+              {
+                "content": "<p>Zusammengefasst: Abschlag angepasst, Rechnungsprüfung läuft mit Priorität, Verlängerung und PV-Beratung auf dem Weg.</p><p>Wenn etwas offen bleibt, schreiben Sie einfach hier weiter – ich habe den Verlauf.</p>",
+                "contentType": "text/html"
+              }
+            ],
+            "substitutions": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "agentchecklist",
+      "name": "Lumea Wechselabsicht",
+      "spec": {
+        "name": "Lumea Wechselabsicht",
+        "language": "de-de",
+        "checklistItems": [
+          {
+            "name": "Frist nennen und Angebot unterbreiten",
+            "description": "Erst Vertragsende und Kündigungsfrist, dann das Angebot - Verlängerung, dynamischer Tarif und PV-Beratung in einem. Einstieg über die Frist, nicht über den Preis. Freigabegrenze ohne Rückfrage: 4,0 ct/kWh.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Zusage einholen und Vorgang anlegen",
+            "description": "Die Zustimmung des Kunden zum Angebot einholen und daraus einen Vorgang machen, der nach dem Gespräch einem Kollegen zugewiesen wird.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Bestätigung auf den hinterlegten Kanal senden",
+            "description": "Dem Kunden bestätigen, dass die Verlängerung als Vorgang angelegt ist und die schriftliche Bestätigung auf seinem hinterlegten Kanal unterwegs ist. Dazu der Termin der Photovoltaik-Fachberatung.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Gespräch zusammenfassen und abschließen",
+            "description": "Das Gespräch zusammenfassen: die Zusagen noch einmal am Stück nennen. Zum Schluss anbieten, hier einfach weiterzuschreiben, falls etwas offen bleibt - der Verlauf bleibt erhalten.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "agentchecklist",
+      "name": "Lumea Jahresabrechnung Beschwerde",
+      "spec": {
+        "name": "Lumea Jahresabrechnung Beschwerde",
+        "language": "de-de",
+        "checklistItems": [
+          {
+            "name": "Begrüßung und Zuständigkeit",
+            "description": "Den Kunden begrüßen, sich mit Namen und Unternehmen vorstellen, die Zuständigkeit für sein Anliegen übernehmen und um einen kurzen Moment bitten, um sich einen Überblick zu verschaffen.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Kontakthistorie prüfen",
+            "description": "Die Kontakthistorie des Kunden aufrufen und den Verlauf aller Kanäle lesen - Telefon, Brief, Befragung. Erst lesen, dann sprechen: Die Vorgeschichte steht dort, der Kunde muss sie nicht erzählen.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Situation erläutern und entschuldigen",
+            "description": "Dem Kunden sagen, woran es lag: Seine E-Mail ist bei uns liegen geblieben und nie beantwortet worden. Sich dafür entschuldigen - es tut uns leid - und zusagen, sich ab jetzt persönlich darum zu kümmern.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Rechnungsbetrag aufschlüsseln",
+            "description": "Erklären, wie die Nachforderung zustande kommt: Der Verbrauch lag über der Prognose, der monatliche Abschlag blieb unverändert, der Arbeitspreis ist derselbe wie zuvor - mit den Zahlen dieses Kunden.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          },
+          {
+            "name": "Lösung umsetzen und quittieren",
+            "description": "Dem Kunden bestätigen, dass sein monatlicher Abschlag ab dem Folgemonat auf den erforderlichen Betrag angepasst ist - damit sich die Nachzahlung im nächsten Jahr nicht wiederholt.",
+            "automatedCheckEnabled": true,
+            "exactPhraseMatch": false,
+            "important": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "nludomain",
+      "name": "Lumea Copilot NLU",
+      "spec": {
+        "name": "Lumea Copilot NLU",
+        "language": "de-de",
+        "version": {
+          "language": "de-de",
+          "intents": [
+            {
+              "name": "Vertragsende",
+              "entityTypeBindings": [],
+              "utterances": [
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Dann wechsle ich eben zu einem anderen Anbieter"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich moechte kuendigen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich schaue mich nach einem anderen Stromanbieter um"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich schaue mich sonst nach einem anderen Anbieter um"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Trotzdem mein Vertrag laeuft ja bald aus ich schaue mich sonst nach einem anderen Anbieter um"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich denke ueber einen Wechsel nach"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Mein Vertrag laeuft bald aus"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Dann kuendige ich meinen Vertrag"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich habe mich schon bei anderen Anbietern umgesehen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "So bleibe ich nicht mehr lange Kunde"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich ueberlege den Anbieter zu wechseln"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Wenn sich nichts aendert bin ich weg"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Mein Vertrag endet und ich verlaengere nicht"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich bin kurz davor zu wechseln"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Rechnungsfrage",
+              "entityTypeBindings": [],
+              "utterances": [
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Und warum soll ich jetzt 247 Euro nachzahlen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich habe doch jeden Monat puenktlich meinen Abschlag gezahlt"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Meine Jahresabrechnung ist viel zu hoch"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Warum muss ich nachzahlen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Die Rechnung stimmt nicht"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Wie verhindere ich dass das naechstes Jahr wieder passiert"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Soll ich meinen Abschlag erhoehen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Wieso ist meine Abrechnung so teuer"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Da muss ein Fehler in der Rechnung sein"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Der Betrag auf meiner Rechnung ist falsch"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Wie hoch muesste mein Abschlag sein"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Habt ihr die Preise erhoeht"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Angebotsfrage",
+              "entityTypeBindings": [],
+              "utterances": [
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Was koennten Sie mir denn anbieten damit ich bleibe"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Was koennen Sie mir anbieten"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Und bis wann muesste ich mich entscheiden"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Haben Sie ein besseres Angebot fuer mich"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Was wuerde mich ein neuer Vertrag bei Ihnen kosten"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Gibt es einen guenstigeren Tarif"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Koennen Sie mir preislich entgegenkommen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Was bieten Sie mir an wenn ich bleibe"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Lohnt sich eine Verlaengerung fuer mich"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Welche Tarife haetten Sie denn"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Bearbeitungsstand",
+              "entityTypeBindings": [],
+              "utterances": [
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Warum hat sich drei Wochen lang niemand gemeldet"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Warum habe ich auf meine E-Mail keine Antwort bekommen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ist meine Beschwerde untergegangen"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Wie lange dauert die Bearbeitung meiner Beschwerde"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Niemand hat auf meine E-Mail reagiert"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Ich warte seit Wochen auf eine Rueckmeldung"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Was ist mit meiner Beschwerde passiert"
+                    }
+                  ]
+                },
+                {
+                  "source": "User",
+                  "segments": [
+                    {
+                      "text": "Warum antwortet bei Ihnen niemand"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "entityTypes": [],
+          "entities": []
+        }
+      }
+    },
+    {
+      "type": "script",
+      "name": "Website_Scripts",
+      "spec": {
+        "name": "Website_Scripts",
+        "features": {
+          "dialer": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              },
+              "contactListId": {
+                "typeName": "text",
+                "value": ""
+              },
+              "onContactDataLoadAction": {
+                "typeName": "action",
+                "value": {}
+              }
+            }
+          },
+          "scripter": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "screenPop": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "callback": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              }
+            }
+          },
+          "chat": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "email": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "message": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "bridge": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "uuiData": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              }
+            }
+          },
+          "customerSecuredData": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              }
+            }
+          },
+          "list": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "workItem": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          }
+        },
+        "variables": [],
+        "customActions": [],
+        "startPageId": "1a5370b8-6c84-4826-b6d2-47875a9ec42c",
+        "pages": [
+          {
+            "id": "1a5370b8-6c84-4826-b6d2-47875a9ec42c",
+            "name": "Start Page",
+            "properties": {
+              "onLoadAction": {
+                "typeName": "action",
+                "value": {}
+              },
+              "backgroundColor": {
+                "typeName": "null"
+              }
+            },
+            "rootContainer": {
+              "type": "verticalStackContainer",
+              "properties": {
+                "margin": {
+                  "typeName": "spacing",
+                  "value": 0
+                },
+                "alignment": {
+                  "typeName": "alignment",
+                  "value": "start"
+                },
+                "width": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "height": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "visible": {
+                  "typeName": "variable"
+                },
+                "preserveLayoutLocation": {
+                  "typeName": "boolean",
+                  "value": false
+                },
+                "backgroundColor": {
+                  "typeName": "null"
+                },
+                "padding": {
+                  "typeName": "spacing",
+                  "value": 10
+                },
+                "childArrangement": {
+                  "typeName": "childArrangement",
+                  "value": "start"
+                },
+                "border": {
+                  "typeName": "border",
+                  "value": {
+                    "width": 0,
+                    "style": "solid",
+                    "color": "000000"
+                  }
+                }
+              },
+              "children": [
+                {
+                  "type": "webPage",
+                  "properties": {
+                    "margin": {
+                      "typeName": "spacing",
+                      "value": [
+                        5,
+                        5,
+                        5,
+                        5
+                      ]
+                    },
+                    "alignment": {
+                      "typeName": "alignment",
+                      "value": "start"
+                    },
+                    "width": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "height": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "visible": {
+                      "typeName": "variable"
+                    },
+                    "preserveLayoutLocation": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "webPageSource": {
+                      "typeName": "interpolatedText",
+                      "value": "http://localhost:8090/cockpit.html?agent=@{presenter.name} "
+                    },
+                    "titleText": {
+                      "typeName": "interpolatedText",
+                      "value": ""
+                    },
+                    "enableLocalNetwork": {
+                      "typeName": "boolean",
+                      "value": true
+                    },
+                    "enableLoopbackNetwork": {
+                      "typeName": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "ba027fe9-1945-485a-aee0-233baf8a11dc",
+            "name": "Beratung & Angebot",
+            "properties": {
+              "onLoadAction": {
+                "typeName": "action",
+                "value": {}
+              },
+              "backgroundColor": {
+                "typeName": "null"
+              }
+            },
+            "rootContainer": {
+              "type": "verticalStackContainer",
+              "properties": {
+                "margin": {
+                  "typeName": "spacing",
+                  "value": 0
+                },
+                "alignment": {
+                  "typeName": "alignment",
+                  "value": "start"
+                },
+                "width": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "height": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "visible": {
+                  "typeName": "variable"
+                },
+                "preserveLayoutLocation": {
+                  "typeName": "boolean",
+                  "value": false
+                },
+                "backgroundColor": {
+                  "typeName": "null"
+                },
+                "padding": {
+                  "typeName": "spacing",
+                  "value": 10
+                },
+                "childArrangement": {
+                  "typeName": "childArrangement",
+                  "value": "start"
+                },
+                "border": {
+                  "typeName": "border",
+                  "value": {
+                    "width": 0,
+                    "style": "solid",
+                    "color": "000000"
+                  }
+                }
+              },
+              "children": [
+                {
+                  "type": "webPage",
+                  "properties": {
+                    "margin": {
+                      "typeName": "spacing",
+                      "value": [
+                        5,
+                        5,
+                        5,
+                        5
+                      ]
+                    },
+                    "alignment": {
+                      "typeName": "alignment",
+                      "value": "start"
+                    },
+                    "width": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "height": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "visible": {
+                      "typeName": "variable"
+                    },
+                    "preserveLayoutLocation": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "webPageSource": {
+                      "typeName": "interpolatedText",
+                      "value": "http://localhost:8090/now/nba.html"
+                    },
+                    "titleText": {
+                      "typeName": "interpolatedText",
+                      "value": ""
+                    },
+                    "enableLocalNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "enableLoopbackNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "fe70a5eb-21c0-4fb3-abab-dc338d5fbc25",
+            "name": "Index",
+            "properties": {
+              "onLoadAction": {
+                "typeName": "action",
+                "value": {}
+              },
+              "backgroundColor": {
+                "typeName": "null"
+              }
+            },
+            "rootContainer": {
+              "type": "verticalStackContainer",
+              "properties": {
+                "margin": {
+                  "typeName": "spacing",
+                  "value": 0
+                },
+                "alignment": {
+                  "typeName": "alignment",
+                  "value": "start"
+                },
+                "width": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "height": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "visible": {
+                  "typeName": "variable"
+                },
+                "preserveLayoutLocation": {
+                  "typeName": "boolean",
+                  "value": false
+                },
+                "backgroundColor": {
+                  "typeName": "null"
+                },
+                "padding": {
+                  "typeName": "spacing",
+                  "value": 10
+                },
+                "childArrangement": {
+                  "typeName": "childArrangement",
+                  "value": "start"
+                },
+                "border": {
+                  "typeName": "border",
+                  "value": {
+                    "width": 0,
+                    "style": "solid",
+                    "color": "000000"
+                  }
+                }
+              },
+              "children": [
+                {
+                  "type": "webPage",
+                  "properties": {
+                    "margin": {
+                      "typeName": "spacing",
+                      "value": [
+                        5,
+                        5,
+                        5,
+                        5
+                      ]
+                    },
+                    "alignment": {
+                      "typeName": "alignment",
+                      "value": "start"
+                    },
+                    "width": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "height": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "visible": {
+                      "typeName": "variable"
+                    },
+                    "preserveLayoutLocation": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "webPageSource": {
+                      "typeName": "interpolatedText",
+                      "value": "http://localhost:8090/index.html"
+                    },
+                    "titleText": {
+                      "typeName": "interpolatedText",
+                      "value": ""
+                    },
+                    "enableLocalNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "enableLoopbackNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "aa8968e1-d914-4c78-8726-68a4df2827b4",
+            "name": "Abrechnung",
+            "properties": {
+              "onLoadAction": {
+                "typeName": "action",
+                "value": {}
+              },
+              "backgroundColor": {
+                "typeName": "null"
+              }
+            },
+            "rootContainer": {
+              "type": "verticalStackContainer",
+              "properties": {
+                "margin": {
+                  "typeName": "spacing",
+                  "value": 0
+                },
+                "alignment": {
+                  "typeName": "alignment",
+                  "value": "start"
+                },
+                "width": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "height": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "visible": {
+                  "typeName": "variable"
+                },
+                "preserveLayoutLocation": {
+                  "typeName": "boolean",
+                  "value": false
+                },
+                "backgroundColor": {
+                  "typeName": "null"
+                },
+                "padding": {
+                  "typeName": "spacing",
+                  "value": 10
+                },
+                "childArrangement": {
+                  "typeName": "childArrangement",
+                  "value": "start"
+                },
+                "border": {
+                  "typeName": "border",
+                  "value": {
+                    "width": 0,
+                    "style": "solid",
+                    "color": "000000"
+                  }
+                }
+              },
+              "children": [
+                {
+                  "type": "webPage",
+                  "properties": {
+                    "margin": {
+                      "typeName": "spacing",
+                      "value": [
+                        5,
+                        5,
+                        5,
+                        5
+                      ]
+                    },
+                    "alignment": {
+                      "typeName": "alignment",
+                      "value": "start"
+                    },
+                    "width": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "height": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "visible": {
+                      "typeName": "variable"
+                    },
+                    "preserveLayoutLocation": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "webPageSource": {
+                      "typeName": "interpolatedText",
+                      "value": "http://localhost:8090/cockpit.html?tab=abrechnung&agent=@{presenter.name}\n"
+                    },
+                    "titleText": {
+                      "typeName": "interpolatedText",
+                      "value": ""
+                    },
+                    "enableLocalNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "enableLoopbackNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "script",
+      "name": "Lumea_Case_Script",
+      "spec": {
+        "name": "Lumea_Case_Script",
+        "features": {
+          "dialer": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              },
+              "contactListId": {
+                "typeName": "text",
+                "value": ""
+              },
+              "onContactDataLoadAction": {
+                "typeName": "action",
+                "value": {}
+              }
+            }
+          },
+          "scripter": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "screenPop": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "callback": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "chat": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "email": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "message": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "bridge": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "uuiData": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              }
+            }
+          },
+          "customerSecuredData": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": false
+              }
+            }
+          },
+          "list": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          },
+          "workItem": {
+            "properties": {
+              "enabled": {
+                "typeName": "boolean",
+                "value": true
+              }
+            }
+          }
+        },
+        "variables": [],
+        "customActions": [],
+        "startPageId": "2d49d737-d027-44c1-91cc-ca13ef6e535b",
+        "pages": [
+          {
+            "id": "2d49d737-d027-44c1-91cc-ca13ef6e535b",
+            "name": "Start Page",
+            "properties": {
+              "onLoadAction": {
+                "typeName": "action",
+                "value": {}
+              },
+              "backgroundColor": {
+                "typeName": "null"
+              }
+            },
+            "rootContainer": {
+              "type": "verticalStackContainer",
+              "properties": {
+                "margin": {
+                  "typeName": "spacing",
+                  "value": 0
+                },
+                "alignment": {
+                  "typeName": "alignment",
+                  "value": "start"
+                },
+                "width": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "height": {
+                  "typeName": "sizing",
+                  "value": {
+                    "sizeType": "stretch",
+                    "size": 100
+                  }
+                },
+                "visible": {
+                  "typeName": "variable"
+                },
+                "preserveLayoutLocation": {
+                  "typeName": "boolean",
+                  "value": false
+                },
+                "backgroundColor": {
+                  "typeName": "null"
+                },
+                "padding": {
+                  "typeName": "spacing",
+                  "value": 10
+                },
+                "childArrangement": {
+                  "typeName": "childArrangement",
+                  "value": "start"
+                },
+                "border": {
+                  "typeName": "border",
+                  "value": {
+                    "width": 0,
+                    "style": "solid",
+                    "color": "000000"
+                  }
+                }
+              },
+              "children": [
+                {
+                  "type": "webPage",
+                  "properties": {
+                    "margin": {
+                      "typeName": "spacing",
+                      "value": [
+                        5,
+                        5,
+                        5,
+                        5
+                      ]
+                    },
+                    "alignment": {
+                      "typeName": "alignment",
+                      "value": "start"
+                    },
+                    "width": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "height": {
+                      "typeName": "sizing",
+                      "value": {
+                        "sizeType": "stretch",
+                        "size": 100
+                      }
+                    },
+                    "visible": {
+                      "typeName": "variable"
+                    },
+                    "preserveLayoutLocation": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "webPageSource": {
+                      "typeName": "interpolatedText",
+                      "value": "http://localhost:8090/workitem.html?agent=@{presenter.name}"
+                    },
+                    "titleText": {
+                      "typeName": "interpolatedText",
+                      "value": ""
+                    },
+                    "enableLocalNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    },
+                    "enableLoopbackNetwork": {
+                      "typeName": "boolean",
+                      "value": false
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "assistant",
+      "name": "Lumea Service Copilot",
+      "spec": {
+        "name": "Lumea Service Copilot",
+        "transcriptionConfig": {
+          "vendorName": "Genesys"
+        },
+        "knowledgeSuggestionConfig": {
+          "vendorName": "GenesysKnowledge",
+          "knowledgeBases": [
+            {
+              "id": "@{knowledgebase:Lumea Energie & Smart Home}",
+              "languageCode": "de-DE",
+              "confidenceThreshold": 0.5,
+              "selfUri": "/api/v2/knowledge/knowledgebases/@{knowledgebase:Lumea Energie & Smart Home}"
+            }
+          ]
+        },
+        "copilot": {
+          "enabled": true,
+          "liveOnQueue": true,
+          "defaultLanguage": "de-DE",
+          "summaryGenerationConfig": {
+            "enabled": true,
+            "retentionSeconds": 864000,
+            "onDemandSummaryConfig": {
+              "enabled": true
+            },
+            "modelConfig": {
+              "useLatestModel": true
+            }
+          },
+          "wrapupCodePredictionConfig": {
+            "enabled": true
+          },
+          "nluEngineType": "NluV3",
+          "nluConfig": {
+            "domain": {
+              "id": "@{nludomain:Lumea Copilot NLU}",
+              "useLatestVersion": true,
+              "selfUri": "/api/v2/languageunderstanding/domains/@{nludomain:Lumea Copilot NLU}"
+            },
+            "intentConfidenceThreshold": 0.6
+          },
+          "ruleEngineConfig": {
+            "rules": [
+              {
+                "enabled": true,
+                "rule": {
+                  "conditions": [
+                    {
+                      "conditionType": "ConversationStart",
+                      "conditionValues": []
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "actionType": "CannedResponse",
+                      "attributes": {
+                        "responseId": "@{responselibrary:Lumea – Vendor Battle#response:01 Begruessung nach Uebergabe}",
+                        "libraryId": "@{responselibrary:Lumea – Vendor Battle}"
+                      }
+                    },
+                    {
+                      "actionType": "Checklist",
+                      "attributes": {
+                        "checklistId": "@{agentchecklist:Lumea Jahresabrechnung Beschwerde}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "enabled": true,
+                "rule": {
+                  "conditions": [
+                    {
+                      "conditionType": "Intent",
+                      "conditionValues": [
+                        "Rechnungsfrage"
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "actionType": "ThirdPartyAction"
+                    },
+                    {
+                      "actionType": "Script",
+                      "attributes": {
+                        "scriptId": "@{script:Website_Scripts}",
+                        "pageId": "aa8968e1-d914-4c78-8726-68a4df2827b4"
+                      }
+                    }
+                  ]
+                },
+                "participantRoles": [
+                  "Customer"
+                ]
+              },
+              {
+                "enabled": true,
+                "rule": {
+                  "conditions": [
+                    {
+                      "conditionType": "Intent",
+                      "conditionValues": [
+                        "Vertragsende"
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "actionType": "Checklist",
+                      "attributes": {
+                        "checklistId": "@{agentchecklist:Lumea Wechselabsicht}"
+                      }
+                    }
+                  ]
+                },
+                "participantRoles": [
+                  "Customer"
+                ]
+              },
+              {
+                "enabled": true,
+                "rule": {
+                  "conditions": [
+                    {
+                      "conditionType": "Intent",
+                      "conditionValues": [
+                        "Angebotsfrage"
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "actionType": "Script",
+                      "attributes": {
+                        "scriptId": "@{script:Website_Scripts}",
+                        "pageId": "ba027fe9-1945-485a-aee0-233baf8a11dc"
+                      }
+                    }
+                  ]
+                },
+                "participantRoles": [
+                  "Customer"
+                ]
+              },
+              {
+                "enabled": true,
+                "rule": {
+                  "conditions": [
+                    {
+                      "conditionType": "Intent",
+                      "conditionValues": [
+                        "Bestaetigung gesendet"
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "actionType": "CannedResponse",
+                      "attributes": {
+                        "responseId": "@{responselibrary:Lumea – Vendor Battle#response:07 Abschluss}",
+                        "libraryId": "@{responselibrary:Lumea – Vendor Battle}"
+                      }
+                    }
+                  ]
+                },
+                "participantRoles": [
+                  "Agent"
+                ]
+              }
+            ],
+            "fallback": {
+              "enabled": true,
+              "actions": [
+                {
+                  "actionType": "KnowledgeSearch"
+                }
+              ],
+              "participantRoles": [
+                "Customer"
+              ]
+            }
+          },
+          "voiceTranscriptionConfig": {
+            "engine": "GenesysExtended"
+          },
+          "autoSearchConfig": {
+            "type": "AnswerGeneration"
+          },
+          "manualSearchConfig": {
+            "articlesWithAnswerHighlights": true,
+            "answerGeneration": true
+          },
+          "queryProcessingConfig": {
+            "knowledgeQueryProcessing": "ClassificationAndReformulation"
+          }
+        },
+        "queues": [
+          {
+            "id": "@{queue:Lumea Kundenservice}",
+            "mediaTypes": [
+              "Call",
+              "Message",
+              "Email"
+            ],
+            "assignmentMode": "Auto"
+          }
+        ]
+      }
+    },
+    {
+      "type": "statopic",
+      "name": "Lumea Wechselabsicht",
+      "spec": {
+        "name": "Lumea Wechselabsicht",
+        "description": "Kunde droht mit Anbieterwechsel oder fragt nach der Kündigungsfrist",
+        "strictness": "65",
+        "matchingType": "Lexical",
+        "dialect": "de-DE",
+        "participants": "External",
+        "tags": [],
+        "phrases": [
+          {
+            "text": "ich werde mich nach einem anderen Anbieter umsehen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "dann wechsle ich zu einem anderen Anbieter",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich möchte kündigen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "wie lange ist meine Kündigungsfrist",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "wann läuft mein Vertrag aus",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich denke über einen Wechsel nach",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "mein Vertrag läuft bald aus",
+            "sentiment": "Unspecified"
+          }
+        ]
+      }
+    },
+    {
+      "type": "statopic",
+      "name": "Lumea Bearbeitungszeit beanstandet",
+      "spec": {
+        "name": "Lumea Bearbeitungszeit beanstandet",
+        "description": "Kunde beschwert sich, dass niemand geantwortet hat",
+        "strictness": "65",
+        "matchingType": "Lexical",
+        "dialect": "de-DE",
+        "participants": "External",
+        "tags": [],
+        "phrases": [
+          {
+            "text": "ich habe keine Antwort bekommen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "niemand hat sich gemeldet",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich habe vor drei Wochen geschrieben",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich muss immer nachfassen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich erwarte eine Antwort",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "das dauert mir zu lange",
+            "sentiment": "Unspecified"
+          }
+        ]
+      }
+    },
+    {
+      "type": "statopic",
+      "name": "Lumea Rechnungsreklamation",
+      "spec": {
+        "name": "Lumea Rechnungsreklamation",
+        "description": "Kunde beanstandet die Jahresabrechnung oder eine Nachzahlung",
+        "strictness": "65",
+        "matchingType": "Lexical",
+        "dialect": "de-DE",
+        "participants": "External",
+        "tags": [],
+        "phrases": [
+          {
+            "text": "die Rechnung stimmt nicht",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "meine Jahresabrechnung ist viel zu hoch",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich soll nachzahlen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "die Nachzahlung ist zu hoch",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "damit bin ich nicht einverstanden",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "wie kommt dieser Betrag zustande",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "ich bitte um Prüfung der Abrechnung",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "das kann nicht stimmen",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "mein Abschlag ist unverändert",
+            "sentiment": "Unspecified"
+          },
+          {
+            "text": "haben Sie die Preise erhöht",
+            "sentiment": "Unspecified"
+          }
+        ]
+      }
+    },
+    {
+      "type": "staprogram",
+      "name": "Lumea Kundenservice",
+      "spec": {
+        "name": "Lumea Kundenservice",
+        "description": "Vendor-Battle-Demo Lumea: Auswertung der Kundenservice-Queue",
+        "tags": [],
+        "topicIds": [
+          "@{statopic:Lumea Wechselabsicht}",
+          "@{statopic:Lumea Bearbeitungszeit beanstandet}",
+          "@{statopic:Lumea Rechnungsreklamation}"
+        ],
+        "queueIds": [
+          "@{queue:Lumea Kundenservice}"
+        ],
+        "flowIds": []
+      }
+    },
+    {
+      "type": "botflow",
+      "name": "Lumea WhatsApp AVA",
+      "spec": {
+        "name": "Lumea WhatsApp AVA",
+        "yaml": "digitalBot:\n  name: Lumea WhatsApp AVA\n  description: \"Vendor Battle: gespielter Agentic Virtual Agent der Persona Familie Berger. Freier Text statt Quick Replies, feste Zeilen, keine NLU.\"\n  division: Home\n  startUpRef: \"/digitalBot/bots/bot[Begrüßung_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  variables:\n    - knowledgeBaseDocumentCollectionVariable:\n        name: Flow.result1\n        initialValue:\n          noValue: true\n        isInput: false\n        isOutput: false\n    - stringVariable:\n        name: Slot.conversation\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.identify_contract\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.intro\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.reason_for_contact\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n  settingsErrorHandling:\n    errorHandling:\n      exit:\n        none: true\n    enableAgentEscalation:\n      lit: true\n    errorEventHandover:\n      noValue: true\n    agentEscalationConfirmation:\n      noValue: true\n    agentEscalationHandover:\n      noValue: true\n    recognitionFailureEventHandover:\n      noValue: true\n    recognitionFailureEventHandling:\n      exit:\n        none: true\n    agentEscalationHandling:\n      exit:\n        none: true\n  settingsBotFlow:\n    virtualAgentEnabled: true\n  settingsUserInput:\n    noMatchesMax:\n      lit: 1\n    noInputsMax:\n      lit: 3\n    noInputsTimeout:\n      lit:\n        minutes: 1\n    endOfSessionMessage:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe eine Weile nichts von Ihnen gehört, deshalb schließe ich diesen Chat. Bitte kehren Sie zurück, wenn Sie meine Hilfe benötigen. Vielen Dank!\\\")))\"\n    confirmationRejectionsMax:\n      lit: 3\n    collectionLowConfidenceThreshold:\n      lit: 20\n    collectionHighConfidenceThreshold:\n      lit: 70\n    confirmationLowConfidenceThreshold:\n      lit: 40\n    noMatchApology:\n      exp: \"\\\"\\\"\"\n    noInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten.\\\")))\"\n    noToConfirmationApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Mir ist ein Fehler unterlaufen.\\\")))\"\n    confirmationNoMatchApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n    confirmationNoInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten. Geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n  settingsKnowledge:\n    none: true\n  settingsVirtualAgent:\n    summarization:\n      lit: false\n    assignWrapupCodes:\n      lit: false\n  bots:\n    - bot:\n        name: Begrüßung\n        refId: Begrüßung_10\n        trackingId: 10\n        actions:\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 37\n              slot:\n                name: intro\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Placeholder\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Communicate\n              trackingId: 42\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Guten Tag Herr Berger. Ich bin der KI-Assistent der\\\\nLumea Energie & Smart Home GmbH.\\\\n\\\\nIch sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen.\\\")))\"\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 46\n              slot:\n                name: reason_for_contact\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Geht es es Ihnen nur um Ihre Rechnung oder auch um Ihren Vertrag?\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Erkennung\n              trackingId: 12\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Alles klar. Ich verbinde Sie umgehend mit der zuständigen Fachabteilung. \\\")))\"\n          - communicate:\n              name: Mitarbeiter kommt in Chat\n              trackingId: 45\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"-----------------------------------------\\\\n@{presenter.name} ist dem Chat beigetreten\\\\n-----------------------------------------\\\")))\"\n          - setScreenPop:\n              name: Set Screen Pop\n              trackingId: 41\n              screenPopScript:\n                Website_Scripts:\n                  none: true\n          - transferToAcd:\n              name: Transfer to ACD\n              trackingId: 29\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              preTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              failureTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              failureOutputs:\n                errorType:\n                  noValue: true\n                errorMessage:\n                  noValue: true\n          - exitBotFlow:\n              name: Exit Bot Flow\n              trackingId: 30\n  settingsNaturalLanguageUnderstanding:\n    nluDomainVersion:\n      intents: []\n      entities:\n        - name: conversation\n          type: \"builtin:any\"\n        - name: identify_contract\n          type: \"builtin:any\"\n        - name: intro\n          type: \"builtin:any\"\n        - name: reason_for_contact\n          type: \"builtin:any\"\n      entityTypes: []\n      language: de-de\n      languageVersions: {}\n    mutedUtterances: []\n"
+      }
+    },
+    {
+      "type": "messageflow",
+      "name": "Lumea WhatsApp Einstieg",
+      "spec": {
+        "name": "Lumea WhatsApp Einstieg",
+        "yaml": "inboundShortMessage:\n  name: Lumea WhatsApp Einstieg\n  description: \"Vendor Battle: WhatsApp-Einstieg, ruft den Lumea-Bot und übergibt an den Kundenservice.\"\n  division: Home\n  startUpRef: \"/inboundShortMessage/states/state[Ausgangsstatus_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  settingsErrorHandling:\n    errorHandling:\n      disconnect:\n        none: true\n  states:\n    - state:\n        name: Ausgangsstatus\n        refId: Ausgangsstatus_10\n        trackingId: 10\n        actions:\n          - callDigitalBotFlow:\n              name: Lumea Bot aufrufen\n              inputText:\n                exp: Message.Message.body\n              exitReason:\n                noValue: true\n              intent:\n                noValue: true\n              digitalBotFlow:\n                Lumea WhatsApp AVA:\n                  ver_latestPublished:\n                    none: true\n              trackingId: 11\n          - transferToAcd:\n              name: An Kundenservice\n              trackingId: 12\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              skillExpressionFilters:\n                noValue: true\n  referencedObjects:\n    flows:\n      - flow:\n          name: Lumea WhatsApp AVA\n          type: digitalbot\n          defaultLanguage: de-de\n          variables: []\n          supportedLanguages:\n            - de-de\n"
+      }
+    }
+  ],
+  "unresolved": []
+}

@@ -1,0 +1,191 @@
+# Demo story of Vendor Battle, shown on the Demos page ("Demo story"). Scenes in stage order; the
+# customer's lines are German on purpose: the Copilot NLU intents are trained on these phrases.
+# The trigger reference below the scenes is built from the snapshot (rules, intents, checklists).
+summary: >
+  Markus Berger, customer for nine years, gets a bill with 246,80 € to pay extra. He complained
+  by email three weeks ago and never got an answer, and his contract ends in six weeks. Bill
+  complaint and churn risk meet in one conversation. The demo turns this "moment of frustration"
+  into a "moment of value": the bot recognises him and hands over, Copilot guides the agent with two
+  checklists, the agent fixes the cause (a monthly instalment that was too low), and the churn risk
+  becomes an offer that is the upsell itself (LumeaSolar Flex: renewal, dynamic tariff and solar
+  advice in one), confirmed as a case that comes back to the agent.
+persona: >
+  Markus Berger (Herr), Musterstraße 1, 22767 Hamburg. Tariff LumeaPrivat Klassik, 36,8 ct/kWh,
+  instalment 138 € a month. Consumption 2025: 4.750 kWh instead of the forecast 4.200 kWh. Contract
+  ends in 42 days, notice period ends in 14 days. The presenter's phone and email play his.
+duration: 20 minutes (3 framing · 12 live demo · 3 value and measurement · 2 buffer)
+rules:
+  - Next to the chat, exactly one panel is open at a time (Copilot, Kundenakte or Beratung & Angebot). Close the old one before opening the next.
+  - Never name the brief's required situations on stage; the audience follows a story, the jury ticks its list by itself.
+  - Accept the interaction a few seconds after it alerts, otherwise the greeting suggestion may be missing in the Copilot panel.
+
+before:
+  - On the Demos page, press Start (Lumea website, agent script pages and Copilot answers). The Copilot answer in scene 4 and every button on the script pages need it.
+  - Presenter on Available and on the queue "Lumea Kundenservice"; for the closed loop also on "Lumea Vorgangsbearbeitung" (the deploy adds the presenter to both).
+  - "For the contact history's Copy button: send one email from the customer's address (entered at deploy) to the org beforehand, so there is a real email interaction to link to."
+  - "Customer side ready: the Lumea website (link on the Demos page) or, with WhatsApp, an empty chat to the org's number on the phone you hold up."
+
+scenes:
+  - title: Opening
+    duration: "0:30"
+    screen: Nothing yet, you speak.
+    steps:
+      - who: you
+        text: "„Seit neun Jahren Kunde. 247 Euro Nachzahlung auf der Jahresabrechnung. Eine Beschwerde, die seit drei Wochen unbeantwortet ist. Ein Vertrag, der in sechs Wochen ausläuft. … Vom Moment of Frustration zum Moment of Value.“"
+
+  - title: "1 · The bot recognises, explains and hands over"
+    duration: "1:30"
+    screen: Only the customer window, large.
+    steps:
+      - who: customer
+        channel: whatsapp
+        text: "Ich habe Ihnen vor drei Wochen wegen meiner Jahresabrechnung geschrieben – 247 Euro Nachzahlung, das kann doch nicht stimmen. Bis heute keine Antwort. Langsam frage ich mich, ob ich hier noch richtig bin."
+      - who: customer
+        channel: web
+        text: "Open the chat on the Lumea website (any \"Chat starten\" button). The bot greets at once; there is no first message to type."
+      - who: bot
+        text: "Guten Tag Herr Berger. Ich bin der KI-Assistent der Lumea Energie & Smart Home GmbH. Ich sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen."
+      - who: bot
+        text: "Geht es Ihnen nur um Ihre Rechnung oder auch um Ihren Vertrag?"
+      - who: customer
+        channel: whatsapp
+        text: "Beides, bitte."
+      - who: customer
+        channel: web
+        text: "Um beides. Ich habe Ihnen vor drei Wochen wegen meiner Jahresabrechnung geschrieben – 247 Euro Nachzahlung, das kann doch nicht stimmen. Bis heute keine Antwort."
+      - who: bot
+        text: "Alles klar. Ich verbinde Sie umgehend mit der zuständigen Fachabteilung. — then the line „<presenter> ist dem Chat beigetreten“."
+      - who: you
+        text: "„Er fragt nicht nach Kundennummer, Geburtsdatum oder Menü. Und er bringt ein Thema mit, von dem der Kunde kein Wort geschrieben hat: den Vertrag.“"
+    triggers:
+      - when: Any first message (WhatsApp) or opening the chat (website)
+        then: "Message flow „Lumea WhatsApp Einstieg“ starts the bot „Lumea WhatsApp AVA“. The bot uses fixed lines, no NLU."
+      - when: Any answer to the bot's question
+        then: The bot hands over to the queue „Lumea Kundenservice“ and opens the screen pop script „Website_Scripts“.
+    notes:
+      - The bot does not mention the unanswered email on purpose; the agent discovers it in scene 3.
+      - The join line is a message the bot sends, not a platform feature. Do not sell it as one.
+
+  - title: "2 · Accept, context, greeting"
+    duration: "1:30"
+    screen: Chat + Copilot; after the greeting Chat + Kundenakte, tab Übersicht.
+    steps:
+      - who: you
+        text: Accept the conversation (wait a few seconds after it alerts).
+      - who: you
+        text: "Insert the suggested greeting with one click: „Guten Tag, mein Name ist <presenter> vom Lumea Kundenservice. Ich kümmere mich um Ihr Anliegen …“"
+      - who: you
+        text: "Close Copilot, open the Kundenakte, tab Übersicht: four tiles, then point at the red chip „gefährdet“ – and do not act on it yet: „Ich merke es mir.“"
+    triggers:
+      - when: The conversation starts (agent accepts)
+        then: "Copilot rule „ConversationStart“: canned response „01 Begruessung nach Uebergabe“ and the checklist „Lumea Jahresabrechnung Beschwerde“ (5 items). Copilot also shows the summary of the bot conversation."
+      - when: The agent sends the greeting
+        then: "Checklist 1, item „Begrüßung und Zuständigkeit“ ticks."
+
+  - title: "3 · The contact history"
+    duration: "2:15"
+    screen: Chat + Kundenakte, tab Kontakthistorie. Copilot closed.
+    steps:
+      - who: you
+        text: "„Der Mitarbeiter müsste zurückfragen – worum ging es denn? Genau das passiert hier nicht.“ Open the tab Kontakthistorie: eight contacts, four channels, twelve months."
+      - who: you
+        text: "Row EMAIL, 3 weeks ago, unanswered: click it, the original email opens; read the last two sentences. Press Copy: the link to the real email interaction in the org. Close the email again."
+      - who: you
+        text: "Row PHONE, 8 months ago, dynamic tariff asked for, no follow-up: „Die Zeile brauchen wir in Szene 5 wieder.“"
+      - who: you
+        text: "„Eine Frage bleibt offen: Wie verhindert man, dass eine E-Mail drei Wochen liegen bleibt? Darauf komme ich am Ende zurück.“"
+      - who: agent
+        text: "Ich sehe Ihre E-Mail von vor drei Wochen hier vor mir – und ich sehe auch, dass sie bei uns liegen geblieben ist und nie beantwortet wurde. Das tut mir leid, so soll das nicht laufen. Ich kümmere mich ab jetzt persönlich darum."
+    triggers:
+      - when: You open the contact history
+        then: "Checklist 1, item „Kontakthistorie prüfen“ (tick it yourself if it does not tick)."
+      - when: The agent's apology above
+        then: "Checklist 1, item „Situation erläutern und entschuldigen“ ticks. Canned response „02 Unbeantwortete E-Mail“ has the same text if you prefer to insert it."
+      - when: Copy button in the email row
+        then: gctk searches the newest email conversation of the customer (last 8 weeks) and copies its link.
+    notes:
+      - Do not talk about cases, SLAs or automation here; the closing block lives from the open question.
+
+  - title: "4 · Bill, instalment, promise"
+    duration: "3:00"
+    screen: Chat + Copilot; Copilot switches the Kundenakte to the tab Abrechnung by itself.
+    steps:
+      - who: customer
+        text: "Und warum soll ich jetzt 247 Euro nachzahlen? Ich habe doch jeden Monat pünktlich meinen Abschlag gezahlt."
+      - who: you
+        text: "„Copilot hat diese Frage nicht in unserer Wissensdatenbank nachgeschlagen – er hat sie an das Abrechnungssystem weitergegeben.“ Insert the answer, close Copilot."
+      - who: you
+        text: "Point at the red box R-042 above the lower table: 3rd extra payment in a row, instalment 138,00 € – needed 158,57 €."
+      - who: agent
+        text: "Und eines will ich Ihnen nicht verschweigen: Sie zahlen zum dritten Mal in Folge nach – 37 Euro, 85 Euro, jetzt 247. Ihr Abschlag stand die ganze Zeit auf 138 Euro, nötig wären 158,57 gewesen. Die Rechnung stimmt. Wir hätten Ihren Abschlag längst anpassen müssen."
+      - who: you
+        text: "Type 158,57 into „Neuer Abschlag“ (type it, do not paste) and press „Abschlag korrigieren“. The confirmation text appears and is in the clipboard; insert it in the chat."
+    triggers:
+      - when: "Customer: „Und warum soll ich jetzt 247 Euro nachzahlen? …“"
+        then: "NLU intent „Rechnungsfrage“ → Copilot rule: third-party action (gctk answers with the billing explanation „ERP-System: Abrechnungserläuterung · Jahresabrechnung 2025“: 4.750 kWh × 36,8 ct = 1.748,00 €, plus 154,80 € base price, minus 1.656,00 € paid = 246,80 €) and the script page „Abrechnung“ of „Website_Scripts“."
+      - when: The agent's explanation with the numbers
+        then: "Checklist 1, item „Rechnungsbetrag aufschlüsseln“ ticks. Canned response „03 Nachzahlung erklaeren“ has the numbers ready."
+      - when: The agent confirms the corrected instalment (the clipboard text)
+        then: "Checklist 1, item „Lösung umsetzen und quittieren“ ticks; checklist 1 is complete. Canned response „04 Abschlag korrigiert und Zusage“ is the fallback."
+    notes:
+      - "The explanation explains; that the mistake is ours is said by the human. If the Copilot panel stays empty, the local part is not running: Demos page → Start."
+
+  - title: "5 · Churn intent and offer"
+    duration: "1:45"
+    screen: Chat + Copilot; after the second customer line Chat + Beratung & Angebot.
+    steps:
+      - who: customer
+        text: "Trotzdem: mein Vertrag läuft ja bald aus. Ich schaue mich sonst nach einem anderen Anbieter um."
+      - who: you
+        text: "„Bis zu diesem Satz war das eine Rechnungsfrage. Jetzt ist es ein gefährdeter Kunde – und mein Arbeitsblatt hat sich mitgeändert.“"
+      - who: customer
+        text: "Was könnten Sie mir denn anbieten und bis wann müsste ich mich entscheiden?"
+      - who: you
+        text: "Click the suggested script page, close Copilot. Point at the two badges (PV-Potenzial, Dyn. Tarif angefragt) and the reasons table. Press „Angebotstext für den Kunden erzeugen“ and insert it; you write the transition yourself."
+    triggers:
+      - when: "Customer: „Trotzdem: mein Vertrag läuft ja bald aus …“"
+        then: "NLU intent „Vertragsende“ → Copilot rule: the second checklist „Lumea Wechselabsicht“ (4 items) opens. Nothing else."
+      - when: "Customer: „Was könnten Sie mir denn anbieten …“"
+        then: "NLU intent „Angebotsfrage“ → Copilot rule: suggests the script page „Beratung & Angebot“ of „Website_Scripts“."
+      - when: The agent states deadline and offer
+        then: "Checklist 2, item „Frist nennen und Angebot unterbreiten“ ticks. Canned response „05 Frist und Angebot“ is the fallback."
+
+  - title: "6 · The promise becomes a case"
+    duration: "2:00"
+    screen: Chat + Beratung & Angebot, the whole scene.
+    steps:
+      - who: customer
+        text: "Das klingt fair. Machen Sie das."
+      - who: you
+        text: "Press „Angebot verbindlich anlegen“: a real case of the case plan „Lumea Vertragsangebot“ (reference ANG-…) appears with stage and queue."
+      - who: you
+        text: "Press „Bestätigung per SMS senden“ and hold up the phone: the SMS arrives (only if an SMS sender number was entered at deploy). The confirmation text with the new case reference is in the clipboard; insert it."
+      - who: you
+        text: "Insert the closing summary (canned response „07 Abschluss“) and end the conversation."
+    triggers:
+      - when: Button „Angebot verbindlich anlegen“
+        then: "gctk creates the case in the org (case plan „Lumea Vertragsangebot“, contact Markus Berger, intake data of the offer). Checklist 2, item „Zusage einholen und Vorgang anlegen“ ticks once you tell the customer."
+      - when: Button „Bestätigung per SMS senden“
+        then: "gctk sends an agentless SMS from the org's SMS number to the customer's mobile. Inserting the confirmation ticks checklist 2, item „Bestätigung auf den hinterlegten Kanal senden“ (canned response „06 Bestaetigung Vertragsverlaengerung“ is the fallback)."
+      - when: The closing summary
+        then: "Checklist 2, item „Gespräch zusammenfassen und abschließen“ ticks; both checklists complete."
+    notes:
+      - "Get canned response „07 Abschluss“ by hand: its Copilot rule waits for an intent „Bestaetigung gesendet“ that the NLU domain does not have, so it does not come by itself."
+
+  - title: "After the conversation: wrap-up and closed loop"
+    duration: "3:00"
+    screen: Chat + Copilot, then the interaction list, then the work item page.
+    steps:
+      - who: you
+        text: "Wrap-up: Copilot has the summary and suggests a wrap-up code. Choose „Vertragsverlaengerung“, not „Nachzahlung“: „Der Code ist das Ergebnis des Gesprächs.“"
+      - who: you
+        text: "Go Available. The work item „Angebot erfassen“ alerts from the queue „Lumea Vorgangsbearbeitung“. Accept: the page „Vorgangsbearbeitung“ opens with the order (Solar Flex, 34,2 ct, 24 Monate, ~123 €, PV appointment)."
+      - who: you
+        text: "Press the three buttons (book tariff change, create contract document, hand PV advice to the specialists), set the status to done. „Bestätigung senden“ appears by itself; set it to done too. The case closes."
+      - who: you
+        text: "„Erinnern Sie sich an die E-Mail, die drei Wochen unbeantwortet lag? Genau das kann einem Vorgang hier nicht passieren. Er hat eine Frist, er hat einen Besitzer, und wenn die Frist reißt, eskaliert er.“"
+    triggers:
+      - when: Ending the conversation
+        then: "Copilot writes the summary and predicts the wrap-up code (Abwanderung, Nachzahlung, Vertragsverlaengerung). Speech & text analytics (program „Lumea Kundenservice“) marks the topics in the conversation: Lumea Rechnungsreklamation, Lumea Bearbeitungszeit beanstandet, Lumea Wechselabsicht."
+      - when: The case created in scene 6
+        then: "Its first step (worktype „Lumea Vertragsangebot“) routes as a work item to the queue „Lumea Vorgangsbearbeitung“ and opens the script „Lumea_Case_Script“ (page workitem.html). Done → the next stage creates „Bestätigung senden“."

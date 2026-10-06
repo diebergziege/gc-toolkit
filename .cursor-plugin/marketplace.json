@@ -1,0 +1,16 @@
+{
+  "name": "genesys-cloud-toolkit",
+  "owner": {
+    "name": "diebergziege"
+  },
+  "metadata": {
+    "description": "Genesys Cloud Toolkit: a local UI that makes your AI setup and Genesys Cloud demos transparent and easy."
+  },
+  "plugins": [
+    {
+      "name": "genesys-cloud-toolkit",
+      "source": ".",
+      "description": "A local UI for your Genesys Cloud AI setup and demos: orgs, MCP servers and skills, demo website, demo data, AXL workshops."
+    }
+  ]
+}

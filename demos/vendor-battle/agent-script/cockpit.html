@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumea ServiceCockpit · Kundenakte</title>
+<link rel="stylesheet" href="assets/lumea.css?v=14">
+</head>
+<body>
+
+<nav class="tabs" id="secnav">
+  <button data-tab="uebersicht">Übersicht</button>
+  <button data-tab="abrechnung">Abrechnung</button>
+  <button data-tab="historie">Kontakthistorie <span class="count" id="cntHist"></span></button>
+</nav>
+
+<div class="wrap single">
+  <div class="col">
+
+    <!-- ======================================================= Übersicht -->
+    <!-- 360-Grad-Blick auf den Kunden, umgebaut am 23.09.2026.
+         Drei Blöcke in Leserichtung: WAS IST JETZT (Kennzahlen) -> WIE STEHT ES
+         (Signale als Chips) -> DIE FAKTEN (zwei Feldraster nebeneinander).
+         Vorher standen hier drei Panels untereinander, davon eines mit sieben
+         Tabellenzeilen - auf der Buehne eine Wand, durch die der Agent zeigen musste.
+
+         DAS PANEL "Übergabe aus dem WhatsApp-Bot" IST ENTFALLEN. Es baute nach, was
+         Copilot beim Annehmen nativ liefert (Transfer-Summary), und verstiess damit
+         gegen die eigene Regel der Demo: was Genesys nativ kann, zeigen wir nativ -
+         ein Nachbau daneben sagt der Jury, dass die Plattform es nicht kann. -->
+    <section class="tabpanel" id="tab-uebersicht">
+      <div class="panel">
+        <header>Auf einen Blick <span class="sp"></span><span class="src">Stand heute</span></header>
+        <div class="metrics" id="kpi"></div>
+        <div class="body" id="signale" style="border-top:1px solid var(--line-soft)"></div>
+      </div>
+
+      <div class="duo" style="margin-top:12px">
+        <div class="panel">
+          <header>Vertrag &amp; Abrechnung
+            <span class="sp"></span><span class="src">Quelle: Abrechnungssystem</span></header>
+          <div class="body"><div class="fields" id="vertrag"></div></div>
+        </div>
+        <div class="panel">
+          <header>Beziehung &amp; Potenzial
+            <span class="sp"></span><span class="src">Quelle: Lumea CRM</span></header>
+          <div class="body"><div class="fields" id="beziehung"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== Abrechnung -->
+    <section class="tabpanel" id="tab-abrechnung" hidden>
+      <div class="panel">
+        <header>Jahresabrechnung <span id="billYear"></span>
+          <span class="sp"></span><span class="src" id="billNo"></span></header>
+        <div class="body flush"><table class="grid" id="bill"></table></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <header>Die letzten drei Perioden <span class="chip red">Abweichung</span>
+          <span class="sp"></span><span class="src">Prüfregel Abschlagsanpassung</span></header>
+        <div class="body" style="border-bottom:1px solid var(--line-soft)">
+          <div class="result err" id="pruefhinweis"></div>
+        </div>
+        <div class="body flush"><table class="grid" id="years"></table></div>
+        <div class="actionbar" id="actions"></div>
+        <div class="body" id="erlBox" hidden></div>
+      </div>
+    </section>
+
+    <!-- ======================================================= Historie -->
+    <section class="tabpanel" id="tab-historie" hidden>
+      <div class="panel">
+        <header>Kontakthistorie · 12 Monate
+          <span class="sp"></span><span class="src">kanalübergreifend</span></header>
+        <div class="body flush"><table class="grid" id="history"></table></div>
+        <div class="body" id="belegBox" hidden style="border-top:1px solid var(--line-soft)"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="assets/lumea.js?v=14"></script>
+<script>
+renderChrome(1);
+
+const BILL_YEAR = String(new Date().getFullYear() - 1);
+
+/* ---------------------------------------------------------------- Übersicht */
+/* Vier Kacheln, nicht drei. Neu ist "Kontakte", und sie hat eine Aufgabe: Sie ist der
+   Hinweis auf die Registerkarte Kontakthistorie, die seit dem 23.09.2026 Szene 3 traegt.
+
+   Die Zahl kommt aus HISTORY.length, NICHT aus LUMEA.contacts12m - das Feld stand auf 6,
+   waehrend die Historie neun Eintraege hat und die Registerkarte eine 9 als Abzeichen
+   zeigt. Zwei verschiedene Zahlen fuer dasselbe auf einem Schirm.
+
+   Die Kachel "Abwanderungsrisiko" ist am 18.09.2026 entfallen - eine Prozentzahl ohne
+   Erklaerung laesst das Publikum raten. Dass der Kunde gefaehrdet ist, steht jetzt als
+   roter Chip in der Signalzeile, und genau darauf zeigt der Agent in Szene 2. */
+function renderKpi() {
+  const tile = (k, val, d, cls = '') =>
+    `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${val}</div><div class="d">${d}</div></div>`;
+  $('#kpi').innerHTML = [
+    tile('Offener Betrag', eur(LUMEA.offen), 'Jahresabrechnung ' + BILL_YEAR, 'down'),
+    tile('Vertragsende', dDate(LUMEA.contractEnd), 'Kündigungsfrist ' + dDate(LUMEA.noticeDeadline)),
+    // Als Unterzeile stand hier 'seit Maerz 2017' - das steht bereits in der
+    // Datensatzleiste ueber den Registerkarten. Der Jahresumsatz steht nirgends sonst
+    // und ist die einzige Wertangabe der Demo, die aus echten Positionen faellt statt
+    // aus einem Modell: Arbeitspreis mal Verbrauch plus Grundpreis.
+    tile('Kunde seit', LUMEA.jahre + ' Jahren', 'Jahresumsatz ' + eur(BILL_TOTAL)),
+    // Kanalzahl gezaehlt, nicht getippt: Die Umfrage ist kein Kontaktkanal - Regiebuch und
+    // Story sagen beide "vier Kanaele, dazu die NPS-Befragung". Eine getippte 4 waere beim
+    // naechsten Eintrag in HISTORY still falsch geworden.
+    tile('Kontakte', HISTORY.length,
+         '12 Monate · ' + new Set(HISTORY.filter(h => h.ch !== 'Survey').map(h => h.ch)).size + ' Kanäle'),
+  ].join('');
+}
+
+/* Die Signalzeile - der eigentliche 360-Grad-Blick.
+ *
+ * LUMEA.segment ist ein Text mit vier durch Punkte getrennten Merkmalen
+ * ("Bestandskunde · mittlerer Wert · PV-Potenzial · gefährdet"). Als Tabellenzeile war das
+ * eine Zeile Fließtext, durch die der Agent mit dem Finger fahren musste. Zerlegt in
+ * Chips ist jedes Merkmal einzeln anzeigbar - und "gefährdet" ist rot.
+ *
+ * Genau darauf zeigt Szene 2: "Gefährdet - das sagt mir das System, bevor ich ein Wort
+ * mit ihm gewechselt habe."
+ *
+ * Die Farben tragen Bedeutung, nicht Dekoration: rot = Handlungsbedarf, gelb = beobachten,
+ * grün = spricht für den Kunden, blau = Chance. Wer hier einen Chip hinzufuegt, ordnet ihn
+ * einer dieser vier Kategorien zu oder laesst ihn weg. */
+function renderSignale() {
+  const tage = Math.round((LUMEA.contractEnd - new Date()) / 864e5);
+  const chip = (t, cls = '') => `<span class="chip ${cls}"><span class="dot"></span>${t}</span>`;
+  $('#signale').innerHTML =
+    '<div class="chiprow">' + [
+      chip('gefährdet', 'red'),
+      chip('Vertrag endet in ' + tage + ' Tagen', 'amber'),
+      chip('NPS ' + LUMEA.nps + '/10', 'amber'),
+      chip('zahlt pünktlich', 'green'),
+      chip('PV-Potenzial hoch', 'blue'),
+      chip('Dyn. Tarif angefragt', 'blue'),
+    ].join('') + '</div>';
+}
+
+/* Die Fakten. Feldraster statt Tabelle: keine Rahmen, zwei bis drei Spalten, jedes Feld
+   eine Ueberschrift und ein Wert. Sieben Tabellenzeilen untereinander lasen sich wie ein
+   Formular; so ist es ein Steckbrief. */
+const LETZTER = HISTORY[HISTORY.length - 1];
+const feld = (k, v) => `<div class="f"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+
+$('#vertrag').innerHTML = [
+  feld('Tarif', LUMEA.tarif),
+  feld('Arbeitspreis', num(LUMEA.preis * 100, 1) + ' ct/kWh'),
+  feld('Grundpreis', eur(LUMEA.grundpreis) + ' im Monat'),
+  feld('Abschlag', eur(LUMEA.abschlag) + ' monatlich'),
+  feld('Zahlweise', LUMEA.zahlweise),
+  feld('Verbrauch', num(LUMEA.verbrauchIst) + ' kWh<br><span style="color:var(--ink-3)">Prognose '
+       + num(LUMEA.verbrauchPlan) + ' kWh</span>'),
+].join('');
+
+/* KEINE Wiederholung der Kacheln und Chips.
+   Hier standen zuerst "Kunde seit", "Zahlverhalten" und "Zufriedenheit" - alle drei
+   stehen schon eine Reihe weiter oben, zwei als Kachel, eine als Chip. Auf einem Schirm,
+   der in acht Sekunden gelesen werden soll, ist jede Wiederholung eine verlorene Zeile.
+   Die Felder tragen jetzt ausschliesslich das, was NUR hier steht - die Chips sagen DASS
+   Potenzial da ist, das Feld sagt WARUM. */
+$('#beziehung').innerHTML = [
+  // Der LETZTE abgeschlossene Kontakt, aus HISTORY gerechnet - nicht das laufende
+  // Gespraech. Hier stand 'heute · WhatsApp', also der Kontakt, den der Agent gerade
+  // vor sich hat; das beantwortet die Frage nicht, die das Feld stellt.
+  feld('Letzter Kontakt', dDate(LETZTER.d) + ' · ' + LETZTER.ch),
+  feld('Haushalt', LUMEA.haushalt),
+  feld('Wohnen', LUMEA.wohnen),
+  feld('Photovoltaik', 'Dach süd-ausgerichtet · keine Anlage'),
+  feld('Gas', LUMEA.gas),
+  feld('App zuletzt genutzt', LUMEA.appLogin),
+].join('');
+
+/* -------------------------------------------------------------- Abrechnung */
+$('#billYear').textContent = BILL_YEAR;
+$('#billNo').textContent = 'Beleg RE-' + BILL_YEAR + '-4827193';
+
+$('#bill').innerHTML =
+  `<thead><tr><th>Position</th><th class="num">Menge</th><th class="num">Preis</th><th class="num">Betrag</th></tr></thead>
+   <tbody>
+     <tr><td>Arbeitspreis</td><td class="num">${num(KWH)} kWh</td>
+         <td class="num">${num(PRICE * 100, 1)} ct</td><td class="num">${eur(WORK_COST)}</td></tr>
+     <tr><td>Grundpreis</td><td class="num">12 Monate</td>
+         <td class="num">${eur(BASE_M)}</td><td class="num">${eur(BASE_COST)}</td></tr>
+     <tr class="total"><td>Rechnungsbetrag</td><td class="num"></td><td class="num"></td>
+         <td class="num">${eur(BILL_TOTAL)}</td></tr>
+     <tr><td>Geleistete Abschläge</td><td class="num">12 × ${eur(ABSCHLAG)}</td>
+         <td class="num"></td><td class="num">− ${eur(PAID)}</td></tr>
+     <tr class="total"><td>Nachforderung</td><td class="num"></td><td class="num"></td>
+         <td class="num">${eur(OPEN)}</td></tr>
+   </tbody>`;
+
+$('#years').innerHTML =
+  `<thead><tr><th>Periode</th><th class="num">Verbrauch</th><th class="num">Abschlag</th>
+    <th class="num">Nachforderung</th></tr></thead><tbody>` +
+  YEARS.map(y => `<tr class="${y.now ? 'now' : ''}"><td>${y.y}</td>
+      <td class="num">${num(y.kwh)} kWh</td><td class="num bad">${eur(ABSCHLAG)}</td>
+      <td class="num bad">${eur(y.back)}</td></tr>`).join('') + '</tbody>';
+
+/* Der Systemhinweis. Er steht da, BEVOR jemand einen Knopf drueckt - das ist der Punkt.
+   Ohne ihn taucht die Feststellung ueber den unveraenderten Abschlag erst im erzeugten
+   Text auf, und dann fragt sich der Zuschauer zu Recht, woher der Agent das ploetzlich
+   hat. Mit ihm ist die Reihenfolge richtig: das System beanstandet, der Agent liest vor. */
+const SOLL_ABSCHLAG = (KWH * PRICE + BASE_M * 12) / 12;
+$('#pruefhinweis').innerHTML =
+  `<b>R-042 Abschlagsanpassung</b> · ${YEARS.length}. Nachforderung in Folge bei unverändertem
+   Abschlag. Hinterlegt ${eur(ABSCHLAG)} – rechnerisch erforderlich ${eur(SOLL_ABSCHLAG)}.
+   Keine Anpassung dokumentiert seit ${YEARS[0].y}.`;
+
+/* ---------------------------------------------------------------- Historie */
+$('#cntHist').textContent = HISTORY.length;
+
+/* Eine Zeile mit `mail` ist AUFKLAPPBAR.
+   Der Pfeil steht in der Datumsspalte, und die ganze Zeile ist anklickbar - auf der Buehne
+   wird mit der Maus grob getroffen, nicht ein 12-px-Dreieck. */
+const mailBlock = m => `
+  <div class="mail">
+    <div class="mailkopf">
+      <div><span class="k">Von</span>${m.von}</div>
+      <div><span class="k">An</span>${m.an}</div>
+      <div><span class="k">Betreff</span><b>${m.betreff}</b></div>
+    </div>
+    <div class="mailtext">${m.text.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+  </div>`;
+
+$('#history').innerHTML =
+  `<thead><tr><th>Datum</th><th>Kanal</th><th>Vorgang</th><th>Ergebnis</th>
+    <th class="num">Beleg</th></tr></thead><tbody>` +
+  [...HISTORY].reverse().map((h, i) => `
+    <tr class="${h.mail ? 'aufklappbar' : ''}" data-m="${i}">
+      <td class="num">${h.mail ? '<span class="pf">▸</span>' : ''}${dDate(h.d)}</td>
+      <td>${h.ch}</td><td>${h.t}</td><td>${h.x}</td>
+      <td class="num"><button class="btn sm beleg" data-i="${i}">Copy</button></td>
+    </tr>` + (h.mail ? `
+    <tr class="mailzeile" id="mail-${i}" hidden><td colspan="5">${mailBlock(h.mail)}</td></tr>` : '')
+  ).join('') + '</tbody>';
+
+$$('#history tr.aufklappbar').forEach(tr => tr.onclick = e => {
+  if (e.target.closest('.beleg')) return;      // der Copy-Knopf hat seine eigene Aufgabe
+  const zeile = $('#mail-' + tr.dataset.m);
+  if (!zeile) return;
+  zeile.hidden = !zeile.hidden;
+  tr.classList.toggle('offen', !zeile.hidden);
+  $('.pf', tr).textContent = zeile.hidden ? '▸' : '▾';
+});
+
+/* Herkunftsnachweis: Jede Zeile liefert den Link auf die Interaktion, aus der die
+   Historie stammt. Der Server sucht die juengste E-Mail des Kunden - das ist die eine,
+   die auf der Buehne geoeffnet wird. */
+let belegLink = null;
+async function holeBeleg() {
+  if (belegLink) return belegLink;
+  const r = await fetch('/api/mail', { cache: 'no-store' });
+  const d = await r.json();
+  if (!r.ok || d.error) throw new Error(d.error || 'Fehler ' + r.status);
+  belegLink = d;
+  return d;
+}
+
+$$('#history .beleg').forEach(b => b.onclick = async () => {
+  const box = $('#belegBox');
+  b.textContent = '…';
+  try {
+    const d = await holeBeleg();
+    copy(d.link, 'Link zur Interaktion');
+    box.hidden = false;
+    const woher = d.quelle ? 'hinterlegt' : d.start + ' Uhr';
+    box.innerHTML = `<div class="hint">E-Mail-Interaktion <code>${d.id}</code> · ${woher}<br>
+      <a href="${d.link}" target="_blank" rel="noopener">${d.link}</a></div>`;
+  } catch (e) {
+    box.hidden = false;
+    box.innerHTML = `<div class="hint">Interaktion nicht gefunden: ${e.message}</div>`;
+  }
+  b.textContent = 'Copy';
+});
+
+/* ---------------------------------------------------------------- Aktionen */
+function renderActions() {
+  const a = $('#actions');
+  a.innerHTML = '';
+
+  const mk = (label, cls, fn, done) => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (done ? 'done' : cls);
+    b.textContent = done ? '✓ ' + label : label;
+    b.disabled = !!done;
+    if (!done) b.onclick = fn;
+    a.appendChild(b);
+  };
+
+  // HIER STAND DER KNOPF "Erlaeuterung fuer den Kunden erzeugen".
+  //
+  // Entfallen am 21.09.2026. Den Text erzeugt jetzt ein externes System: Die Kundenzeile
+  // "Und warum soll ich jetzt 247 Euro nachzahlen" trifft den Intent `Rechnungsfrage`,
+  // Copilot loest darauf eine Third-party action aus, und der Listener unter
+  // Demos/Copilot/Copilot_Third_Party_App (COPILOT_MOCK=lumea) antwortet mit derselben
+  // Erlaeuterung, die vorher dieser Knopf gebaut hat - Wort fuer Wort und Zahl fuer Zahl.
+  //
+  // Zwei Gruende: Der Agent drueckt einen Knopf weniger, und die Antwort kommt sichtbar
+  // aus einem anderen System statt aus der Maske, die daneben liegt. Der Beleg bleibt
+  // derselbe - die Tabelle darueber zeigt die Zahlen, aus denen der Text entsteht.
+  //
+  // Das `erlBox`-Element im Markup ist geblieben und bleibt leer. Wer den Knopf
+  // zurueckholen will, findet den Textbaustein im Third-party-Listener.
+
+  // Kein Knopf mit eingebautem Betrag.
+  //
+  // Hier stand 'Abschlag auf 158 EUR korrigieren'. Das war der Wert genau dieses Falls,
+  // fest im Knopf - und damit die Ansage an das Publikum, dass die Maske fuer Markus
+  // Berger gebaut wurde und fuer niemanden sonst. So arbeitet auch kein Agent: Er liest
+  // den erforderlichen Betrag ab (er steht im Pruefhinweis oben und in der Notiz rechts)
+  // und traegt ihn ein.
+  //
+  // Die Pruefung ist bewusst eine Plausibilitaetspruefung und keine Gleichheitspruefung:
+  // Wer auf der Buehne 160 statt 158,57 tippt, soll nicht abgewiesen werden.
+  if (S.abschlagFixed) {
+    mk('Abschlag auf ' + eur(S.abschlagNeu || ABSCHLAG) + ' korrigiert', '', null, true);
+  } else {
+    const f = document.createElement('div'); f.className = 'field';
+    const l = document.createElement('label'); l.textContent = 'Neuer Abschlag';
+    const i = document.createElement('input');
+    i.type = 'text'; i.inputMode = 'decimal'; i.placeholder = '0,00';
+    i.setAttribute('aria-label', 'Neuer monatlicher Abschlag in Euro');
+    const b = document.createElement('button'); b.className = 'btn';
+    b.textContent = 'Abschlag korrigieren';
+    const uebernehmen = () => {
+      // Deutsche und englische Schreibweise annehmen: Enthaelt die Eingabe ein Komma,
+      // ist der Punkt Tausendertrennzeichen (1.234,56). Sonst ist der Punkt das
+      // Dezimalzeichen (158.57). Ohne diese Unterscheidung wuerde "158.57" zu 15857.
+      const roh = String(i.value).trim();
+      const wert = parseFloat(roh.includes(',') ? roh.replace(/\./g, '').replace(',', '.') : roh);
+      if (!isFinite(wert) || wert < 20 || wert > 999) {
+        i.classList.add('bad'); i.focus();
+        toast('Bitte einen Betrag zwischen 20 und 999 € eintragen');
+        return;
+      }
+      // Die Korrektur ist die verbindliche Handlung dieses Gespraechs - deshalb setzt
+      // SIE `committed` und gibt damit die Angebotsseite frei.
+      //
+      // Bis zum 18.09.2026 tat das ein zweiter Knopf, 'Rueckmeldung bis <Freitag>
+      // zusagen'. Der hatte keinen Gegenstand mehr: Der Agent sagt in derselben Szene
+      // "die Rechnung stimmt" und korrigiert den Abschlag selbst - geprueft wird danach
+      // nichts. Ein Versprechen auf eine Rueckmeldung ohne Sache dahinter ist genau die
+      // Art Detail, bei der eine Jury nachfragt. Und es war der einzige Knopf der Demo,
+      // der ausserhalb des Browsers nichts ausgeloest hat.
+      Store.patch({ abschlagFixed: true, abschlagNeu: wert,
+                    committed: true, committedAt: Date.now() });
+      // Die Bestaetigung entsteht aus der Buchung, nicht aus einem Baustein - und sie
+      // traegt den Betrag, den der Agent gerade selbst eingetragen hat. Ein fester Text
+      // koennte das nicht: Er muesste "auf den rechnerisch passenden Betrag" sagen und
+      // die Zahl verschweigen.
+      copy(bestaetigungstext(wert), 'Bestätigung');
+    };
+    i.oninput = () => i.classList.remove('bad');
+    i.onkeydown = e => { if (e.key === 'Enter') uebernehmen(); };
+    b.onclick = uebernehmen;
+    f.append(l, i, document.createTextNode('€'), b);
+    a.appendChild(f);
+  }
+
+  const sp = document.createElement('div'); sp.className = 'sp'; a.appendChild(sp);
+  const note = document.createElement('div'); note.className = 'note';
+  note.textContent = S.committed
+    ? 'Korrektur erfasst – Angebot auf der Registerkarte „Beratung & Angebot" freigegeben.'
+    : 'Rechnerisch nötig: ' + eur(BILL_TOTAL / 12) + ' statt ' + eur(ABSCHLAG) + ' monatlich.';
+  a.appendChild(note);
+}
+
+/* ------------------------------------------------------- Bestaetigungstext */
+/* Loest ANTWORT 04 ab. Der Baustein bleibt als Rueckfallebene in der Library, steht aber
+   in keiner Anweisung mehr - er sagte "auf den rechnerisch passenden Betrag", weil er die
+   Zahl nicht kennen konnte. Hier steht sie. */
+function bestaetigungstext(wert) {
+  // Der Nachsatz "Und Ihren Vorgang habe ich uebernommen. Er liegt jetzt nicht mehr
+  // herum" ist am 23.09.2026 entfallen. Er bezog sich auf den Beschwerde-Vorgang, und
+  // den zeigt die Demo nicht mehr - Cases kommen erst beim Angebot auf die Buehne.
+  return `Ihr Abschlag ist angepasst: ab dem Folgemonat ${eur(wert)} statt bisher ` +
+         `${eur(ABSCHLAG)}. Damit wiederholt sich die Nachzahlung im nächsten Jahr nicht.`;
+}
+
+function renderBestaetigung() {
+  const el = $('#erlBox');
+  if (!S.abschlagNeu) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML =
+    `<div class="result">Abschlag auf <b>${eur(S.abschlagNeu)}</b> geändert · wirksam ab
+     Folgemonat · Bestätigungstext liegt in der Zwischenablage</div>
+     <div class="hint" style="white-space:pre-wrap; margin-top:8px">${bestaetigungstext(S.abschlagNeu)}</div>`;
+}
+
+function renderAll() { renderKpi(); renderSignale(); renderActions(); renderBestaetigung(); }
+renderAll();
+Store.onChange(renderAll);
+
+initTabs('#secnav');
+renderStatusbar(['Lumea CRM', 'Abrechnungssystem']);
+</script>
+</body>
+</html>

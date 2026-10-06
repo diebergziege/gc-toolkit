@@ -1,0 +1,196 @@
+# gctk demo package: the Vendor Battle demo, deployable into any org from the gctk UI (page
+# "Demos"). snapshot.json holds the objects below, read from the source org; "Deploy" creates them
+# in the chosen org. Everything the objects need (wrap-up codes, intents, workbin, schemas, topics)
+# is picked up automatically. The source org is not named here: "Take snapshot" is only offered on
+# a computer where it is set (`gctk demo-source vendor-battle <profile> --replace "Name=@{presenter.name}"`).
+name: Vendor Battle – Lumea Energie & Smart Home
+description: >
+  Customer Service Summit 2026: WhatsApp bot, agent with Copilot (checklists, canned responses,
+  knowledge, NLU rules, a third-party answer from the "ERP"), case management with two case plans,
+  speech & text analytics, the agent script pages and a Lumea website with Web Messenger (works
+  without WhatsApp), served by gctk on this computer.
+
+include:
+  - type: queue
+    names: [Lumea Kundenservice, Lumea Vorgangsbearbeitung]
+  - type: worktype
+    names: [Lumea Rechnungsbeschwerde, Lumea Vertragsangebot]
+  - type: caseplan
+    names: [Lumea Rechnungsbeschwerde, Lumea Vertragsangebot]
+  - type: externalcontact
+    names: [Markus Berger]
+  - type: knowledgebase
+    names: [Lumea Energie & Smart Home]
+  - type: responselibrary
+    names: [Lumea – Vendor Battle]
+  - type: agentchecklist
+    names: [Lumea Wechselabsicht, Lumea Jahresabrechnung Beschwerde]
+  - type: nludomain
+    names: [Lumea Copilot NLU]
+  - type: script
+    names: [Website_Scripts, Lumea_Case_Script]
+  - type: assistant
+    names: [Lumea Service Copilot]
+  - type: staprogram
+    names: [Lumea Kundenservice]
+  - type: botflow
+    names: [Lumea WhatsApp AVA]
+  - type: messageflow
+    names: [Lumea WhatsApp Einstieg]
+
+# How the customer writes to Lumea. Both reach the same message flow (bot, then the queue).
+channels:
+  - id: web
+    label: Lumea website with Web Messenger
+    description: The deploy creates a Messenger configuration and deployment; the customer chats on the Lumea website gctk serves on this computer. Works in every org.
+  - id: whatsapp
+    label: WhatsApp
+    description: The deploy routes the org's WhatsApp number you pick to the demo's message flow; the customer writes from the presenter's phone.
+
+# Web Messenger starts the bot before the customer writes (auto start), so the bot's first
+# "Ask for Slot" (question "Placeholder", filled by the first WhatsApp message) would show up.
+channelChanges:
+  - { channel: web, type: botflow, name: Lumea WhatsApp AVA, removeActions: [37] }
+
+# Not in the source org: the Lumea website's Web Messenger (channel "web").
+create:
+  - type: messengerconfig
+    name: Lumea Website
+    channel: web
+    spec:
+      name: Lumea Website
+      description: "Vendor Battle: Web Messenger der Lumea-Website (gctk)"
+      languages: [de]
+      defaultLanguage: de
+      headlessMode: { enabled: false }
+      customI18nLabels:
+        - language: de
+          localizedLabels:
+            - { key: MessengerHomeHeaderTitle, value: "Lumea Kundenservice" }
+            - { key: MessengerHomeHeaderSubTitle, value: "Wir helfen Ihnen gern weiter" }
+      messenger:
+        enabled: true
+        styles: { primaryColor: "#2f8f43" }
+        launcherButton: { visibility: "On" }
+        fileUpload:
+          enableAttachments: true
+          modes: [{ fileTypes: [image/jpeg, image/png, image/gif], maxFileSizeKB: 10240 }]
+        apps:
+          conversations:
+            enabled: true
+            showAgentTypingIndicator: true
+            showUserTypingIndicator: true
+            autoStart: { enabled: true }
+            markdown: { enabled: true }
+            conversationDisconnect: { enabled: true, type: Send }
+            conversationClear: { enabled: true }
+            humanize: { enabled: true, bot: { name: Lumea Assistent } }
+        homeScreen: { enabled: false }
+        sessionPersistenceType: DomainOrSubdomainOnly
+      position: { alignment: Auto, sideSpace: 20, bottomSpace: 12 }
+      journeyEvents: { enabled: false }
+  - type: messengerdeployment
+    name: Lumea Website
+    channel: web
+    spec:
+      name: Lumea Website
+      description: "Vendor Battle: Lumea-Website auf http://localhost:8090/website/ (gctk)"
+      # Genesys accepts only public domains in allowedDomains, and the website runs on localhost.
+      allowAllDomains: true
+      configurationId: "@{messengerconfig:Lumea Website}"
+      flowId: "@{messageflow:Lumea WhatsApp Einstieg}"
+
+# Entered on the Demos page at deploy. The customer "Markus Berger" is played by the presenter's
+# phone, so his number and email are the presenter's own.
+parameters:
+  - id: customerPhone
+    label: Customer's mobile number (your demo phone, with WhatsApp)
+    format: phone
+    contact: { name: Markus Berger, fields: [workPhone, whatsAppId] }
+  - id: customerEmail
+    label: Customer's email address (the mailbox you send the customer's email from)
+    format: email
+    contact: { name: Markus Berger, fields: [workEmail] }
+  - id: smsFrom
+    label: SMS sender number of the org (optional; without it you cannot send the customer an SMS during the demo)
+    format: phone
+    optional: true
+
+# The deploy points the WhatsApp number chosen on the page at this flow (and Remove gives the
+# number its previous flow back).
+messageRouting:
+  flow: Lumea WhatsApp Einstieg
+  channel: whatsapp
+
+prerequisites:
+  - text: "Only for the WhatsApp channel: a WhatsApp integration with a phone number (Admin → Message → Platforms) whose business account can send"
+    check: { get: /api/v2/conversations/messaging/integrations/whatsapp, expect: entities }
+  - text: "Optional: an SMS number the org may send from (enter it at deploy). Without it you cannot send the customer the SMS confirmation during the demo; deploying works anyway"
+  - text: Agent Copilot (assistants) is licensed
+    check: { get: /api/v2/assistants, query: { pageSize: "1" } }
+  - text: Case management is enabled
+    check: { get: /api/v2/casemanagement/caseplans, query: { pageSize: "1" } }
+  - text: Speech & text analytics is enabled
+    check: { get: /api/v2/speechandtextanalytics/settings }
+  - text: Knowledge is available
+    check: { get: /api/v2/knowledge/knowledgebases, query: { pageSize: "1" } }
+
+manual:
+  - Start "Lumea website, agent script pages and Copilot answers" below before the demo, and keep the gctk UI running
+  - "Customer side: the Lumea website (link below, after Start) or, with WhatsApp, an empty chat to the org's number"
+  - Chrome or Edge for the agent desktop (not Safari, it blocks http://localhost inside the agent script)
+  - Presenter on Available, on queue "Lumea Kundenservice"
+  - Wrap-up code "Vertragsverlaengerung" visible in the selection
+  - For the email scene, send the customer's email from the address entered at deploy
+
+# Runs inside gctk with the org's credentials: the pages the agent scripts embed
+# (http://localhost:8090/…) and the third-party answer Copilot shows for the bill question.
+local:
+  label: Lumea website, agent script pages and Copilot answers
+  web:
+    port: 8090
+    root: agent-script
+    open: index.html
+    links:
+      - { label: Lumea website (customer), path: website/ }
+      - { label: Agent script pages, path: index.html }
+    endpoints:
+      - { path: /api/session, kind: session }
+      - path: /api/angebot
+        kind: request
+        call:
+          method: POST
+          path: /api/v2/casemanagement/cases
+          body:
+            caseplanId: "@{caseplan:Lumea Vertragsangebot}"
+            externalContactId: "@{externalcontact:Markus Berger}"
+            summary: LumeaSolar Flex - Verlaengerung mit PV-Beratung
+            intake:
+              - data:
+                  tarif_text: LumeaSolar Flex - Verlaengerung, dynamischer Tarif, PV-Beratung
+                  arbeitspreis_text: 34,2 ct/kWh, ab Smart Meter stuendlich zum Boersenpreis
+                  laufzeit_text: 24 Monate
+                  ersparnis_text: rund 123 EUR p.a., dazu PV-Vorpruefung 9,8 kWp
+        reply: { reference: "{{response.reference}}", id: "{{response.id}}" }
+      - path: /api/bestaetigung
+        kind: request
+        call:
+          method: POST
+          path: /api/v2/conversations/messages/agentless
+          body:
+            fromAddress: "@{param:smsFrom}"
+            toAddress: "@{param:customerPhone}"
+            toAddressMessengerType: sms
+            textBody: "Lumea: Ihre Verlaengerung ist erfasst. LumeaSolar Flex, 34,2 ct/kWh, 24 Monate, ab Smart Meter stuendlich zum Boersenpreis - rund 123 EUR Ersparnis im Jahr. PV-Beratung: die Fachberatung meldet sich in drei Werktagen. Vorgang {{input.referenz}}. Die schriftliche Bestaetigung folgt."
+        reply: { kanal: SMS, an: "@{param:customerPhone}", text: "{{request.textBody}}", id: "{{response.id}}" }
+      - path: /api/mail
+        kind: latestEmail
+        from: ["@{param:customerEmail}", markus.berger@muster.de]
+        contact: "@{externalcontact:Markus Berger}"
+  copilot:
+    queues: [Lumea Kundenservice]
+    title: "ERP-System: Abrechnungserläuterung · Jahresabrechnung 2025"
+    text: |
+      Ihre Abrechnung im Detail: 4.750 kWh zu 36,8 ct sind 1.748,00 €, dazu 12,90 € Grundpreis im Monat, über zwölf Monate 154,80 €. Das ergibt 1.902,80 €. Gezahlt haben Sie zwölf Abschläge zu 138,00 €, zusammen 1.656,00 €. Die Differenz sind die 246,80 €.
+
+      Der Arbeitspreis ist unverändert. Ihr Verbrauch lag bei 4.750 kWh statt der prognostizierten 4.200 kWh – rund 13 % darüber.

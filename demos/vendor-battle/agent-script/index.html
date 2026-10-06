@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumea ServiceCockpit · Übersicht</title>
+<link rel="stylesheet" href="assets/lumea.css?v=5">
+<style>
+  .page { max-width: 900px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .url { font-family: var(--mono); font-size: 11.5px; background: #fbfcfd; border: 1px solid var(--line-soft);
+         border-radius: 3px; padding: 7px 9px; overflow-x: auto; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <img class="logo" src="assets/lumea_logo.png?v=5" alt="Lumea Energie &amp; Smart Home">
+  <div class="app">ServiceCockpit<span>Übersicht · nur zum Testen</span></div>
+</header>
+
+<div class="page">
+
+  <div class="panel">
+    <header>Seiten <span class="sp"></span><span class="src">eingebettete Web Pages des Agent Scripts</span></header>
+    <div class="body flush">
+      <table class="grid">
+        <thead><tr><th>Seite</th><th>Registerkarten</th><th class="num">Öffnen</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Kundenakte</b><div class="note">cockpit.html</div></td>
+            <td>Übersicht · Verträge &amp; Produkte · Abrechnung · Kontakthistorie · Vorgänge</td>
+            <td class="num"><a class="btn sm" href="cockpit.html">öffnen</a></td>
+          </tr>
+          <tr>
+            <td><b>Beratung &amp; Angebot</b><div class="note">nba.html</div></td>
+            <td>Empfehlungen · Angebot · Kundenwert · Vergleichbare Fälle</td>
+            <td class="num"><a class="btn sm" href="nba.html">öffnen</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <header>URLs für die Web-Page-Komponenten</header>
+    <div class="body">
+      <div class="hint" style="margin-bottom:6px">Seite 1</div>
+      <div class="url">http://localhost:8090/cockpit.html?agent={{Agent.Name}}&amp;queue={{Scripter.Queue Name}}&amp;conversation={{Scripter.Interaction Id}}</div>
+      <div class="hint" style="margin:10px 0 6px">Seite 2</div>
+      <div class="url">http://localhost:8090/nba.html?agent={{Agent.Name}}&amp;queue={{Scripter.Queue Name}}&amp;conversation={{Scripter.Interaction Id}}</div>
+      <div class="hint" style="margin-top:10px">
+        Alle Parameter sind optional. Direkt auf eine Registerkarte springen: <code>&amp;tab=historie</code>
+        (<code>uebersicht · vertraege · abrechnung · historie · vorgaenge</code> bzw.
+        <code>empfehlung · angebot · wert · kohorte</code>).
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <header>Betrieb</header>
+    <div class="body flush">
+      <table class="grid">
+        <tbody>
+          <tr><td>Server starten</td><td>gctk UI → Demos → Vendor Battle → <b>Start</b> (Port 8090)</td></tr>
+          <tr><td>Notausgang Cache</td><td><code>/now/</code> vor den Dateinamen – erzeugt bei jedem Aufruf eine neue URL</td></tr>
+          <tr><td>Zustand</td><td>geteilt über <code>localStorage</code> – Seite 2 reagiert auf Buchungen aus Seite 1</td></tr>
+          <tr><td>Zurücksetzen</td><td><code>?reset=1</code> an die URL oder „Sitzung zurücksetzen" in der Statuszeile</td></tr>
+          <tr><td>Browser</td><td>Chrome oder Edge – Safari blockt <code>http://localhost</code> im HTTPS-iframe</td></tr>
+          <tr><td>Von anderem Rechner</td><td><code>cloudflared tunnel --url http://localhost:8090</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <header>Alte Fassung wird noch angezeigt?</header>
+    <div class="body">
+      <div class="hint"><b>Zuerst prüfen, ob der Server überhaupt läuft.</b> Lädt die Seite sehr
+        lange, ist das fast immer die Ursache – nicht der Cache. Er läuft in der gctk UI
+        (Demos → Vendor Battle) und endet, wenn die gctk UI beendet wird.</div>
+      <div class="hint" style="margin-top:8px">HTML kommt mit <code>no-store</code>, Assets mit
+        <code>no-cache</code> – der Browser fragt kurz nach und bekommt ein leeres 304. Änderungen
+        sind sofort da, ohne dass etwas neu geladen wird.</div>
+      <div class="hint" style="margin-top:8px">Bleibt doch einmal eine alte Fassung stehen:
+        <code>/now/</code> vor den Dateinamen setzen – das erzeugt bei jedem Aufruf eine URL,
+        die es vorher nie gab.</div>
+      <div class="url" style="margin-top:8px">http://localhost:8090/now/cockpit.html</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "gctk": {
+      "command": "node",
+      "args": [
+        "${CURSOR_PLUGIN_ROOT}/dist/gctk.js",
+        "mcp"
+      ]
+    }
+  }
+}

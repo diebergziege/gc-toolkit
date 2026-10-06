@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+.DS_Store
+
+# Never commit credentials. Profiles live in ~/.config/gctk, secrets in the OS keychain.
+.env
+.env.*
+*.secret
+evals/results/
+
+# The maintainer's own notes (test orgs, profile names); Claude Code loads it next to CLAUDE.md.
+CLAUDE.local.md
