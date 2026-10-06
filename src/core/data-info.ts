@@ -63,6 +63,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
   ["axl.json", "AXL workshops", "Your workshops with their org and folder."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
+  ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],
   ["cache", "Cache", "Website logos and staged schedule uploads; safe to delete."],
   ["ui.json", "The running UI", "Port and process of the background UI (no token; that is in the keychain)."],
 ];

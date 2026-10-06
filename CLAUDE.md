@@ -97,6 +97,10 @@
   region or secret, typed in or taken from a gctk profile (its secret is read on the server, never sent
   to the browser); for a keychain-started server it re-signs the record and splits off a keychain item
   that other servers share, so only that server changes.
+  Entries gctk writes into editor configs (mcp-launch, AXL harness) start `~/.config/gctk/bin/gctk.js`
+  (`src/core/stable-gctk.ts`), a copy that a newer gctk refreshes, never the versioned plugin cache path
+  an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with tool → org →
+  status per editor and a "use another org" choice (`setCredentials` with a profile).
   Removing a skill (`removeSkill`) only takes the user's own or a project's skill, never a plugin's
   or a built-in one, and moves it (a link stays a link, its target is untouched) into
   `~/.config/gctk/removed-skills/`, from where `restoreSkill` puts it back.

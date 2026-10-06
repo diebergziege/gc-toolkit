@@ -58,7 +58,7 @@ export interface Problem {
   kind: ProblemKind;
   level: "warn" | "info";
   text: string;
-  fix?: "keychain" | "restore" | "remove" | "clean-env";
+  fix?: "keychain" | "restore" | "remove" | "clean-env" | "repair";
 }
 
 export interface ShownVar {
@@ -574,7 +574,10 @@ function describe(file: ConfigFile, section: string, project: string | undefined
   }
   const cmd = record?.command ?? command;
   const script = (record?.args ?? args)[0];
-  if (transport === "stdio" && cmd && path.isAbsolute(cmd) && !fs.existsSync(cmd)) problems.push({ kind: "missing-command", level: "warn", text: `The command ${cmd} does not exist; the editor cannot start this server.`, fix: editable ? "remove" : undefined });
+  // gctk's own entry point first: a plugin update deletes the version folder it pointed to.
+  const own = viaGctk(command, args);
+  if (own && !fs.existsSync(own)) problems.push({ kind: "missing-command", level: "warn", text: `It starts through gctk at ${own}, which no longer exists (gctk was updated, moved or removed). Repair points it to the copy of gctk that stays across updates.`, fix: editable ? "repair" : undefined });
+  else if (transport === "stdio" && cmd && path.isAbsolute(cmd) && !fs.existsSync(cmd)) problems.push({ kind: "missing-command", level: "warn", text: `The command ${cmd} does not exist; the editor cannot start this server.`, fix: editable ? "remove" : undefined });
   else if (transport === "stdio" && script && path.isAbsolute(script) && /\.(c|m)?js$/.test(script) && !fs.existsSync(script)) problems.push({ kind: "missing-command", level: "warn", text: `The script ${script} no longer exists (an older version, moved or deleted).`, fix: editable ? "remove" : undefined });
   if (genesys && org?.clientId && !org.profile) problems.push({ kind: "unknown-client", level: "info", text: `The OAuth client ${org.clientId} is not one of your gctk profiles, so gctk cannot tell which org it is.` });
 
@@ -911,6 +914,22 @@ export function restoreToFile(a: ServerAddress, opts: { store?: SecretStore } & 
   servers[a.name] = { ...keep, command: r.original, ...(r.args.length ? { args: r.args } : {}), env: { ...r.env, ...Object.fromEntries(r.secretNames.map((n) => [n, secrets[n] ?? ""])) } };
   writeJson(a.file, json, indent);
   dropRecord(id, store);
+}
+
+/** The gctk.js an entry gctk wrote starts (node <gctk.js> mcp-launch|axl-harness|mcp …), if it is one. */
+function viaGctk(command: string | undefined, args: string[]): string | undefined {
+  const [js, sub] = args;
+  return command && js && path.isAbsolute(js) && /gctk\.js$/.test(js) && ["mcp-launch", "axl-harness", "mcp"].includes(sub ?? "") ? js : undefined;
+}
+
+/** Points an entry gctk wrote to a gctk.js that exists (the stable copy) and node, nothing else changes. */
+export function repairServer(a: ServerAddress, opts: { gctkJs: string; node?: string } & ScanOptions): void {
+  const { json, indent, servers, entry } = locate(a, opts);
+  const args = Array.isArray(entry.args) ? entry.args.map(String) : [];
+  if (!viaGctk(typeof entry.command === "string" ? entry.command : undefined, args)) throw new GctkError("INVALID_INPUT", `${a.name} does not start through gctk.`);
+  const node = typeof entry.command === "string" && fs.existsSync(entry.command) ? entry.command : opts.node ?? process.execPath;
+  servers[a.name] = { ...entry, command: node, args: [opts.gctkJs, ...args.slice(1)] };
+  writeJson(a.file, json, indent);
 }
 
 export function removeServer(a: ServerAddress, opts: { store?: SecretStore } & ScanOptions = {}): void {

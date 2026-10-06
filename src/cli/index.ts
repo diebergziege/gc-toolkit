@@ -4,6 +4,7 @@ import { runHarness } from "../core/axl.js";
 import { GenesysClient } from "../core/client.js";
 import { deleteCredentials, hasStoredCredentials, keychainName, storeCredentials } from "../core/credentials.js";
 import { setSnapshotSource, snapshotSource } from "../core/demos.js";
+import { ensureStableGctk } from "../core/stable-gctk.js";
 import { formatError, GctkError } from "../core/errors.js";
 import { toJson } from "../core/output.js";
 import { paths } from "../core/paths.js";
@@ -238,7 +239,15 @@ program
 program
   .command("mcp")
   .description("run the MCP server on stdio (used by Cursor / Claude Code to open the UI)")
-  .action(() => runMcpServer());
+  .action(() => {
+    // The editor starts this after every plugin update: refresh the copy that config entries use.
+    try {
+      if (/gctk\.js$/.test(process.argv[1] ?? "")) ensureStableGctk(process.argv[1]!);
+    } catch {
+      // a read-only home: the entries keep the copy they have
+    }
+    return runMcpServer();
+  });
 
 program.parseAsync().catch((err) => {
   console.error(formatError(err));

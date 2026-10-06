@@ -21,7 +21,8 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
-import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, removeSkill, restoreSkill, restoreToFile, scanAiSetup, setCredentials, updateSecret } from "../core/ai-setup.js";
+import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, removeSkill, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, updateSecret } from "../core/ai-setup.js";
+import { ensureStableGctk } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { axlStatus, getWorkshop, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
@@ -161,9 +162,10 @@ route("GET", "/api/monitoring", async ({ query }) => {
 // in Cursor. Saving a workshop writes its harness server into the folder's own .cursor/mcp.json
 // (never the global one); nothing else outside the gctk home is written.
 /** The folder's ava-harness server runs this gctk (dist/gctk.js), not a development run. */
+/** Config entries gctk writes start the copy in the gctk home, which plugin updates do not delete. */
 const installedGctk = () => {
   const js = process.argv[1] ?? "";
-  return /gctk\.js$/.test(js) ? js : undefined;
+  return /gctk\.js$/.test(js) ? ensureStableGctk(js) : undefined;
 };
 /** After a change of org or folder: rewrite the folder's harness server right away. */
 const applyWorkshop = (id: string) => {
@@ -217,7 +219,11 @@ route("POST", "/api/ai-setup/fix", ({ body }) => {
   } else if (fix === "restore") restoreToFile(a);
   else if (fix === "remove") removeServer(a);
   else if (fix === "clean-env") cleanEnv(a);
-  else throw new HttpError(400, 'fix must be "keychain", "restore", "remove" or "clean-env".');
+  else if (fix === "repair") {
+    const gctkJs = installedGctk();
+    if (!gctkJs) throw new HttpError(400, "Repairing needs the installed gctk (dist/gctk.js), not a development run.");
+    repairServer(a, { gctkJs });
+  } else throw new HttpError(400, 'fix must be "keychain", "restore", "remove", "clean-env" or "repair".');
   return scanAiSetup();
 });
 route("POST", "/api/ai-setup/skills/remove", ({ body }) => (removeSkill(str(body, "path")), scanAiSetup()));

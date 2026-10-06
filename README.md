@@ -112,6 +112,7 @@ Open button; this is the overview:
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | AXL workshops |
+| `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
 | OS keychain, service `gctk` | org client IDs and secrets, AI setup secrets, the signing key, the UI token |
 

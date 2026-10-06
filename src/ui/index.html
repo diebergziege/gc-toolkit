@@ -2100,7 +2100,9 @@ const CREDS = {
   "gctk-profile": ["gctk profiles (keychain)", "s-applied"],
   axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],
 };
-const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable" };
+const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };
+/** Plain names for the Genesys tools people meet most. */
+const TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };
 const RELOAD_HINT = "Reload the server in your editor so it picks up the change: in Cursor under Settings → MCP (switch it off and on), in Claude Code by restarting it.";
 
 const AI_TAB_KEY = "gctk-ai-tab";
@@ -2120,7 +2122,7 @@ async function viewAiSetup() {
   load();
   return h("div", {},
     h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "AI setup"), h("span", { class: "spacer" }), refresh),
-    h("p", { class: "lead" }, "What Cursor, Claude Code and your other editors load: MCP servers and skills, which Genesys Cloud org each server works on, and where its secret is. Secrets are never shown."),
+    h("p", { class: "lead" }, "Which Genesys Cloud org the AI in Cursor and Claude Code works on, and whether its tools can start. Change the org of a tool with one click; the credentials come from your orgs on the Orgs page and stay in the keychain."),
     msg, body);
 }
 
@@ -2137,6 +2139,7 @@ function aiSetupReport(s, msg, draw) {
         restore: `Write the secret of "${x.name}" back into\n${x.file}\nin plain text?`,
         remove: `Remove the server "${x.name}" from\n${x.file}?`,
         "clean-env": `Remove the old variable from "${x.name}"?`,
+        repair: `Point "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) to the copy of gctk that stays across plugin updates?\n${x.file}`,
       }[kind];
       if (!confirm(ask)) return;
       try { done(`Done: ${FIX_LABELS[kind].toLowerCase()} (${x.name}).`, await post(x, kind)); } catch (err) { failed(err); }
@@ -2176,15 +2179,11 @@ function aiSetupReport(s, msg, draw) {
     put(pane, tabs.find(([id]) => id === tab)[2]());
   };
   show();
-  return [
-    h("div", { class: "mon", style: "margin-bottom:14px" },
-      stat("MCP servers", s.servers.length, `in ${found.length} config files`),
-      stat("Genesys Cloud", s.servers.filter((x) => x.genesys).length, "servers that talk to an org"),
-      stat("Secrets in plain text", plain.length, plain.length ? "should go into the keychain" : "none", true),
-      stat("Skills", s.skills.length, `Cursor ${s.skills.filter((k) => k.editor === "cursor").length} · Claude Code ${s.skills.filter((k) => k.editor === "claude-code").length}`)),
-    todoPanel(s, ctx),
-    bar, pane,
-  ];
+  void stat; void plain;
+  const details = h("details", { class: "panel", style: "margin-top:14px" },
+    h("summary", { style: "margin:0" }, h("strong", {}, "Everything your editors load"), h("span", { class: "muted", style: "font-size:13px" }, ` · ${s.servers.length} MCP servers in ${found.length} config files, ${s.skills.length} skills`)),
+    h("div", { style: "margin-top:10px" }, bar, pane));
+  return [todoPanel(s, ctx), aiOverview(s, ctx), details];
 }
 
 /** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */
@@ -2226,8 +2225,10 @@ function todoPanel(s, ctx) {
       secrets.map((x) => row(x, "plain-secret", canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null)),
       canMove.length > 1 ? h("button", { class: "btn primary", onclick: () => ctx.fixAll(canMove, "keychain", `Move the secrets of ${canMove.length} entries into the keychain`) }, `Move all ${canMove.length} to the keychain`) : null),
     group("Entries that cannot start", "The program or script they point to is gone, so the editor shows an error for them.",
-      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", x.editable ? h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove") : null)),
-      broken.filter((x) => x.editable).length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(broken.filter((x) => x.editable), "remove", `Remove ${broken.filter((x) => x.editable).length} entries that cannot start`) }, "Remove all") : null),
+      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "repair")
+        ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")
+        : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),
+      broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair")).length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(broken.filter((x) => x.editable), "remove", `Remove ${broken.filter((x) => x.editable).length} entries that cannot start`) }, "Remove all") : null),
     group("Leftovers from an earlier gctk", "", leftovers.map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
     group("Secrets in headers", "Remote servers: gctk cannot move these. Use your editor's variables (for example ${env:NAME}) instead.", headers.map((x) => row(x, "header-secret", null))),
     group("Skills loaded twice", "The AI may pick either copy. Remove the one you do not need; gctk keeps it, so you can restore it.",
@@ -2249,6 +2250,65 @@ function todoPanel(s, ctx) {
   return groups.length
     ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)
     : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, every entry can start, no skill is loaded twice.");
+}
+
+/**
+ * The page's main view: per editor, the Genesys tools the AI has, the org each one works on, and
+ * whether it can start. The org of a tool changes with one click (credentials of a gctk org).
+ */
+function aiOverview(s, ctx) {
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
+  const editors = ["cursor", "claude-code", ...Object.keys(EDITORS).filter((e) => e !== "cursor" && e !== "claude-code")]
+    .filter((e) => s.servers.some((x) => x.editor === e) || e === "cursor" || e === "claude-code");
+  const orgOf = (x) => {
+    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");
+    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null, x.credentials === "axl" ? h("span", { class: "muted", style: "font-size:12px" }, " · set on the AXL page") : null); }
+    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);
+    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");
+    return h("span", { class: "muted" }, "no org set");
+  };
+  const status = (x) => {
+    const warn = x.problems.filter((p) => p.level === "warn");
+    if (x.disabled) return pill("switched off", "");
+    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");
+    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");
+    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");
+    return pill("ready", "s-applied");
+  };
+  // Use another org: only where gctk knows which variables hold the credentials and may change the file.
+  const useOrg = (x) => {
+    if (!x.credentialKeys || !x.editable || !orgs.length) return null;
+    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org…" : "Use one of your orgs…"),
+      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
+    sel.addEventListener("change", () => {
+      const o = sel.value;
+      if (!o) return;
+      if (!confirm(`Let "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) work on ${o}?\n\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\n${x.file}`)) { sel.value = ""; return; }
+      ctx.setCredentials(x, { profile: o, keychain: true });
+    });
+    return sel;
+  };
+  const toolRow = (x) => h("div", { class: "todo-row" },
+    h("span", { class: "muted", style: "flex:0 0 240px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, whereText(x)),
+    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)),
+    status(x), useOrg(x));
+  return editors.map((e) => {
+    const list = s.servers.filter((x) => x.editor === e);
+    const genesys = list.filter((x) => x.genesys);
+    const others = list.filter((x) => !x.genesys);
+    const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));
+    return h("div", { class: "panel" },
+      h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, `In ${EDITORS[e]}`),
+        h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""}` : "no Genesys tools")),
+      genesys.length ? names.map((n) => {
+        const [title, what] = TOOL_NAMES[n] || [n, ""];
+        return h("div", { style: "margin-top:10px" },
+          h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `· ${what}`) : null),
+          sortServers(genesys.filter((x) => x.name === n)).map(toolRow));
+      }) : h("p", { class: "muted", style: "margin:6px 0 0" }, `The AI in ${EDITORS[e]} has no Genesys Cloud tools.`),
+      others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);
+  });
 }
 
 /** One server as a compact line; the details open on click. */

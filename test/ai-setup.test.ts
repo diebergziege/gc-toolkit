@@ -13,6 +13,7 @@ import {
   removeLocation,
   removeServer,
   removeSkill,
+  repairServer,
   restoreSkill,
   restoreToFile,
   scanAiSetup,
@@ -22,6 +23,7 @@ import {
   type SecretStore,
 } from "../src/core/ai-setup.js";
 import { saveProfile } from "../src/core/profiles.js";
+import { ensureStableGctk, olderVersion, stableGctkJs } from "../src/core/stable-gctk.js";
 
 let tmp: string;
 let home: string;
@@ -359,5 +361,39 @@ describe("skills", () => {
     expect(find(path.join(project, ".claude", "skills"), "only-here").problems).toEqual([]);
     expect(find(path.join(home, ".claude", "skills"), "synced").problems[0]).toMatchObject({ level: "info" });
     expect(find(path.join(home, ".cursor", "skills"), "broken").problems[0]!.text).toMatch(/broken link/);
+  });
+});
+
+describe("gctk entries across plugin updates", () => {
+  it("keeps a copy of gctk that only a newer version replaces", () => {
+    const v1 = path.join(tmp, "cache", "v1", "dist", "gctk.js");
+    const v2 = path.join(tmp, "cache", "v2", "dist", "gctk.js");
+    write(v1, "// gctk 1");
+    write(v2, "// gctk 2");
+    expect(ensureStableGctk(v1, "0.25.0")).toBe(stableGctkJs());
+    expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 1");
+    ensureStableGctk(v2, "0.26.0");
+    expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 2");
+    // An older gctk still running elsewhere leaves the newer copy alone.
+    ensureStableGctk(v1, "0.25.0");
+    expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 2");
+    expect(ensureStableGctk(stableGctkJs())).toBe(stableGctkJs());
+    expect([olderVersion("0.9.1", "0.10.0"), olderVersion("1.0.0", "0.10.0"), olderVersion("0.25.0", "0.25.0")]).toEqual([true, false, false]);
+  });
+
+  it("finds an entry whose gctk was deleted by an update and repairs it", () => {
+    const file = path.join(project, ".cursor", "mcp.json");
+    addLocation(project, home);
+    const gone = path.join(tmp, "cache", "old", "dist", "gctk.js");
+    write(file, { mcpServers: { "ava-harness": { command: process.execPath, args: [gone, "axl-harness", "--workshop", "w1", "--org", "sandbox-org"], timeout: 60000 } } });
+    const entry = () => scanAiSetup(opts).servers.find((x) => x.file === file)!;
+    expect(entry().problems).toEqual([expect.objectContaining({ kind: "missing-command", fix: "repair" })]);
+    const stable = path.join(tmp, "gctk", "bin", "gctk.js");
+    write(stable, "// gctk");
+    repairServer({ file, section: "mcpServers", name: "ava-harness" }, { ...opts, gctkJs: stable });
+    expect(read(file).mcpServers["ava-harness"]).toEqual({ command: process.execPath, args: [stable, "axl-harness", "--workshop", "w1", "--org", "sandbox-org"], timeout: 60000 });
+    expect(entry().problems).toEqual([]);
+    write(file, { mcpServers: { other: { command: process.execPath, args: ["serve"] } } });
+    expect(() => repairServer({ file, section: "mcpServers", name: "other" }, { ...opts, gctkJs: stable })).toThrow(/does not start through gctk/);
   });
 });
