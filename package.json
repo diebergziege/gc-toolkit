@@ -1,6 +1,6 @@
 {
   "name": "genesys-cloud-toolkit",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "A local UI that makes your AI setup and Genesys Cloud demos transparent and easy.",
   "private": true,
   "type": "module",

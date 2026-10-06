@@ -143,9 +143,25 @@ main.wide { max-width: 1500px; padding-bottom: 16px; }
 .dtabs small { font-size: 10px; margin-left: 4px; text-transform: uppercase; letter-spacing: .04em; }
 .dblock { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
 .dblock.live { border-left: 4px solid var(--ok); }
-.dblock.setup { border-left: 4px solid var(--warn); }
+.dblock.setup { border-left: 4px solid var(--accent); }
 .dblock-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .dblock-head strong { font-size: 15px; }
+.dstep { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px; }
+.dstep b { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 13px; }
+.dstep h3 { margin: 0; font-size: 17px; }
+.dcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.dcard { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+.dcard:hover { border-color: var(--muted); }
+.dcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.dcard strong { font-size: 15px; }
+.dcard .what { color: var(--muted); font-size: 13px; }
+.dcard .st { margin-top: auto; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.dcard .st::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dcard .st.ok { color: var(--ok); } .dcard .st.ok::before { background: var(--ok); }
+.dcard .st.todo { color: var(--warn); } .dcard .st.todo::before { background: var(--warn); }
+.dcard .st.bad { color: var(--bad); } .dcard .st.bad::before { background: var(--bad); }
+.dblock input, .dblock select, .dblock textarea, .panel select { max-width: 100%; box-sizing: border-box; }
+.dtools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -486,6 +502,7 @@ function demoRunner(section, base, out, reload) {
       const r = await api(`/api/demo/${section}/run`, { method: "POST", body: { ...base, input: last } });
       out.replaceChildren(demoResult(r, () => run(last)));
       reload();
+      state.demoChanged?.();
     } catch (err) { out.replaceChildren(h("div", { class: "error" }, err.message)); }
     if (btn) btn.disabled = false;
   };
@@ -499,10 +516,34 @@ function demoRunner(section, base, out, reload) {
 function demoBlock(kind, title, note, ...children) {
   return h("div", { class: `dblock ${kind}` },
     h("div", { class: "dblock-head" }, h("strong", {}, title),
-      kind === "live" ? pill("in Genesys Cloud", "s-applied") : pill("not created yet", "s-pending"),
-      note ? h("span", { class: "muted", style: "font-size:12px" }, note) : null),
+      h("span", { class: "muted", style: "font-size:12px" }, kind === "live" ? "in Genesys Cloud now" : note || "nothing changes until you press the button")),
     ...children);
 }
+
+/** One line per area for the overview cards: [state, text]; state ok (done), todo or bad. */
+const DEMO_STATUS = {
+  coaching: (s) => {
+    const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= Date.now() && a.status !== "Completed").length;
+    return upcoming ? ["ok", `${upcoming} upcoming appointment${upcoming > 1 ? "s" : ""}`] : s.appointments.length ? ["todo", "Only past appointments"] : ["todo", "No appointments yet"];
+  },
+  learning: (s) => s.assignments.length ? ["ok", `${s.assignments.length} module${s.assignments.length > 1 ? "s" : ""} assigned`] : ["todo", "Nothing assigned yet"],
+  sta: (s) => {
+    const q = s.agentQueues.find((id) => s.queuePrograms[id]);
+    if (q && s.settings.text) return ["ok", `${s.queues.find((x) => x.id === q)?.name || "Queue"} is analysed`];
+    return s.agentQueues.length ? ["todo", "Not set up yet"] : ["todo", "The agent is in no queue yet"];
+  },
+  evaluations: (s) => {
+    const evals = Array.isArray(s.evaluations) ? s.evaluations : [];
+    const convs = Array.isArray(s.conversations) ? s.conversations : [];
+    if (evals.length) return ["ok", `${evals.length} evaluation${evals.length > 1 ? "s" : ""}`];
+    return convs.length ? ["todo", `Not set up yet · ${convs.length} conversation${convs.length > 1 ? "s" : ""} to evaluate`] : ["bad", "Needs handled conversations first"];
+  },
+  scorecard: (s) => {
+    const p = s.gamification.active && s.profiles.find((x) => x.id === s.currentProfile);
+    return p ? ["ok", `In profile ${p.name}`] : ["todo", s.gamification.active ? "The agent is in no profile yet" : "Not set up yet"];
+  },
+  schedule: (s) => s.current && s.schedules.some((x) => x.published) ? ["ok", "Published schedule"] : ["todo", "No schedule yet"],
+};
 const DEMO_TAB_KEY = "gctk-demo-tab";
 
 async function viewDemo() {
@@ -514,15 +555,15 @@ async function viewDemo() {
 
   const profileSel = h("select", { onchange: (e) => { pick.profile = e.target.value; pick.userId = ""; pick.userName = ""; saveDemoPick(); render(); } },
     profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier})`)));
-  const agentSel = h("select", { disabled: true, style: "min-width:260px" }, h("option", { value: "" }, "Loading users…"));
-  const filter = h("input", { placeholder: "Filter by name or email", disabled: true, style: "min-width:180px" });
+  const agentSel = h("select", { disabled: true, style: "min-width:min(260px,100%);max-width:100%" }, h("option", { value: "" }, "Loading users…"));
+  const filter = h("input", { type: "search", placeholder: "Search by name or email", disabled: true, style: "min-width:200px" });
   const msg = h("div");
   const sections = h("div");
   let users = [];
   const fill = () => {
     const q = filter.value.trim().toLowerCase();
     const shown = users.filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id === pick.userId);
-    agentSel.replaceChildren(h("option", { value: "" }, "Choose the agent…"), ...shown.map((u) => h("option", { value: u.id, selected: u.id === pick.userId }, u.email ? `${u.name} · ${u.email}` : u.name)));
+    agentSel.replaceChildren(h("option", { value: "" }, shown.length ? "Choose the agent…" : "Nobody matches the search"), ...shown.map((u) => h("option", { value: u.id, selected: u.id === pick.userId }, u.email ? `${u.name} · ${u.email}` : u.name)));
   };
   filter.addEventListener("input", fill);
   agentSel.addEventListener("change", () => {
@@ -530,27 +571,55 @@ async function viewDemo() {
     pick.userId = u?.id || ""; pick.userName = u?.name || ""; saveDemoPick();
     drawSections();
   });
-  // One component at a time, picked in a tab bar; the choice is remembered in this browser.
+  // An overview of the agent's home screen (one card per area, with what is there now) opens one
+  // area at a time; Refresh dates and Clean up are tools below it. The choice is remembered here.
   const VIEWS_BY_ID = { coaching: () => demoCoaching(prof, pick, users), learning: () => demoLearning(pick), sta: () => demoSta(pick), evaluations: () => demoEvaluations(pick, users), scorecard: () => demoScorecard(pick), schedule: () => demoSchedule(pick), refresh: () => demoRefresh(pick), cleanup: () => demoCleanup(pick) };
-  const tabs = [...meta.sections.map((s) => ({ id: s.id, title: s.id === "sta" ? "Speech & text analytics" : s.title, ready: s.ready && VIEWS_BY_ID[s.id], what: s.what })),
-    { id: "refresh", title: "Refresh dates", ready: true, what: "Move appointments, due dates and the schedule that lie in the past to the coming days" }, { id: "cleanup", title: "Clean up", ready: true }];
+  const SHORT = { coaching: "1:1s and coaching sessions in the agent's calendar", learning: "Training modules the agent has to complete", sta: "Transcripts, sentiment and topics for the agent's conversations", evaluations: "Quality evaluations of the agent's conversations", scorecard: "Scorecard and leaderboard values", schedule: "This week's shifts, breaks and training" };
+  const ORDER = ["coaching", "learning", "evaluations", "scorecard", "schedule", "sta"];
+  const areas = ORDER.map((id) => meta.sections.find((x) => x.id === id)).filter((x) => x && x.ready && VIEWS_BY_ID[x.id])
+    .map((x) => ({ id: x.id, title: x.id === "sta" ? "Speech & text analytics" : x.title, what: SHORT[x.id] || x.what }));
   let tab = (() => { try { return localStorage.getItem(DEMO_TAB_KEY) || ""; } catch { return ""; } })();
-  if (!tabs.some((t) => t.id === tab && t.ready)) tab = tabs.find((t) => t.ready)?.id || "cleanup";
+  if (![...areas.map((a) => a.id), "refresh", "cleanup"].includes(tab)) tab = areas[0]?.id || "cleanup";
+  const open = (id) => { tab = id; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); };
+
   const drawSections = () => {
-    if (!pick.userId) { sections.replaceChildren(h("div", { class: "panel empty" }, "Choose the org and the agent you will log in as during the demo.")); return; }
-    const bar = h("div", { class: "dtabs", role: "tablist" }, tabs.map((t) => h("button", {
-      role: "tab", "aria-selected": t.id === tab ? "true" : "false", disabled: !t.ready, title: t.ready ? t.what || "" : `Coming soon: ${t.what}`,
-      onclick: () => { tab = t.id; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); },
-    }, t.title, t.ready ? null : h("small", {}, "soon"))));
-    // Demo data ages: say so on every tab, with a way to the refresh.
+    state.demoChanged = null;
+    if (!pick.userId) { sections.replaceChildren(h("div", { class: "panel empty" }, "Choose the agent you will log in as during the demo. The page then shows what their home screen has and what is missing.")); return; }
+    const q = `profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`;
+    const stEls = {};
+    const cards = h("div", { class: "dcards" }, areas.map((a) => {
+      stEls[a.id] = h("span", { class: "st" }, "Checking…");
+      return h("button", { class: "dcard", "aria-pressed": a.id === tab ? "true" : "false", onclick: () => open(a.id) }, h("strong", {}, a.title), h("span", { class: "what" }, a.what), stEls[a.id]);
+    }));
+    const loadStatus = () => {
+      for (const a of areas) {
+        api(`/api/demo/${a.id}/status?${q}`).then((s) => {
+          const [cls, text] = DEMO_STATUS[a.id](s);
+          stEls[a.id].className = `st ${cls}`; stEls[a.id].textContent = text;
+        }).catch(() => { stEls[a.id].className = "st bad"; stEls[a.id].textContent = "Could not be read"; });
+      }
+    };
+    loadStatus();
+    state.demoChanged = loadStatus;
+    // Demo data ages: say so above everything, with a way to the refresh.
     const stale = h("div");
-    if (tab !== "refresh" && tab !== "cleanup") {
-      api(`/api/demo/refresh/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`).then((st) => {
+    if (tab !== "refresh") {
+      api(`/api/demo/refresh/status?${q}`).then((st) => {
         if (st.stale) put(stale, h("div", { class: "warn row" }, h("span", { style: "flex:1" }, `${st.stale} date${st.stale > 1 ? "s" : ""} on ${pick.userName || "the agent"}'s home screen ${st.stale > 1 ? "lie" : "lies"} in the past, so the demo looks stale.`),
-          h("button", { class: "btn primary", onclick: () => { tab = "refresh"; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); } }, "Refresh dates")));
+          h("button", { class: "btn primary", onclick: () => open("refresh") }, "Refresh dates")));
       }).catch(() => {});
     }
-    sections.replaceChildren(bar, stale, VIEWS_BY_ID[tab]());
+    const tool = (id, label, note) => h("button", { class: "btn", "aria-pressed": id === tab ? "true" : "false", style: id === tab ? "border-color:var(--accent)" : "", title: note, onclick: () => open(id) }, label);
+    sections.replaceChildren(
+      stale,
+      h("div", { class: "dstep" }, h("b", {}, "2"), h("h3", {}, `What ${pick.userName || "the agent"}'s home screen shows`)),
+      h("p", { class: "muted", style: "margin:0 0 10px;font-size:13px" }, "Green is ready for the demo. Open an area to see the details and fill what is missing."),
+      cards,
+      h("div", { class: "dtools" }, h("span", { class: "muted", style: "font-size:13px" }, "Later:"),
+        tool("refresh", "Refresh dates", "A week later the demo data lies in the past: move it forward"),
+        tool("cleanup", "Clean up after the demo", "Remove everything this page created for the agent")),
+      h("div", { class: "dstep" }, h("b", {}, "3"), h("h3", {}, tab === "refresh" ? "Refresh dates" : tab === "cleanup" ? "Clean up" : areas.find((a) => a.id === tab)?.title || "")),
+      VIEWS_BY_ID[tab]());
   };
 
   if (pick.profile) {
@@ -566,11 +635,13 @@ async function viewDemo() {
 
   return h("div", {},
     h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demo ready"),
-    h("p", { class: "lead" }, "Make an agent's Genesys Cloud home screen look lived-in before a demo. Pick the org and the agent, then a component in the tabs. Each tab shows what the agent has in Genesys Cloud now (green) and suggestions that are created only when you press the button (orange). Existing objects are reused, and pressing a button twice creates nothing twice."),
-    profiles.length ? h("div", { class: "panel" },
-      h("div", { class: "row" }, h("label", { class: "row" }, "Org", profileSel), filter, h("label", { class: "row" }, "Agent", agentSel)),
-      prof ? h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, `Changes happen in ${prof.name} (${prof.tier}) as soon as you press a button. Clean up removes or restores what this page did.`) : null,
-      msg) : h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first."),
+    h("p", { class: "lead" }, "Make an agent's Genesys Cloud home screen look lived-in before a demo. Choose the agent, then fill what is still empty. Nothing changes in Genesys Cloud until you press a button, and Clean up removes it all again afterwards."),
+    profiles.length ? [
+      h("div", { class: "dstep" }, h("b", {}, "1"), h("h3", {}, "The demo agent")),
+      h("div", { class: "panel" },
+        h("div", { class: "row" }, h("label", { class: "row" }, "Org", profileSel), h("label", { class: "row", style: "min-width:0;max-width:100%" }, "Agent", agentSel), filter),
+        prof ? h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, `The user you log in as during the demo. Changes go to ${prof.name} (${prof.tier}).`) : null,
+        msg)] : h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first."),
     sections);
 }
 
@@ -659,12 +730,10 @@ function demoCoaching(prof, pick, users) {
   load();
 
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Coaching"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Coaching appointments show up in the agent's Development and calendar views. Genesys Cloud only takes appointments that start in the future; tick completed to have a finished session as well."),
-    demoBlock("live", `${pick.userName || "The agent"}'s appointments`, `live from ${pick.profile}`, list),
-    demoBlock("setup", "Suggested appointments", "edit them; nothing is created until you press the button",
-      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Facilitator", facilitator),
-        h("span", { class: "muted", style: "font-size:12px" }, "The facilitator (and the agent) need the permission coaching:appointment:participate.")),
+    h("p", { class: "muted", style: "margin-top:0" }, "Appointments show up in the agent's calendar and Development view. Genesys Cloud only accepts appointments in the future; tick completed for a session that is already done."),
+    demoBlock("live", `${pick.userName || "The agent"}'s appointments`, "", list),
+    demoBlock("setup", "Suggested appointments", "change anything you like; nothing is created until you press the button",
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row", title: "The facilitator and the agent need the permission coaching:appointment:participate." }, "Facilitator (optional)", facilitator)),
       rows,
       h("div", { class: "row", style: "margin-top:10px" },
         h("button", { class: "btn", onclick: () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }) }, "+ Appointment"),
@@ -737,13 +806,12 @@ function demoLearning(pick) {
       const newBox = h("div", { style: "display:grid;gap:10px" }, newRows.map((r) => r.el));
       rows = [...orgRows, ...newRows];
       put(pickBox, 
-        h("h3", { style: "margin-top:0" }, "Modules of the org the agent does not have yet"),
-        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "These modules exist in the org; ticking one assigns it to the agent."),
+        h("strong", { style: "display:block;margin-bottom:6px" }, "Modules that already exist in the org"),
         available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, `${available.length} published module${available.length === 1 ? "" : "s"} the agent does not have yet`)),
           h("div", { style: "max-height:260px;overflow:auto" }, orgRows.map((r) => r.el)))
           : h("div", { class: "muted" }, s.modules.some((m) => m.isPublished) ? "The agent already has every published module." : "The org has no published learning modules yet; create some below."),
-        h("h3", {}, "Or new modules (templates)"),
-        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Not in the org yet: created as learning modules with the text below, published, then assigned. A module with the same name is reused, not created again."),
+        h("strong", { style: "display:block;margin:14px 0 2px" }, "Or new modules"),
+        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Created in the org with the text below, then assigned."),
         newBox,
         h("div", { class: "row", style: "margin-top:10px" },
           h("button", { class: "btn", onclick: () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); } }, "+ New module"),
@@ -763,9 +831,8 @@ function demoLearning(pick) {
   load();
 
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Learning"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up in the agent's Development view and on the home screen. Due dates must be in the future. Only the agent can complete a module: to show a completed one, open it once as the agent."),
-    demoBlock("live", `${pick.userName || "The agent"}'s learning`, `live from ${pick.profile}`, list),
+    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up on the home screen and in the Development view. To show a completed one, open it once as the agent: only the agent can complete a module."),
+    demoBlock("live", `${pick.userName || "The agent"}'s learning`, "", list),
     demoBlock("setup", "Assign modules", "nothing changes until you press the button", pickBox),
     out);
 }
@@ -873,22 +940,24 @@ function demoSta(pick) {
     });
     put(form, 
       s.queues.length ? h("div", { style: "display:grid;gap:8px" },
-        h("div", { class: "row" }, h("label", { class: "row" }, "Queue", queueSel), addAgentRow),
-        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, analytics, "Text analytics, sentiment and agent empathy (org-wide)"),
-        h("div", { class: "row" }, h("label", { class: "row" }, "Expected dialect", dialect), h("span", { class: "muted", style: "font-size:12px" }, "the language voice interactions are transcribed in")),
-        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, transcription, "Voice transcription for this queue"),
-        h("div", { class: "row" }, h("label", { class: "row" }, "Program", programSel), programName),
-        topicsWrap, newTopicsWrap, queueInfo,
+        h("div", { class: "row" }, h("label", { class: "row" }, "The agent's queue", queueSel), addAgentRow),
+        queueInfo,
+        h("details", {}, h("summary", {}, "More options: language, program and topics"),
+          h("div", { style: "display:grid;gap:8px" },
+            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, analytics, "Text analytics, sentiment and agent empathy (org-wide)"),
+            h("div", { class: "row" }, h("label", { class: "row" }, "Language of the calls", dialect)),
+            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, transcription, "Voice transcription for this queue"),
+            h("div", { class: "row" }, h("label", { class: "row" }, "Program", programSel), programName),
+            topicsWrap, newTopicsWrap)),
         h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn))
         : h("div", { class: "warn" }, "The org has no queues yet."));
     sync();
   };
   load(true);
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Speech and text analytics"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Sets up what speech and text analytics needs and puts the agent's queue into a program, so the agent's calls and messages get transcripts, sentiment, empathy and topics. Voice also needs the calls to be recorded (the default in Genesys Cloud)."),
-    demoBlock("live", "Speech and text analytics in the org now", `live from ${pick.profile}`, info),
-    demoBlock("setup", "Set up", "settings, queue and program as chosen below; nothing changes until you press the button", form),
+    h("p", { class: "muted", style: "margin-top:0" }, "Gives the agent's calls and messages transcripts, sentiment, empathy and topics. Calls also need to be recorded (the default in Genesys Cloud)."),
+    demoBlock("live", "Now in the org", "", info),
+    demoBlock("setup", "Set up", "", form),
     out);
 }
 
@@ -922,12 +991,16 @@ function demoEvaluations(pick, users) {
             h("td", {}, e.released ? pill("released", "s-applied") : pill("not released", "s-pending")))))) : h("div", { class: "muted" }, "The agent has no evaluations yet."),
         h("div", { class: "row", style: "margin:12px 0 6px" }, h("strong", {}, `${convs.length} handled conversation${convs.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 4 weeks)")),
         failed(s.conversations) ? h("div", { class: "error" }, s.conversations.error) : null,
-        !convs.length && !failed(s.conversations) ? h("div", { class: "muted" }, "The agent has not handled any conversation in the last 4 weeks. Evaluations need one: log in as the agent and take a few calls, chats or emails first.") : null);
+        !convs.length && !failed(s.conversations) ? h("div", { class: "muted" }, "None in the last 4 weeks.") : null);
       if (withForm) drawForm(s, convs.filter((c) => !evaluated.has(c.id)));
     } catch (e) { put(info, h("div", { class: "error" }, e.message)); }
   };
   const drawForm = (s, open) => {
     const NEW = "__new__";
+    if (!open.length) {
+      put(form, h("div", { class: "warn" }, `Nothing to evaluate yet. Log in as ${pick.userName || "the agent"}, handle a few calls, chats or emails, then come back here.`));
+      return;
+    }
     const formSel = h("select", {}, h("option", { value: NEW }, "New form from the template…"), s.forms.map((f, i) => h("option", { value: f.id, selected: i === 0 }, f.name)));
     const formName = h("input", { value: s.defaults.form, style: "min-width:240px" });
     const syncForm = () => { formName.style.display = formSel.value === NEW ? "" : "none"; };
@@ -960,16 +1033,15 @@ function demoEvaluations(pick, users) {
         h("span", { class: "muted", style: "font-size:12px" }, "existing forms are published forms of the org; a new form is created from the template and published (published forms stay in the org)")),
       h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Evaluator", evaluator),
         candidates.length ? h("span", { class: "muted", style: "font-size:12px" }, "users who may score evaluations (quality:evaluation:edit)") : h("span", { class: "error", style: "margin:0" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),),
-      h("div", { class: "muted", style: "font-size:12px;margin:6px 0" }, "Conversations of the agent without an evaluation yet: tick the ones to evaluate and choose how the agent did; the answers are picked accordingly and the evaluation is released to the agent."),
-      rows.length ? h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)) : h("div", { class: "muted" }, "Every handled conversation of the last 4 weeks is evaluated already, or there is none."),
+      h("div", { class: "muted", style: "font-size:13px;margin:6px 0" }, "Tick the conversations to evaluate and choose how the agent did. The agent sees the evaluation right away."),
+      h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)),
       h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));
     syncForm();
   };
   load(true);
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Evaluations"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Released evaluations show up in the agent's performance views and feed the quality evaluation score on the scorecard. Genesys Cloud evaluates real conversations, so the agent needs a few handled ones."),
-    demoBlock("live", `${pick.userName || "The agent"}'s evaluations and conversations`, `live from ${pick.profile}`, info),
+    h("p", { class: "muted", style: "margin-top:0" }, "Evaluations show up in the agent's performance views and feed the quality score on the scorecard. Genesys Cloud only evaluates real conversations, so the agent needs a few handled ones first."),
+    demoBlock("live", `${pick.userName || "The agent"}'s evaluations and conversations`, "", info),
     demoBlock("setup", "Evaluate conversations", "nothing is created until you press the button", form),
     out);
 }
@@ -1029,21 +1101,22 @@ function demoSchedule(pick) {
       h("div", { style: "display:grid;gap:8px" },
         h("div", { class: "row" }, h("label", { class: "row" }, "Business unit", buSel), buName, tz),
         h("div", { class: "row" }, h("label", { class: "row" }, "Management unit", muSel), muName,
-          h("span", { class: "muted", style: "font-size:12px" }, "the agent is moved into it")),
-        h("div", { class: "row" }, h("label", { class: "row" }, "Schedule", weeks), h("span", { class: "muted", style: "font-size:12px" }, "from this week"),
-          h("label", { class: "row" }, "Start", start), h("label", { class: "row" }, "Shift", length)),
-        h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:12px" }, "Working days"), days.map((x) => h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, x.box, x.l))),
-        h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, training, "Training hour on Wednesdays (besides two breaks and lunch every day)"),
-        h("div", { class: "muted", style: "font-size:12px" }, "An existing business unit that has a schedule for this week already is left alone; the page adds its schedule to new or empty weeks only."),
+          h("span", { class: "muted", style: "font-size:12px" }, "the agent moves into it")),
+        h("details", {}, h("summary", {}, "Change the shifts (default: 2 weeks from this week, Monday to Friday from 09:00, 8 hours)"),
+          h("div", { style: "display:grid;gap:8px" },
+            h("div", { class: "row" }, h("label", { class: "row" }, "Schedule", weeks), h("span", { class: "muted", style: "font-size:12px" }, "from this week"),
+              h("label", { class: "row" }, "Start", start), h("label", { class: "row" }, "Shift", length)),
+            h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:12px" }, "Working days"), days.map((x) => h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, x.box, x.l))),
+            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, training, "Training hour on Wednesdays (besides two breaks and lunch every day)"),
+            h("div", { class: "muted", style: "font-size:12px" }, "Weeks that already have a schedule stay as they are."))),
         h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn)));
     syncBu();
   };
   load(true);
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Schedule"),
-    h("p", { class: "muted", style: "margin-top:0" }, "A published schedule shows up on the agent's home screen and in the schedule view. Workforce management needs a business unit and a management unit with the agent in it; a new business unit takes Genesys Cloud a minute or two to set up."),
-    demoBlock("live", `${pick.userName || "The agent"}'s schedule`, `live from ${pick.profile}`, info),
-    demoBlock("setup", "Set up", "nothing changes until you press the button", form),
+    h("p", { class: "muted", style: "margin-top:0" }, "A published schedule shows up on the home screen and in the schedule view. A new business unit takes Genesys Cloud a minute or two to set up."),
+    demoBlock("live", `${pick.userName || "The agent"}'s schedule`, "", info),
+    demoBlock("setup", "Set up", "", form),
     out);
 }
 
@@ -1111,10 +1184,9 @@ function demoScorecard(pick) {
   };
   load(true);
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Scorecard"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Puts the agent in a performance profile so the scorecard, leaderboard and performance home show values. Needs gamification switched on in the org."),
-    demoBlock("live", `${pick.userName || "The agent"}'s scorecard setup`, `live from ${pick.profile}`, info),
-    demoBlock("setup", "Set up", "nothing changes until you press the button", form),
+    h("p", { class: "muted", style: "margin-top:0" }, "Puts the agent into a performance profile, so the scorecard and leaderboard show values. Genesys Cloud calculates them a few times a day."),
+    demoBlock("live", `${pick.userName || "The agent"}'s scorecard`, "", info),
+    demoBlock("setup", "Set up", "", form),
     out);
 }
 
@@ -1146,8 +1218,7 @@ function demoRefresh(pick) {
   };
   load();
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Refresh dates"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Demo data ages: a week later the coaching appointments and due dates lie in the past and the schedule has run out. This moves what Demo ready created forward by whole weeks (same weekday and time) and publishes a new schedule. Completed appointments and objects the page did not create stay as they are; Clean up still removes everything."),
+    h("p", { class: "muted", style: "margin-top:0" }, "A week later the appointments and due dates lie in the past and the schedule has run out. This moves what the page created forward by whole weeks (same weekday and time) and publishes a new schedule."),
     list, out);
 }
 
@@ -1163,7 +1234,7 @@ function demoCleanup(pick) {
       const open = s.items.filter((i) => i.state === "remove" || i.state === "restore");
       const boxes = {};
       const sections = Object.keys(TITLES).filter((k) => s.items.some((i) => i.section === k));
-      const btn = h("button", { class: "btn danger", disabled: !open.length }, "Remove");
+      const btn = h("button", { class: "btn danger", disabled: !open.length }, "Remove the ticked areas");
       btn.addEventListener("click", () => {
         const chosen = sections.filter((k) => boxes[k]?.checked);
         if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one section.")); return; }
@@ -1191,8 +1262,7 @@ function demoCleanup(pick) {
   };
   load();
   return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Clean up"),
-    h("p", { class: "muted", style: "margin-top:0" }, "Removes what this page created for the agent and restores what it changed. Objects that were already in the org and only reused (queues, modules, wrap-up codes) stay as they are."),
+    h("p", { class: "muted", style: "margin-top:0" }, "Removes what this page created for the agent and puts back what it changed. What was already in the org stays as it is."),
     list, out);
 }
 
