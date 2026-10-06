@@ -6,17 +6,14 @@ itself.
 
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
   straight into the OS keychain, never into a file or the chat. Pick the org you work on by default
-- **AI setup**: the MCP servers and skills your editors load (Cursor, Claude Code, Claude Desktop,
-  VS Code, Windsurf: user, project and plugin config files, plus files or folders you add), which
-  gctk org each Genesys server's OAuth client belongs to, and where its secret is. Flags plain-text
-  secrets, the same secret in several files, missing commands and skills loaded twice. One click
-  moves a plain-text secret into the keychain (the entry then starts the server through gctk), and
-  back; a rotated secret is entered once for every server using it. **Change credentials** gives a
-  server a new client ID, secret or region, or those of one of your orgs. **By project** shows what
-  the AI loads in one project: its own config, your user config and plugins, per editor, with name
-  clashes marked (in Claude Code, which entry wins). A skill loaded twice can be removed with one
-  click (also all copies a project brings at once); gctk keeps it under Removed skills, so Restore
-  puts it back. Secrets are never shown
+- **Cursor setup**: the MCP servers Cursor loads in every folder (`~/.cursor/mcp.json` and Cursor
+  plugins), which gctk org each Genesys server's OAuth client belongs to, and whether it can start.
+  **Use another org** gives a server the credentials of one of your orgs, which stay in the
+  keychain. Flags plain-text secrets, the same secret in several files and entries that cannot
+  start; one click moves a plain-text secret into the keychain (the entry then starts through
+  gctk), and back, or repairs an entry an update broke. A rotated secret is entered once for every
+  server using it. Folders with their own `.cursor/mcp.json` are listed, each one click away from
+  becoming a project. Secrets are never shown
 - **Demos**: deploy a whole demo into another org with one button. The demos ship with gctk
   (`demos/`, first: **Vendor Battle**, Lumea Energie & Smart Home), so anyone with the plugin can
   deploy them. A package is `demo.yaml` (what belongs to it,
@@ -90,7 +87,7 @@ with the new version by itself.
    for AXL what the AVA harness builds.
 2. **Ask the AI** in Cursor or Claude Code: *"Open the gctk UI."* It opens on the Orgs page. Enter
    name, region, tier and the client ID and secret there.
-3. **Check your AI setup:** open **AI setup** to see which MCP servers work on which org and move
+3. **Check Cursor:** open **Cursor setup** to see which MCP servers work on which org and move
    plain-text secrets into the keychain.
 4. **Prepare the demo:** Website for the customer's side, Demo ready for the agent's home screen.
 
@@ -107,7 +104,7 @@ Open button; this is the overview:
 |---|---|
 | `~/.config/gctk/profiles/` | your orgs (name, region, tier; no secrets) |
 | `~/.config/gctk/config.yaml` | the org you work on by default |
-| `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | AI setup: servers started through gctk, added locations, removed skills |
+| `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | Cursor setup: servers started through gctk, added locations, skills an earlier gctk removed |
 | `~/.config/gctk/demos/` | Demos: what each deploy created per org (and your parameter values), logs |
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
@@ -128,7 +125,7 @@ Open button; this is the overview:
   website runs on its own origin, so the Messenger script never sees the token.
 - **Demo ready and AXL write to the org directly.** Use them with sandbox, dev or demo orgs; AXL
   accepts sandbox and dev orgs only. Clean up removes what Demo ready created.
-- **AI setup** shows secrets only masked. A secret moved into the keychain is started through
+- **Cursor setup** shows secrets only masked. A secret moved into the keychain is started through
   `gctk mcp-launch`, whose launch record is signed with a key from the keychain; an edited record or
   config cannot reuse the secret for another command.
 
@@ -137,7 +134,7 @@ Open button; this is the overview:
 | Tool | Purpose |
 |---|---|
 | `gc_ui` | open a page of the UI in the user's browser (the session link never reaches the AI) |
-| `gc_ai_setup` | the editors' MCP servers and skills, which org each server uses, where its secret is (masked, read-only) |
+| `gc_ai_setup` | Cursor's MCP servers, which org each server uses, where its secret is (masked, read-only) |
 | `gc_axl` | which org and Genesys tools a project folder or AXL workshop has (read-only) |
 
 ## CLI

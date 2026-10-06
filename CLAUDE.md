@@ -1,8 +1,8 @@
 # Genesys Cloud Toolkit: development notes
 
 - Scope (maintainer decisions 2026-09-30 and 2026-10-01): gctk is a local UI that makes the user's AI
-  setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, AI setup,
-  Website, Demo ready, AXL, Monitoring. The UI runs no AI and depends on no coding assistant; do not
+  setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, Cursor setup,
+  Projects (with AXL), Demos, Website, Demo ready, Monitoring. The UI runs no AI and depends on no coding assistant; do not
   add a page or route that starts an agent. The plugin ships no skills and no hooks, and its MCP
   server only opens the UI and reads the setup (`gc_ui`, `gc_ai_setup`, `gc_axl`); it gives the AI
   no tools to read or change an org. Removed on purpose: the Chat page, bot tests, AI agent briefs,
@@ -84,8 +84,10 @@
   on the UI's origin. Every query value is escaped; logos are raster only (no SVG) and served
   sandboxed. The user only enters the deployment ID (and the region); the page reads nothing from
   the org and writes nothing to it.
-- AI setup (`src/core/ai-setup.ts`, UI page "AI setup", MCP tool `gc_ai_setup`, hidden CLI
-  `gctk mcp-launch`, decision 2026-10-01): reads the editors' MCP config files and skills; secrets
+- Cursor setup (`src/core/ai-setup.ts`, UI page "Cursor setup", page id `ai-setup`, MCP tool
+  `gc_ai_setup`, hidden CLI `gctk mcp-launch`, decisions 2026-10-01 and 2026-10-06): reads Cursor's MCP
+  configs only (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json); no other editor, no
+  skills (skills an earlier gctk moved aside can still be restored). Secrets
   leave the module only masked (page and tool). Fixes change the user's config files and exist only
   as UI routes (a click), never as MCP tools; plugin files and JSON with comments are never
   rewritten. "Move to keychain" stores the file's own secret (not a gctk profile's) and rewrites the
@@ -99,11 +101,9 @@
   that other servers share, so only that server changes.
   Entries gctk writes into editor configs (mcp-launch, AXL harness) start `~/.config/gctk/bin/gctk.js`
   (`src/core/stable-gctk.ts`), a copy that a newer gctk refreshes, never the versioned plugin cache path
-  an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with tool → org →
-  status per editor and a "use another org" choice (`setCredentials` with a profile).
-  Removing a skill (`removeSkill`) only takes the user's own or a project's skill, never a plugin's
-  or a built-in one, and moves it (a link stays a link, its target is untouched) into
-  `~/.config/gctk/removed-skills/`, from where `restoreSkill` puts it back.
+  an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with what
+  loads in every folder (tool → org → status, "use another org" = `setCredentials` with a profile);
+  per-folder views belong to Projects, so folders with their own config link there ("Make it a project").
 - Projects (decision 2026-10-06, UI page "Projects", page id `axl`): a folder a consultant builds a demo
   in, with its own org (any tier; production only after a confirmation stored for exactly that org and
   checked at every start, `productionConfirmed`). An AXL workshop is a project with `lab` not false.

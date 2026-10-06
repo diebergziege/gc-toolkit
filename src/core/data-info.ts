@@ -55,9 +55,9 @@ function size(p: string): { bytes: number; items?: number } {
 const HOME_PLACES: Array<[string, string, string]> = [
   ["profiles", "Orgs", "One file per org: name, region and tier. No secrets; those are in the keychain."],
   ["config.yaml", "The org you work on", "Which org the AI and the pages use by default."],
-  ["mcp-launch.json", "AI setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
-  ["ai-setup.json", "AI setup: added locations", "Config files and project folders you added on the AI setup page."],
-  ["removed-skills", "AI setup: removed skills", "Skills you removed on the AI setup page, kept so Restore can put them back."],
+  ["mcp-launch.json", "Cursor setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
+  ["ai-setup.json", "Cursor setup: added locations", "Config files and folders you added on the Cursor setup page."],
+  ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (Cursor setup, Details) can put them back."],
   ["demos", "Demos: deployments and logs", "Per org what a deploy created (for Remove), the commands that run, and their logs."],
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
@@ -105,7 +105,7 @@ export function dataInfo(opts: { has?: (account: string) => boolean } = {}): Dat
   for (const account of [...new Set(launches.map((l) => l.account))]) {
     const users = launches.filter((l) => l.account === account);
     const names = [...new Set(users.map((u) => u.server))];
-    secrets.push({ account, what: `Secret of ${names.join(", ")} (AI setup, ${users.length} entr${users.length > 1 ? "ies" : "y"} in editor configs)`, stored: stored(account) });
+    secrets.push({ account, what: `Secret of ${names.join(", ")} (Cursor setup, ${users.length} entr${users.length > 1 ? "ies" : "y"} in editor configs)`, stored: stored(account) });
   }
   secrets.push({ account: "__approval-key__", what: "Key that signs the AI setup launch records", stored: stored("__approval-key__") });
   secrets.push({ account: tokenAccount(home), what: "Session token of the local UI", stored: stored(tokenAccount(home)) });

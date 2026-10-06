@@ -265,11 +265,11 @@ const state = { view: (() => { try { return sessionStorage.getItem("gctk-view") 
 // The ids are the page names the agent opens with gc_ui (UI_PAGES), so they stay as they are.
 const VIEWS = [
   ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],
-  ["ai-setup", "AI setup", "The MCP servers and skills of your editors: which org each server works on and where its credentials are"],
+  ["ai-setup", "Cursor setup", "The MCP servers Cursor loads in every folder: which org each one works on, and fixes"],
+  ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],
   ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
   ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
   ["demo", "Demo ready", "Fill the agent's home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],
-  ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],
 ];
 const MINOR_VIEWS = [
   ["monitoring", "Monitoring", "How many queues, flows, data actions … an org has, next to its limits"],
@@ -1723,7 +1723,7 @@ function folderServers(w) {
         h("td", {}, h("strong", {}, toolTitle(x.name)), x.name !== toolTitle(x.name) ? h("div", { class: "muted mono", style: "font-size:11.5px" }, x.name) : null),
         h("td", { class: "muted" }, from(x)),
         h("td", {}, org(x), x.org?.profile && w.profile && x.genesys && x.org.profile !== w.profile && x.project !== w.folder ? [" ", pill("another org", "s-pending")] : null),
-        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder's: switch this one off here (Settings → MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on AI setup", "s-failed") : null))))
+        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder's: switch this one off here (Settings → MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on Cursor setup", "s-failed") : null))))
       : h("div", { class: "muted" }, "Cursor loads no MCP servers in this folder yet."));
   }).catch((err) => put(box, h("div", { class: "error" }, err.message)));
   return box;
@@ -2203,55 +2203,61 @@ async function viewData() {
       h("div", { style: "margin-top:10px" }, table(d.places))),
     h("div", { class: "panel" },
       h("div", { class: "row" }, h("strong", {}, "Secrets"), h("span", { class: "muted" }, `${d.keychain}, service "gctk"`)),
-      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, AI setup secrets on the AI setup page."),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, other server secrets on the Cursor setup page."),
       h("table", {}, h("tr", {}, h("th", {}, "Entry"), h("th", {}, "What it is"), h("th", {}, "")),
         d.secrets.map((x) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, x.account), h("td", {}, x.what), h("td", {}, x.stored ? pill("stored", "s-applied") : pill("missing", "s-failed")))))),
     d.elsewhere.length ? h("div", { class: "panel" },
       h("strong", {}, "Written outside gctk's folder"),
-      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and editor config files whose entries the AI setup page changed."),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and Cursor config files whose entries the Cursor setup page changed."),
       table(d.elsewhere)) : null);
 }
 
 // ------------------------------------------------------------- AI setup
 // The MCP servers and skills of the user's editors, read from their config files by the gctk server.
 // Secrets arrive masked; the fix buttons change the user's config files (server side).
-const EDITORS = { cursor: "Cursor", "claude-code": "Claude Code", "claude-desktop": "Claude Desktop", vscode: "VS Code", windsurf: "Windsurf", other: "Other" };
+// Cursor setup (page id ai-setup; decision 2026-10-06: Cursor only, no skills). What Cursor loads in
+// every folder, the org each Genesys server works on, and one-click fixes. A folder's own servers and
+// org belong to the Projects page; folders with their own config are offered as projects.
 const CREDS = {
   none: ["no credentials", ""],
   plain: ["secret in plain text in the file", "s-failed"],
   reference: ["secret from a variable", ""],
   keychain: ["secret in the keychain, started through gctk", "s-applied"],
-  "gctk-profile": ["gctk profiles (keychain)", "s-applied"],
+  "gctk-profile": ["gctk orgs (keychain)", "s-applied"],
   axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],
   project: ["project org (keychain, through gctk)", "s-applied"],
 };
 const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };
 /** Plain names for the Genesys tools people meet most. */
 const TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };
-const RELOAD_HINT = "Reload the server in your editor so it picks up the change: in Cursor under Settings → MCP (switch it off and on), in Claude Code by restarting it.";
-
-const AI_TAB_KEY = "gctk-ai-tab";
+const RELOAD_HINT = "Restart the server in Cursor so it picks up the change: Settings → MCP, switch it off and on.";
 const projName = (p) => (p ? p.split(/[\\/]/).filter(Boolean).pop() : "");
-const whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `project ${projName(x.project)}` : "all projects";
+const whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";
+const sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || whereText(a).localeCompare(whereText(b)));
 
 async function viewAiSetup() {
   const msg = h("div");
-  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading the config files of your editors…"));
+  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading Cursor's config files…"));
   const refresh = h("button", { class: "btn" }, "Refresh");
-  const draw = (s) => put(body, aiSetupReport(s, msg, draw));
+  let projects = [];
+  const draw = (s) => put(body, aiSetupReport(s, msg, draw, projects));
   const load = async () => {
     refresh.disabled = true;
-    try { draw(await api("/api/ai-setup")); } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
+    try {
+      const [s, axl] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);
+      projects = axl.workshops.map((x) => x.workshop);
+      draw(s);
+    } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
   };
   refresh.addEventListener("click", () => { msg.replaceChildren(); load(); });
   load();
   return h("div", {},
-    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "AI setup"), h("span", { class: "spacer" }), refresh),
-    h("p", { class: "lead" }, "Which Genesys Cloud org the AI in Cursor and Claude Code works on, and whether its tools can start. Change the org of a tool with one click; the credentials come from your orgs on the Orgs page and stay in the keychain."),
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Cursor setup"), h("span", { class: "spacer" }), refresh),
+    h("p", { class: "lead" }, "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder's own servers and org are set on the Projects page."),
     msg, body);
 }
 
-function aiSetupReport(s, msg, draw) {
+function aiSetupReport(s, msg, draw, projects) {
   const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINT)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });
@@ -2260,24 +2266,14 @@ function aiSetupReport(s, msg, draw) {
     async fix(x, kind) {
       const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");
       const ask = {
-        keychain: `Move ${names} of "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) into the keychain? The secret is then no longer in\n${x.file}\n\nScripts that read the secret from this file themselves stop working (a demo started from the Demos page gets it from gctk).`,
+        keychain: `Move ${names} of "${x.name}" (${whereText(x)}) into the keychain? The secret is then no longer in\n${x.file}\n\nScripts that read the secret from this file themselves stop working (a demo started from the Demos page gets it from gctk).`,
         restore: `Write the secret of "${x.name}" back into\n${x.file}\nin plain text?`,
         remove: `Remove the server "${x.name}" from\n${x.file}?`,
         "clean-env": `Remove the old variable from "${x.name}"?`,
-        repair: `Point "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) to the copy of gctk that stays across plugin updates?\n${x.file}`,
+        repair: `Point "${x.name}" (${whereText(x)}) to the copy of gctk that stays across plugin updates?\n${x.file}`,
       }[kind];
       if (!confirm(ask)) return;
       try { done(`Done: ${FIX_LABELS[kind].toLowerCase()} (${x.name}).`, await post(x, kind)); } catch (err) { failed(err); }
-    },
-    async removeSkill(k) {
-      const others = s.skills.filter((t) => t !== k && t.editor === k.editor && t.name === k.name).map((t) => `• ${t.path}`).join("\n");
-      if (!confirm(`Remove this copy of "${k.name}" from ${EDITORS[k.editor]}?\n${k.path}${k.link ? `\n(a link to ${k.link}; that folder stays)` : ""}\n\nStill there:\n${others}\n\ngctk keeps it under Removed skills, so you can restore it.`)) return;
-      try { done(`Removed ${k.name} from ${k.path}.`, await api("/api/ai-setup/skills/remove", { method: "POST", body: { path: k.path } })); } catch (err) { failed(err); }
-    },
-    async removeSkills(list, what) {
-      if (!confirm(`${what}?\n\n${list.map((k) => `• ${k.name}  ${k.path}`).join("\n")}\n\ngctk keeps them under Removed skills, so you can restore them.`)) return;
-      let next;
-      try { for (const k of list) next = await api("/api/ai-setup/skills/remove", { method: "POST", body: { path: k.path } }); done(`Removed ${list.length} skills.`, next); } catch (err) { failed(err); if (next) draw(next); }
     },
     async restoreSkill(r) {
       try { done(`Restored ${r.name} to ${r.from}.`, await api("/api/ai-setup/skills/restore", { method: "POST", body: { id: r.id } })); } catch (err) { failed(err); }
@@ -2286,29 +2282,24 @@ function aiSetupReport(s, msg, draw) {
       try { done(`Saved the new credentials of ${x.name}.`, await api("/api/ai-setup/credentials", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body } })); } catch (err) { failed(err); }
     },
     async fixAll(list, kind, what) {
-      if (!confirm(`${what}?\n\n${list.map((x) => `• ${x.name} (${EDITORS[x.editor]}, ${whereText(x)})`).join("\n")}`)) return;
+      if (!confirm(`${what}?\n\n${list.map((x) => `• ${x.name} (${whereText(x)})`).join("\n")}`)) return;
       let next;
       try { for (const x of list) next = await post(x, kind); done(`Done for ${list.length} entries.`, next); } catch (err) { failed(err); if (next) draw(next); }
     },
   };
   const found = s.files.filter((f) => f.exists);
-  const plain = s.servers.filter((x) => x.credentials === "plain");
-  const stat = (label, n, note, alert) => h("div", { class: alert && n ? "m-alert" : "" }, h("div", { class: "muted", style: "font-size:13px" }, label), h("div", { class: "n" }, n), h("div", { class: "muted", style: "font-size:12px" }, note));
-  const tabs = [["org", "By org", () => byOrg(s, ctx)], ["project", "By project", () => byProject(s, ctx)], ["editor", "By editor", () => byEditor(s, ctx)], ["skills", `Skills (${s.skills.length})`, () => skillsTab(s, ctx)], ["files", `Config files (${found.length})`, () => filesPanel(s, msg, draw)]];
-  let tab = (() => { try { return localStorage.getItem(AI_TAB_KEY) || "org"; } catch { return "org"; } })();
-  if (!tabs.some(([id]) => id === tab)) tab = "org";
-  const pane = h("div");
-  const bar = h("div", { class: "dtabs", role: "tablist" });
-  const show = () => {
-    bar.replaceChildren(...tabs.map(([id, label]) => h("button", { role: "tab", "aria-selected": id === tab ? "true" : "false", onclick: () => { tab = id; try { localStorage.setItem(AI_TAB_KEY, id); } catch {} show(); } }, label)));
-    put(pane, tabs.find(([id]) => id === tab)[2]());
-  };
-  show();
-  void stat; void plain;
+  const managed = s.secrets;
   const details = h("details", { class: "panel", style: "margin-top:14px" },
-    h("summary", { style: "margin:0" }, h("strong", {}, "Everything your editors load"), h("span", { class: "muted", style: "font-size:13px" }, ` · ${s.servers.length} MCP servers in ${found.length} config files, ${s.skills.length} skills`)),
-    h("div", { style: "margin-top:10px" }, bar, pane));
-  return [todoPanel(s, ctx), aiOverview(s, ctx), details];
+    h("summary", { style: "margin:0" }, h("strong", {}, "Details"), h("span", { class: "muted", style: "font-size:13px" }, ` · every entry, secrets in the keychain, ${found.length} config files`)),
+    h("div", { style: "margin-top:10px" },
+      h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Every entry"),
+      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "Open an entry for its file, command and variables (secrets masked) and the fixes for it."),
+      sortServers(s.servers).map((x) => serverRow(x, ctx)),
+      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,
+      s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),
+        s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
+      filesPanel(s, msg, draw)));
+  return [todoPanel(s, ctx), aiOverview(s, ctx), folderPanel(s, projects), details];
 }
 
 /** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */
@@ -2317,10 +2308,9 @@ function todoPanel(s, ctx) {
   const fixable = (kind, fix) => having(kind).filter((x) => x.problems.some((p) => p.kind === kind && p.fix === fix));
   const SAYS_MORE = ["missing-command", "launch-invalid"];
   const row = (x, kind, btn) => h("div", { class: "todo-row" },
-    h("strong", {}, x.name), h("span", { class: "muted" }, `${EDITORS[x.editor]} · ${whereText(x)}`),
+    h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)),
     SAYS_MORE.includes(kind) ? h("span", { class: "muted", style: "font-size:12px;flex-basis:100%" }, x.problems.filter((p) => p.kind === kind).map((p) => p.text).join(" ")) : null,
     h("span", { class: "spacer" }), btn);
-  // Each kind folds open on click; only the first group starts open.
   let first = true;
   const group = (title, why, rows, all) => {
     if (!rows.length) return null;
@@ -2330,143 +2320,53 @@ function todoPanel(s, ctx) {
       h("summary", {}, h("strong", {}, title), pill(String(rows.length), "s-pending"), why ? h("span", { class: "muted", style: "font-size:13px" }, why) : null),
       all ? h("div", { class: "row", style: "margin:4px 0 6px" }, all) : null, rows);
   };
-
   const secrets = having("plain-secret");
   const canMove = fixable("plain-secret", "keychain");
   const shared = secrets.some((x) => x.problems.some((p) => p.kind === "same-secret"));
   const broken = [...having("missing-command"), ...having("launch-invalid")];
-  const leftovers = having("obsolete-env");
-  const headers = having("header-secret");
-  const unknown = having("unknown-client");
-  const twice = new Map();
-  for (const k of s.skills) if (k.problems.some((p) => p.kind === "skill-twice")) {
-    const key = `${k.editor}:${k.name}`;
-    (twice.get(key) || twice.set(key, { name: k.name, editor: k.editor, copies: [] }).get(key)).copies.push(k);
-  }
-  const badSkills = s.skills.filter((k) => k.problems.some((p) => p.kind === "skill-broken-link" || p.kind === "skill-no-description"));
-
+  const removable = broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair"));
   const groups = [
     group("Secrets in plain text", `Anyone who can read these files can use the secret.${shared ? " Several share one secret; in the keychain it becomes one entry." : ""}`,
       secrets.map((x) => row(x, "plain-secret", canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null)),
       canMove.length > 1 ? h("button", { class: "btn primary", onclick: () => ctx.fixAll(canMove, "keychain", `Move the secrets of ${canMove.length} entries into the keychain`) }, `Move all ${canMove.length} to the keychain`) : null),
-    group("Entries that cannot start", "The program or script they point to is gone, so the editor shows an error for them.",
+    group("Entries that cannot start", "The program or script they point to is gone, so Cursor shows an error for them.",
       broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "repair")
         ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")
         : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),
-      broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair")).length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(broken.filter((x) => x.editable), "remove", `Remove ${broken.filter((x) => x.editable).length} entries that cannot start`) }, "Remove all") : null),
-    group("Leftovers from an earlier gctk", "", leftovers.map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
-    group("Secrets in headers", "Remote servers: gctk cannot move these. Use your editor's variables (for example ${env:NAME}) instead.", headers.map((x) => row(x, "header-secret", null))),
-    group("Skills loaded twice", "The AI may pick either copy. Remove the one you do not need; gctk keeps it, so you can restore it.",
-      [...twice.values()].map((t) => h("div", { class: "twin" },
-        h("div", { class: "row" }, h("strong", {}, t.name), h("span", { class: "muted" }, `${EDITORS[t.editor]} · ${t.copies.length} copies`)),
-        t.copies.map((k) => h("div", { class: "todo-row" },
-          h("span", { style: "min-width:150px" }, skillOrigin(k)),
-          h("span", { class: "mono muted twin-path", title: k.link ? `${k.path} → ${k.link}` : k.path }, `\u200e${k.path}${k.link ? ` → ${k.link}` : ""}`),
-          k.removable ? h("button", { class: "btn", onclick: () => ctx.removeSkill(k) }, "Remove this copy") : h("span", { class: "muted", style: "font-size:12px;white-space:nowrap" }, k.source === "plugin" ? "comes with a plugin" : "built in"))))),
-      (() => {
-        // Often one project carries copies of skills the user has anyway: one button for all of them.
-        const byProject = new Map();
-        for (const t of twice.values()) for (const k of t.copies) if (k.source === "project" && k.removable) (byProject.get(k.project) || byProject.set(k.project, []).get(k.project)).push(k);
-        return [...byProject.entries()].filter(([, l]) => l.length > 1).map(([pr, l]) => h("button", { class: "btn primary", onclick: () => ctx.removeSkills(l, `Remove the ${l.length} copies in project ${projName(pr)}`) }, `Remove the ${l.length} copies in project ${projName(pr)}`));
-      })()),
-    group("Skills that do not work", "", badSkills.map((k) => h("div", { class: "todo-row" }, h("strong", {}, k.name), h("span", { class: "muted" }, EDITORS[k.editor]), h("span", { class: "muted", style: "font-size:12px" }, k.problems.map((p) => p.text).join(" "))))),
-    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", unknown.map((x) => row(x, "unknown-client", null))),
+      removable.length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(removable, "remove", `Remove ${removable.length} entries that cannot start`) }, "Remove all") : null),
+    group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
+    group("Secrets in headers", "Remote servers: gctk cannot move these. Use Cursor's variables (for example ${env:NAME}) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),
+    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),
   ].filter(Boolean);
   return groups.length
     ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)
-    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, every entry can start, no skill is loaded twice.");
-}
-
-/**
- * The page's main view: per editor, the Genesys tools the AI has, the org each one works on, and
- * whether it can start. The org of a tool changes with one click (credentials of a gctk org).
- */
-function aiOverview(s, ctx) {
-  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
-  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
-  const editors = ["cursor", "claude-code", ...Object.keys(EDITORS).filter((e) => e !== "cursor" && e !== "claude-code")]
-    .filter((e) => s.servers.some((x) => x.editor === e) || e === "cursor" || e === "claude-code");
-  const orgOf = (x) => {
-    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");
-    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null, x.credentials === "axl" || x.credentials === "project" ? h("span", { class: "muted", style: "font-size:12px" }, " · set on the Projects page") : null); }
-    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);
-    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");
-    return h("span", { class: "muted" }, "no org set");
-  };
-  const status = (x) => {
-    const warn = x.problems.filter((p) => p.level === "warn");
-    if (x.disabled) return pill("switched off", "");
-    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");
-    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");
-    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");
-    return pill("ready", "s-applied");
-  };
-  // Use another org: only where gctk knows which variables hold the credentials and may change the file.
-  const useOrg = (x) => {
-    if (!x.credentialKeys || !x.editable || !orgs.length) return null;
-    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org…" : "Use one of your orgs…"),
-      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
-    sel.addEventListener("change", () => {
-      const o = sel.value;
-      if (!o) return;
-      if (!confirm(`Let "${x.name}" (${EDITORS[x.editor]}, ${whereText(x)}) work on ${o}?\n\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\n${x.file}`)) { sel.value = ""; return; }
-      ctx.setCredentials(x, { profile: o, keychain: true });
-    });
-    return sel;
-  };
-  const toolRow = (x) => h("div", { class: "todo-row" },
-    h("span", { class: "muted", style: "flex:0 0 240px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, whereText(x)),
-    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)),
-    status(x), useOrg(x));
-  return editors.map((e) => {
-    const list = s.servers.filter((x) => x.editor === e);
-    const genesys = list.filter((x) => x.genesys);
-    const others = list.filter((x) => !x.genesys);
-    const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));
-    return h("div", { class: "panel" },
-      h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, `In ${EDITORS[e]}`),
-        h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""}` : "no Genesys tools")),
-      genesys.length ? names.map((n) => {
-        const [title, what] = TOOL_NAMES[n] || [n, ""];
-        return h("div", { style: "margin-top:10px" },
-          h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `· ${what}`) : null),
-          sortServers(genesys.filter((x) => x.name === n)).map(toolRow));
-      }) : h("p", { class: "muted", style: "margin:6px 0 0" }, `The AI in ${EDITORS[e]} has no Genesys Cloud tools.`),
-      others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);
-  });
+    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, and every entry can start.");
 }
 
 /** One server as a compact line; the details open on click. */
-function serverRow(x, ctx, opts = {}) {
+function serverRow(x, ctx) {
   const [credText, credCls] = CREDS[x.credentials] || [x.credentials, ""];
   const issues = x.problems.filter((p) => p.level === "warn" && p.kind !== "plain-secret" && p.kind !== "same-secret").length;
   const restore = x.credentials === "keychain" && x.launch?.valid && x.editable;
   const vars = [...x.env, ...x.headers.map((v) => ({ ...v, name: `header ${v.name}` }))];
   const org = x.org;
   return h("details", { class: "srv" },
-    h("summary", {}, h("strong", {}, x.name),
-      opts.hideEditor ? null : pill(EDITORS[x.editor] || x.editor),
-      h("span", { class: "muted" }, whereText(x)),
-      x.disabled ? pill("switched off") : null,
-      opts.extra || null,
-      h("span", { class: "spacer" }),
-      issues ? pill(`${issues} to fix`, "s-failed") : null,
-      pill(credText, credCls)),
+    h("summary", {}, h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)), x.disabled ? pill("switched off") : null,
+      h("span", { class: "spacer" }), issues ? pill(`${issues} to fix`, "s-failed") : null, pill(credText, credCls)),
     h("div", { class: "body" },
       h("dl", { class: "kv" },
         h("dt", {}, "File"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.file),
-        x.project && x.scope === "project" ? [h("dt", {}, "Project"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.project)] : null,
-        h("dt", {}, "Org"), h("dd", {}, org?.profile ? org.profile : org?.clientId ? "not one of your gctk orgs" : x.credentials === "gctk-profile" ? "the org you work on in gctk" : "—"),
+        h("dt", {}, "Org"), h("dd", {}, org?.profile ? org.profile : org?.clientId ? "not one of your gctk orgs" : x.credentials === "gctk-profile" ? "needs no org" : "—"),
         org?.region ? [h("dt", {}, "Region"), h("dd", { class: "mono" }, org.region)] : null,
         org?.clientId ? [h("dt", {}, "OAuth client"), h("dd", { class: "mono" }, org.clientId)] : null,
         h("dt", {}, x.transport === "http" ? "URL" : "Starts"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.transport === "http" ? x.url : [x.command, ...x.args].join(" "))),
       vars.length ? h("table", {}, vars.map((v) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, v.name), h("td", { class: "v" }, v.value, v.plain ? [" ", pill("plain text", "s-failed")] : "")))) : null,
       x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,
       x.credentialKeys ? credentialsForm(x, ctx)
-        : x.credentials === "gctk-profile" ? h("div", { class: "muted", style: "font-size:13px" }, "Its credentials are the orgs on the Orgs page.")
         : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the Projects page.") : null,
       x.editable ? h("div", { class: "row" },
         x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,
+        x.problems.some((p) => p.fix === "repair") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, FIX_LABELS.repair) : null,
         x.problems.some((p) => p.fix === "clean-env") ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, FIX_LABELS["clean-env"]) : null,
         restore ? h("button", { class: "btn", onclick: () => ctx.fix(x, "restore") }, FIX_LABELS.restore) : null,
         h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, FIX_LABELS.remove))
@@ -2499,112 +2399,80 @@ function credentialsForm(x, ctx) {
       h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));
 }
 
-const AI_PROJECT_KEY = "gctk-ai-project";
-
-/** What the AI loads in one project, per editor: the project's own config, the user config and plugins. */
-function byProject(s, ctx) {
-  if (!s.projects.length) return h("div", { class: "panel empty" }, "No project folders found. Add one under Config files.");
-  const own = (p) => p.servers + p.skills;
-  const list = [...s.projects].sort((a, b) => (own(b) > 0) - (own(a) > 0) || projName(a.path).localeCompare(projName(b.path)));
-  let current = (() => { try { return localStorage.getItem(AI_PROJECT_KEY) || ""; } catch { return ""; } })();
-  if (!list.some((p) => p.path === current)) current = list[0].path;
-  const pane = h("div");
-  const sel = h("select", { style: "min-width:320px" }, list.map((p) => h("option", { value: p.path, selected: p.path === current },
-    `${projName(p.path)}${own(p) ? ` · own config: ${[p.servers ? `${p.servers} server${p.servers > 1 ? "s" : ""}` : "", p.skills ? `${p.skills} skill${p.skills > 1 ? "s" : ""}` : ""].filter(Boolean).join(", ")}` : " · no own config"}`)));
-  const draw = () => {
-    const P = sel.value;
-    // Claude Code: local (~/.claude.json) beats the project's .mcp.json, which beats the user config.
-    const rank = (x) => x.section.startsWith("projects:") ? 0 : x.scope === "project" ? 1 : x.scope === "user" ? 2 : 3;
-    put(pane, h("div", { class: "muted mono", style: "font-size:12px;margin:-4px 0 10px" }, P), ["cursor", "claude-code"].map((e) => {
-      const servers = s.servers.filter((x) => x.editor === e && ((x.scope === "user") || x.scope === "plugin" || x.project === P));
-      const skills = s.skills.filter((k) => k.editor === e && (k.source !== "project" || k.project === P));
-      const byName = new Map();
-      for (const x of servers) (byName.get(x.name) || byName.set(x.name, []).get(x.name)).push(x);
-      const clash = (x) => {
-        const same = byName.get(x.name);
-        if (same.length < 2) return null;
-        if (e !== "claude-code") return pill("same name twice", "s-pending");
-        const winner = [...same].sort((a, b) => rank(a) - rank(b))[0];
-        return winner === x ? pill("used", "s-applied") : pill(`not used: ${winner.section.startsWith("projects:") ? "the private entry" : winner.scope === "project" ? "the project's entry" : "the user entry"} wins`, "s-pending");
-      };
-      const part = (title, l) => l.length ? h("div", { style: "margin-top:8px" }, h("div", { class: "sub-head" }, title), sortServers(l).map((x) => serverRow(x, ctx, { hideEditor: true, extra: clash(x) }))) : null;
-      const projectServers = servers.filter((x) => x.project === P);
-      const skillPart = (title, l, open) => l.length ? h("details", { class: "skill-group", open }, h("summary", { class: "sub-head" }, `${title} (${l.length})`), [...l].sort((a, b) => a.name.localeCompare(b.name)).map((k) => skillLine(k, ctx))) : null;
-      const twice = new Set([...new Set(skills.map((k) => k.name))].filter((n) => skills.filter((k) => k.name === n && k.source !== "built-in").length > 1));
-      return h("div", { class: "panel" },
-        h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, `In ${EDITORS[e]}`), h("span", { class: "muted" }, `${servers.length} server${servers.length === 1 ? "" : "s"} · ${skills.length} skills`),
-          twice.size ? pill(`${twice.size} skill name${twice.size > 1 ? "s" : ""} twice`, "s-failed") : null),
-        e === "claude-code" && projectServers.length ? h("div", { class: "muted", style: "font-size:12px" }, "Claude Code asks once before it uses the servers of a project's shared .mcp.json.") : null,
-        part("This project's own config", projectServers.filter((x) => !x.section.startsWith("projects:"))),
-        part("Only you, in this project (~/.claude.json)", projectServers.filter((x) => x.section.startsWith("projects:"))),
-        part("From your user config (all projects)", servers.filter((x) => x.scope === "user")),
-        part("From plugins", servers.filter((x) => x.scope === "plugin")),
-        servers.length ? null : h("div", { class: "muted", style: "margin-top:6px" }, "No MCP servers."),
-        h("h3", { style: "margin:14px 0 2px;font-size:14px" }, "Skills"),
-        skillPart("This project's own skills", skills.filter((k) => k.source === "project"), true),
-        skillPart("Your skills", skills.filter((k) => k.source === "user"), twice.size > 0),
-        skillPart("From plugins", skills.filter((k) => k.source === "plugin"), false),
-        skillPart("Built into Cursor", skills.filter((k) => k.source === "built-in"), false));
-    }));
-  };
-  sel.addEventListener("change", () => { try { localStorage.setItem(AI_PROJECT_KEY, sel.value); } catch {} draw(); });
-  draw();
-  return [h("div", { class: "row", style: "margin-bottom:10px" }, h("label", { class: "row" }, "Project", sel)), pane];
-}
-
-const sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || a.editor.localeCompare(b.editor) || whereText(a).localeCompare(whereText(b)));
-
-/** Servers grouped by the org they work on: what uses my demo org, and where its secret is. */
-function byOrg(s, ctx) {
+/** What Cursor loads in every folder: the Genesys tools with their org and status, then the rest. */
+function aiOverview(s, ctx) {
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
   const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
-  const groups = new Map();
-  const add = (key, title, x) => (groups.get(key) || groups.set(key, { title, servers: [] }).get(key)).servers.push(x);
-  for (const x of s.servers) {
-    if (x.org?.profile) add(`p:${x.org.profile}`, x.org.profile, x);
-    else if (x.credentials === "gctk-profile") add("gctk", "gctk itself", x);
-    else if (x.org?.clientId) add(`c:${x.org.clientId}`, `Unknown OAuth client ${x.org.clientId}`, x);
-    else if (x.genesys) add("g", "Genesys Cloud, org not known", x);
-    else add("none", "Other servers", x);
-  }
-  const order = (k) => (k.startsWith("p:") ? 0 : k === "gctk" ? 1 : k.startsWith("c:") || k === "g" ? 2 : 3);
-  const keys = [...groups.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b));
-  const note = { gctk: "gctk's own MCP server: it uses the orgs on the Orgs page, with their secrets in the keychain.", none: "Servers that do not talk to Genesys Cloud." };
-  return [
-    keys.map((k) => {
-      const g = groups.get(k);
-      const tier = k.startsWith("p:") ? tierOf(g.title) : null;
-      const region = g.servers.find((x) => x.org?.region)?.org.region;
-      const plainN = g.servers.filter((x) => x.credentials === "plain").length;
-      const secret = k.startsWith("p:") ? s.secrets.filter((m) => m.profile === g.title) : [];
-      return h("div", { class: "panel" },
-        h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, g.title), tier ? pill(tier, `t-${tier}`) : null, region ? h("span", { class: "muted mono" }, region) : null,
-          h("span", { class: "muted" }, `${g.servers.length} server${g.servers.length > 1 ? "s" : ""}`), h("span", { class: "spacer" }),
-          plainN ? pill(`secret in plain text in ${plainN}`, "s-failed") : null),
-        note[k] ? h("div", { class: "muted", style: "font-size:13px;margin-bottom:4px" }, note[k]) : null,
-        sortServers(g.servers).map((x) => serverRow(x, ctx)),
-        secret.map((m) => secretCard(m, ctx.msg, ctx.draw)));
-    }),
-    s.secrets.filter((m) => !m.profile).length ? [h("h3", {}, "Other secrets gctk keeps in the keychain"), s.secrets.filter((m) => !m.profile).map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,
-  ];
+  const everywhere = s.servers.filter((x) => x.scope !== "project");
+  const orgOf = (x) => {
+    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");
+    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null); }
+    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);
+    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");
+    return h("span", { class: "muted" }, "no org set");
+  };
+  const status = (x) => {
+    const warn = x.problems.filter((p) => p.level === "warn");
+    if (x.disabled) return pill("switched off", "");
+    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");
+    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");
+    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");
+    return pill("ready", "s-applied");
+  };
+  const useOrg = (x) => {
+    if (!x.credentialKeys || !x.editable || !orgs.length) return null;
+    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org…" : "Use one of your orgs…"),
+      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
+    sel.addEventListener("change", () => {
+      const o = sel.value;
+      if (!o) return;
+      if (!confirm(`Let "${x.name}" (${whereText(x)}) work on ${o}?\n\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\n${x.file}`)) { sel.value = ""; return; }
+      ctx.setCredentials(x, { profile: o, keychain: true });
+    });
+    return sel;
+  };
+  const toolRow = (x) => h("div", { class: "todo-row" },
+    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : "~/.cursor/mcp.json"),
+    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)), status(x), useOrg(x));
+  const genesys = everywhere.filter((x) => x.genesys);
+  const others = everywhere.filter((x) => !x.genesys);
+  const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));
+  return h("div", { class: "panel" },
+    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "In every folder"),
+      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ~/.cursor/mcp.json and plugins` : "no Genesys tools")),
+    genesys.length ? names.map((n) => {
+      const [title, what] = TOOL_NAMES[n] || [n, ""];
+      return h("div", { style: "margin-top:10px" },
+        h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `· ${what}`) : null),
+        sortServers(genesys.filter((x) => x.name === n)).map(toolRow));
+    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),
+    others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);
 }
 
-/** Servers grouped by editor, then by where they apply: all projects, one project, a plugin. */
-function byEditor(s, ctx) {
-  const editors = [...new Set(s.servers.map((x) => x.editor))].sort((a, b) => Object.keys(EDITORS).indexOf(a) - Object.keys(EDITORS).indexOf(b));
-  if (!editors.length) return h("div", { class: "panel empty" }, "No MCP servers found. Add a config file under Config files.");
-  return editors.map((e) => {
-    const list = s.servers.filter((x) => x.editor === e);
-    const parts = [
-      ["All projects", list.filter((x) => x.scope === "user")],
-      ...[...new Set(list.filter((x) => x.scope === "project").map((x) => x.project))].sort().map((p) => [`Project ${projName(p)}`, list.filter((x) => x.scope === "project" && x.project === p), p]),
-      ["From plugins", list.filter((x) => x.scope === "plugin")],
-    ].filter(([, l]) => l.length);
-    return h("div", { class: "panel" },
-      h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, EDITORS[e]), h("span", { class: "muted" }, `${list.length} server${list.length > 1 ? "s" : ""}`)),
-      parts.map(([title, l, full]) => h("div", { style: "margin-top:8px" },
-        h("div", { class: "sub-head" }, title, full ? h("span", { class: "mono" }, ` ${full}`) : null),
-        sortServers(l).map((x) => serverRow(x, ctx, { hideEditor: true })))));
-  });
+/** Folders with their own .cursor/mcp.json: the ones that are projects open there, the others can become one. */
+function folderPanel(s, projects) {
+  const folders = [...new Set(s.servers.filter((x) => x.scope === "project").map((x) => x.project))].sort((a, b) => projName(a).localeCompare(projName(b)));
+  if (!folders.length) return null;
+  const open = (id) => { state.axlOpen = id; go("axl"); };
+  const make = async (folder) => {
+    try {
+      const r = await api("/api/axl/workshops", { method: "POST", body: { name: projName(folder), folder, lab: false } });
+      open(r.id);
+    } catch (err) { showError(err); }
+  };
+  return h("div", { class: "panel" },
+    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Folders with their own servers"), h("span", { class: "muted" }, "Cursor loads these only in that folder, next to the ones above")),
+    folders.map((f) => {
+      const here = s.servers.filter((x) => x.project === f);
+      const p = projects.find((w) => w.folder === f);
+      const bad = here.some((x) => x.problems.some((q) => q.level === "warn"));
+      return h("div", { class: "todo-row" },
+        h("span", { style: "flex:1;min-width:220px" }, h("strong", {}, projName(f)), p ? [" ", pill(p.lab === false ? "project" : "AXL workshop", "")] : null,
+          h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, f)),
+        h("span", { class: "muted", style: "font-size:13px;min-width:200px" }, here.map((x) => toolTitle(x.name)).join(", ")),
+        bad ? pill("needs a look", "s-failed") : null,
+        p ? h("button", { class: "btn", onclick: () => open(p.id) }, "Open project") : h("button", { class: "btn", title: "Choose its org and Genesys tools on the Projects page", onclick: () => make(f) }, "Make it a project"));
+    }));
 }
 
 /** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */
@@ -2618,63 +2486,27 @@ function secretCard(m, msg, draw) {
     } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
   };
   return h("div", { class: "keybox" },
-    h("div", { class: "row" }, "🔑", h("strong", {}, `Secret in the keychain: ${m.names.join(", ")}`), m.stored ? null : pill("missing in the keychain", "s-failed"),
+    h("div", { class: "row" }, "🔑", h("strong", {}, `Secret in the keychain: ${m.names.join(", ")}`), m.profile ? h("span", { class: "muted" }, `org ${m.profile}`) : null, m.stored ? null : pill("missing in the keychain", "s-failed"),
       h("span", { class: "muted", style: "font-size:13px" }, `used by ${m.usedBy.length} entr${m.usedBy.length > 1 ? "ies" : "y"}`)),
     h("details", {}, h("summary", {}, "Enter a new secret (after rotating it in Genesys Cloud)"),
       inputs.map(([n, el]) => h("div", { class: "row", style: "margin:6px 0" }, h("span", { class: "mono", style: "min-width:220px" }, n), el)),
       h("button", { class: "btn primary", onclick: save }, "Save in the keychain")));
 }
 
-const skillOrigin = (k) => k.source === "plugin" ? `Plugin ${k.plugin}` : k.source === "project" ? `Project ${projName(k.project)}` : k.source === "built-in" ? "Built into Cursor" : "Your skills folder";
-const skillLine = (k, ctx) => h("div", { class: "skill-row", title: k.description },
-    h("strong", {}, k.name),
-    h("span", { class: "muted" }, k.description.length > 140 ? `${k.description.slice(0, 139)}…` : k.description || "no description"),
-    h("span", { class: "row", style: "gap:6px;flex-wrap:nowrap" },
-      k.problems.some((p) => p.level === "warn") ? pill(k.problems.some((p) => p.kind === "skill-twice") ? "loaded twice" : "does not work", "s-failed") : null,
-      ctx && k.removable && k.problems.some((p) => p.kind === "skill-twice") ? h("button", { class: "btn", style: "padding:1px 8px;font-size:12px", onclick: () => ctx.removeSkill(k) }, "Remove") : null));
-
-/** Skills per editor, grouped by where they come from; the built-in ones folded away. */
-function skillsTab(s, ctx) {
-  const skills = s.skills;
-  if (!skills.length && !s.removedSkills.length) return h("div", { class: "panel empty" }, "No skills found.");
-  const origin = skillOrigin;
-  return ["cursor", "claude-code"].map((e) => {
-    const mine = skills.filter((k) => k.editor === e);
-    if (!mine.length) return null;
-    const byOrigin = new Map();
-    for (const k of mine) (byOrigin.get(origin(k)) || byOrigin.set(origin(k), []).get(origin(k))).push(k);
-    const rank = (o) => (o === "Your skills folder" ? 0 : o.startsWith("Plugin") ? 1 : o.startsWith("Project") ? 2 : 3);
-    return h("div", { class: "panel" },
-      h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, EDITORS[e]), h("span", { class: "muted" }, `${mine.length} skills`)),
-      [...byOrigin.entries()].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b)).map(([o, list]) => {
-        const items = [...list].sort((a, b) => a.name.localeCompare(b.name)).map((k) => skillLine(k, ctx));
-        const where = list[0].path.replace(/[\\/][^\\/]+$/, "");
-        const flagged = list.some((k) => k.problems.some((p) => p.level === "warn"));
-        return h("details", { class: "skill-group", open: o === "Your skills folder" || flagged },
-          h("summary", { class: "sub-head" }, `${o} (${list.length})`, o === "Built into Cursor" ? null : h("span", { class: "mono" }, ` ${where}`)), items);
-      }));
-  }).concat(s.removedSkills.length ? [h("div", { class: "panel" },
-    h("div", { class: "grp-head" }, h("strong", { style: "font-size:16px" }, "Removed skills"), h("span", { class: "muted" }, "gctk keeps them; the editors no longer load them")),
-    s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "muted" }, EDITORS[r.editor]),
-      h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "muted", style: "font-size:12px" }, time(r.removedAt)),
-      h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore"))))] : []);
-}
-
 function filesPanel(s, msg, draw) {
-  const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/mcp.json", style: "flex:1;min-width:280px" });
+  const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/.cursor/mcp.json", style: "flex:1;min-width:280px" });
   const call = async (url, body) => {
     try { draw(await api(url, { method: "POST", body })); msg.replaceChildren(); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   };
   const status = (f) => !f.exists ? h("span", { class: "muted" }, "not there") : f.error ? h("span", { class: "muted" }, f.error) : f.scope === "plugin" ? h("span", { class: "muted" }, "read-only (plugin)") : pill("found", "s-applied");
   const added = s.locations.filter((l) => !s.files.some((f) => f.path === l && f.added));
-  return h("div", { class: "panel" },
-    h("h3", { style: "margin-top:0" }, "Config files"),
-    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk looks in the standard places of each editor and in the project folders they know (Cursor's recent folders, Claude Code's projects, your AXL workshop folders). Add a file or a project folder that is somewhere else."),
-    h("table", {}, h("tr", {}, h("th", {}, "File"), h("th", {}, "Editor"), h("th", {}, "For"), h("th", {}, "")),
+  return h("div", { style: "margin-top:16px" },
+    h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Config files"),
+    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk reads ~/.cursor/mcp.json, Cursor's plugins and the .cursor/mcp.json of the folders Cursor knows (its recent folders and your projects). Add a folder or file that is somewhere else."),
+    h("table", {}, h("tr", {}, h("th", {}, "File"), h("th", {}, "For"), h("th", {}, "")),
       s.files.map((f) => h("tr", {},
         h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, f.path),
-        h("td", {}, EDITORS[f.editor] || f.editor),
-        h("td", { class: "muted" }, f.scope === "plugin" ? `plugin ${f.plugin}` : f.scope === "project" ? "one project" : "all projects"),
+        h("td", { class: "muted" }, f.scope === "plugin" ? `plugin ${f.plugin}` : f.scope === "project" ? "one folder" : "every folder"),
         h("td", { style: "white-space:nowrap" }, status(f), f.added ? [" ", h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: f.path }) }, "Remove")] : null)))),
     added.length ? h("div", { style: "margin-top:10px" }, h("strong", { style: "font-size:13px" }, "Added folders"), added.map((l) => h("div", { class: "row", style: "margin-top:4px" }, h("span", { class: "mono", style: "font-size:12px;flex:1" }, l),
       h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: l }) }, "Remove")))) : null,

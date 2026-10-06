@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import YAML from "yaml";
 import { sign, verify } from "./approval.js";
 import { loadAxlSettings, HABITATS } from "./axl.js";
 import { loadCredentials, readSecret, removeSecret, writeSecret } from "./credentials.js";
@@ -13,8 +12,9 @@ import { listProfiles, loadProfile } from "./profiles.js";
 import { resolveRegion } from "./regions.js";
 
 /**
- * AI setup (UI page "AI setup", MCP tool gc_ai_setup): the MCP servers and skills the user's editors
- * load, read from their config files, with the Genesys Cloud org each server works on.
+ * Cursor setup (UI page "Cursor setup", MCP tool gc_ai_setup): the MCP servers Cursor loads, read
+ * from its config files, with the Genesys Cloud org each server works on. Cursor only, no skills
+ * (decision 2026-10-06).
  *
  * Secrets never leave this module unmasked: the page and the tool get `••••` plus the last four
  * characters. Fixes change the user's config files and run only from the UI (a click):
@@ -52,7 +52,7 @@ export interface ConfigFile {
   error?: string;
 }
 
-export type ProblemKind = "plain-secret" | "header-secret" | "same-secret" | "launch-invalid" | "missing-command" | "obsolete-env" | "unknown-client" | "skill-twice" | "skill-unreadable" | "skill-broken-link" | "skill-no-description";
+export type ProblemKind = "plain-secret" | "header-secret" | "same-secret" | "launch-invalid" | "missing-command" | "obsolete-env" | "unknown-client";
 
 export interface Problem {
   kind: ProblemKind;
@@ -101,25 +101,10 @@ export interface ServerInfo extends ServerAddress {
   problems: Problem[];
 }
 
-export interface SkillInfo {
-  name: string;
-  description: string;
-  editor: "cursor" | "claude-code";
-  source: "user" | "plugin" | "project" | "built-in";
-  plugin?: string;
-  project?: string;
-  path: string;
-  /** Where a linked skill folder points (removing the link leaves that folder alone). */
-  link?: string;
-  /** The user's own and project skills; plugin and built-in skills belong to their owner. */
-  removable: boolean;
-  problems: Problem[];
-}
-
 export interface RemovedSkill {
   id: string;
   name: string;
-  editor: SkillInfo["editor"];
+  editor: "cursor" | "claude-code";
   /** Where it was; Restore puts it back there. */
   from: string;
   link?: string;
@@ -135,13 +120,6 @@ export interface CredentialKeys {
   habitat?: string;
 }
 
-/** A project folder the editors know, with what it brings of its own. */
-export interface ProjectInfo {
-  path: string;
-  servers: number;
-  skills: number;
-}
-
 export interface ManagedSecret {
   account: string;
   names: string[];
@@ -151,13 +129,13 @@ export interface ManagedSecret {
   stored: boolean;
 }
 
+/** What Cursor loads (decision 2026-10-06: gctk covers Cursor only; skills are not listed). */
 export interface AiSetup {
   files: ConfigFile[];
   servers: ServerInfo[];
-  skills: SkillInfo[];
   secrets: ManagedSecret[];
   locations: string[];
-  projects: ProjectInfo[];
+  /** Skills an earlier gctk moved aside, so they can still be put back. */
   removedSkills: RemovedSkill[];
 }
 
@@ -332,23 +310,11 @@ export function removeLocation(p: string): string[] {
   return loadLocations();
 }
 
-function guessEditor(file: string): Editor {
-  const f = file.replace(/\\/g, "/");
-  if (/\/\.cursor\//.test(f)) return "cursor";
-  if (/claude_desktop_config\.json$/.test(f)) return "claude-desktop";
-  if (/\/\.vscode\/|\/Code\/User\//.test(f)) return "vscode";
-  if (/windsurf/i.test(f)) return "windsurf";
-  if (/\/\.mcp\.json$|\/\.claude\.json$/.test(f)) return "claude-code";
-  return "other";
-}
-
-/** Project folders the editors know: Claude Code's project list, Cursor's workspaces, AXL folders, added folders. */
+/** Folders Cursor knows: its workspaces, gctk projects and AXL workshops, added folders. */
 export function projectFolders(o: ScanOptions = {}): string[] {
   const home = o.home ?? os.homedir();
   const support = appSupport(home, o.platform ?? process.platform, o.appData);
   const out = new Set<string>();
-  const claude = readJson(path.join(home, ".claude.json")).value;
-  for (const p of Object.keys((claude?.projects as Record<string, unknown>) ?? {})) out.add(p);
   const storage = path.join(support, "Cursor", "User", "workspaceStorage");
   for (const d of subdirs(storage)) {
     try {
@@ -367,22 +333,11 @@ export function projectFolders(o: ScanOptions = {}): string[] {
   return [...out].filter(isDir).sort();
 }
 
-/** Every MCP config file gctk knows of: the editors' standard places, project folders, plugins, added files. */
+/** Every Cursor MCP config gctk knows of: the global one, those of known folders, plugins, added files. */
 export function configFiles(o: ScanOptions = {}): ConfigFile[] {
   const home = o.home ?? os.homedir();
-  const support = appSupport(home, o.platform ?? process.platform, o.appData);
-  const list: Array<Omit<ConfigFile, "exists" | "editable" | "error">> = [
-    { path: path.join(home, ".cursor", "mcp.json"), editor: "cursor", scope: "user" },
-    { path: path.join(home, ".claude.json"), editor: "claude-code", scope: "user" },
-    { path: path.join(support, "Claude", "claude_desktop_config.json"), editor: "claude-desktop", scope: "user" },
-    { path: path.join(support, "Code", "User", "mcp.json"), editor: "vscode", scope: "user" },
-    { path: path.join(home, ".codeium", "windsurf", "mcp_config.json"), editor: "windsurf", scope: "user" },
-  ];
-  for (const dir of projectFolders(o)) {
-    list.push({ path: path.join(dir, ".cursor", "mcp.json"), editor: "cursor", scope: "project", project: dir });
-    list.push({ path: path.join(dir, ".mcp.json"), editor: "claude-code", scope: "project", project: dir });
-    list.push({ path: path.join(dir, ".vscode", "mcp.json"), editor: "vscode", scope: "project", project: dir });
-  }
+  const list: Array<Omit<ConfigFile, "exists" | "editable" | "error">> = [{ path: path.join(home, ".cursor", "mcp.json"), editor: "cursor", scope: "user" }];
+  for (const dir of projectFolders(o)) list.push({ path: path.join(dir, ".cursor", "mcp.json"), editor: "cursor", scope: "project", project: dir });
   for (const market of subdirs(path.join(home, ".cursor", "plugins", "cache"))) {
     for (const plugin of subdirs(path.join(home, ".cursor", "plugins", "cache", market))) {
       const root = newestDir(path.join(home, ".cursor", "plugins", "cache", market, plugin));
@@ -391,12 +346,7 @@ export function configFiles(o: ScanOptions = {}): ConfigFile[] {
       if (f) list.push({ path: f, editor: "cursor", scope: "plugin", plugin });
     }
   }
-  const installed = readJson(path.join(home, ".claude", "plugins", "installed_plugins.json")).value?.plugins as Record<string, Array<{ installPath?: string }>> | undefined;
-  for (const [id, versions] of Object.entries(installed ?? {})) {
-    const root = versions?.at(-1)?.installPath;
-    if (root) list.push({ path: path.join(root, ".mcp.json"), editor: "claude-code", scope: "plugin", plugin: id.split("@")[0] });
-  }
-  for (const l of loadLocations()) if (!isDir(l)) list.push({ path: l, editor: guessEditor(l), scope: "user", added: true });
+  for (const l of loadLocations()) if (!isDir(l)) list.push({ path: l, editor: "cursor", scope: "user", added: true });
 
   const seen = new Set<string>();
   const out: ConfigFile[] = [];
@@ -668,77 +618,10 @@ export function scanAiSetup(o: ScanOptions = {}): AiSetup {
       m.stored = false;
     }
   }
-  const skills = scanSkills(o);
-  const projects = projectFolders(o).map((p) => ({ path: p, servers: servers.filter((x) => x.project === p).length, skills: skills.filter((k) => k.project === p).length }));
-  return { files, servers, skills, secrets: [...byAccount.values()], locations: loadLocations(), projects, removedSkills: listRemovedSkills() };
+  return { files, servers, secrets: [...byAccount.values()], locations: loadLocations(), removedSkills: listRemovedSkills() };
 }
 
-// ------------------------------------------------------------------- skills
-
-function frontmatter(file: string): { name?: string; description?: string } | undefined {
-  try {
-    const text = fs.readFileSync(file, "utf8");
-    const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
-    const v = m ? (YAML.parse(m[1]!) as Record<string, unknown>) : {};
-    return { name: typeof v?.name === "string" ? v.name : undefined, description: typeof v?.description === "string" ? v.description : undefined };
-  } catch {
-    return undefined;
-  }
-}
-
-export function scanSkills(o: ScanOptions = {}): SkillInfo[] {
-  const home = o.home ?? os.homedir();
-  const roots: Array<Omit<SkillInfo, "name" | "description" | "path" | "problems" | "link" | "removable"> & { dir: string }> = [
-    { dir: path.join(home, ".cursor", "skills"), editor: "cursor", source: "user" },
-    { dir: path.join(home, ".cursor", "skills-cursor"), editor: "cursor", source: "built-in" },
-    { dir: path.join(home, ".claude", "skills"), editor: "claude-code", source: "user" },
-  ];
-  for (const market of subdirs(path.join(home, ".cursor", "plugins", "cache"))) {
-    for (const plugin of subdirs(path.join(home, ".cursor", "plugins", "cache", market))) {
-      const root = newestDir(path.join(home, ".cursor", "plugins", "cache", market, plugin));
-      if (root) roots.push({ dir: path.join(root, "skills"), editor: "cursor", source: "plugin", plugin });
-    }
-  }
-  const installed = readJson(path.join(home, ".claude", "plugins", "installed_plugins.json")).value?.plugins as Record<string, Array<{ installPath?: string }>> | undefined;
-  for (const [id, versions] of Object.entries(installed ?? {})) {
-    const root = versions?.at(-1)?.installPath;
-    if (root) roots.push({ dir: path.join(root, "skills"), editor: "claude-code", source: "plugin", plugin: id.split("@")[0] });
-  }
-  for (const dir of projectFolders(o)) {
-    roots.push({ dir: path.join(dir, ".cursor", "skills"), editor: "cursor", source: "project", project: dir });
-    roots.push({ dir: path.join(dir, ".claude", "skills"), editor: "claude-code", source: "project", project: dir });
-  }
-  const skills: SkillInfo[] = [];
-  const seen = new Set<string>();
-  for (const { dir, ...where } of roots) {
-    if (seen.has(dir)) continue;
-    seen.add(dir);
-    for (const name of subdirs(dir)) {
-      const file = path.join(dir, name, "SKILL.md");
-      const fm = fs.existsSync(file) ? frontmatter(file) : undefined;
-      const problems: Problem[] = [];
-      if (!fm) problems.push(fs.existsSync(path.join(dir, name)) ? { kind: "skill-unreadable", level: "info", text: "The folder has no readable SKILL.md; the editor skips it." } : { kind: "skill-broken-link", level: "warn", text: "A broken link: the folder it points to is gone." });
-      else if (!fm.description) problems.push({ kind: "skill-no-description", level: "warn", text: "The SKILL.md has no description, so the AI does not know when to use it." });
-      const full = path.join(dir, name);
-      let link: string | undefined;
-      try {
-        if (fs.lstatSync(full).isSymbolicLink()) link = path.resolve(dir, fs.readlinkSync(full));
-      } catch {
-        // vanished meanwhile
-      }
-      skills.push({ name: fm?.name || name, description: fm?.description ?? "", path: full, ...(link ? { link } : {}), removable: where.source === "user" || where.source === "project", problems, ...where });
-    }
-  }
-  for (const s of skills) {
-    if (s.source === "built-in") continue;
-    // Skills of two different projects are never loaded together.
-    const twins = skills.filter((t) => t !== s && t.editor === s.editor && t.name === s.name && t.source !== "built-in" && !(t.project && s.project && t.project !== s.project));
-    if (!twins.length) continue;
-    const project = s.project ?? twins.find((t) => t.project)?.project;
-    s.problems.push({ kind: "skill-twice", level: "warn", text: `${project ? `With ${project} open, ` : ""}${EDITOR_NAMES[s.editor]} loads a skill with this name ${twins.length > 1 ? `${twins.length + 1} times` : "twice"} (also ${twins.map((t) => t.path).join(", ")}). The AI may pick either; keep one.` });
-  }
-  return skills;
-}
+// ------------------------------------------------- skills removed earlier
 
 const removedDir = () => path.join(gctkHome(), "removed-skills");
 
@@ -766,18 +649,6 @@ export function listRemovedSkills(): RemovedSkill[] {
     }
   }
   return out.sort((a, b) => b.removedAt.localeCompare(a.removedAt));
-}
-
-/** Takes a skill out of the editor's reach by moving it into the gctk home; restoreSkill puts it back. */
-export function removeSkill(skillPath: string, o: ScanOptions = {}): RemovedSkill {
-  const k = scanSkills(o).find((x) => x.path === skillPath);
-  if (!k) throw new GctkError("INVALID_INPUT", `${skillPath} is not one of the skills on the AI setup page.`);
-  if (!k.removable) throw new GctkError("INVALID_INPUT", k.source === "plugin" ? `${k.name} comes with the plugin ${k.plugin}; remove the other copy, or the plugin.` : `${k.name} is built into the editor.`);
-  const id = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
-  const r: RemovedSkill = { id, name: k.name, editor: k.editor, from: k.path, ...(k.link ? { link: k.link } : {}), removedAt: new Date().toISOString() };
-  move(k.path, path.join(removedDir(), id, path.basename(k.path)));
-  fs.writeFileSync(path.join(removedDir(), id, "removed.json"), `${JSON.stringify(r, null, 2)}\n`, { mode: 0o600 });
-  return r;
 }
 
 export function restoreSkill(id: string): RemovedSkill {
@@ -862,7 +733,7 @@ export function toolTemplates(o: ScanOptions = {}): ToolTemplate[] {
 
 function locate(a: ServerAddress, o: ScanOptions = {}): { file: ConfigFile; json: Record<string, unknown>; indent: string | number; servers: Record<string, Entry>; entry: Entry } {
   const file = configFiles(o).find((f) => f.path === a.file);
-  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files on the AI setup page.`);
+  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files on the Cursor setup page.`);
   if (!file.editable) throw new GctkError("INVALID_INPUT", `gctk does not change ${a.file}${file.error ? ` (${file.error})` : file.scope === "plugin" ? " (it belongs to a plugin)" : ""}.`);
   const r = readJson(a.file);
   if (!r.value) throw new GctkError("INVALID_INPUT", `${a.file} could not be read: ${r.error}.`);
@@ -1122,9 +993,9 @@ const PASS_THROUGH = /^(LANG|LC_[A-Z]+|TERM|TZ|HTTPS?_PROXY|NO_PROXY|https?_prox
 /** Environment and command for `gctk mcp-launch <id>`; refuses unsigned or edited records. */
 export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, store: SecretStore = keychainStore): { command: string; args: string[]; env: NodeJS.ProcessEnv; cwd?: string; record: LaunchRecord } {
   const r = loadRecords()[id];
-  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the AI setup page of the gctk UI and set the server up again.`);
+  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the Cursor setup page of the gctk UI and set the server up again.`);
   const raw = store.get(r.account);
-  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the AI setup page of the gctk UI.`);
+  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the Cursor setup page of the gctk UI.`);
   const secrets = JSON.parse(raw) as Record<string, string>;
   const user = os.userInfo();
   const env: NodeJS.ProcessEnv = {
@@ -1163,9 +1034,9 @@ const CRED_TEXT: Record<ServerInfo["credentials"], string> = {
   project: "gctk project org (keychain, through gctk)",
 };
 
-/** What gc_ai_setup tells the AI: servers (Genesys first), problems and skill conflicts; secrets masked. */
+/** What gc_ai_setup tells the AI: Cursor's MCP servers (Genesys first) and their problems; secrets masked. */
 export function formatAiSetup(s: AiSetup): string {
-  const where = (x: ServerInfo) => `${EDITOR_NAMES[x.editor]} ${x.scope}${x.project ? ` ${x.project}` : x.plugin ? ` plugin ${x.plugin}` : ""}`;
+  const where = (x: ServerInfo) => (x.scope === "project" ? `folder ${x.project}` : x.scope === "plugin" ? `plugin ${x.plugin}` : "every folder (~/.cursor/mcp.json)");
   const line = (x: ServerInfo) =>
     [
       `- ${x.name}${x.disabled ? " (disabled)" : ""} · ${where(x)} · ${x.file}`,
@@ -1175,17 +1046,13 @@ export function formatAiSetup(s: AiSetup): string {
     ].join("\n");
   const genesys = s.servers.filter((x) => x.genesys);
   const other = s.servers.filter((x) => !x.genesys);
-  const skillProblems = s.skills.filter((k) => k.problems.length);
   return [
-    `${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, removing an entry) are the user's: they press them on the AI setup page of the gctk UI (gc_ui page ai-setup).`,
+    `Cursor: ${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, another org, removing an entry) are the user's: they press them on the Cursor setup page of the gctk UI (gc_ui page ai-setup); a folder's own org and tools are set on the Projects page.`,
     "",
     "Genesys Cloud servers:",
     ...(genesys.length ? genesys.map(line) : ["- none"]),
     "",
     "Other servers:",
     ...(other.length ? other.map(line) : ["- none"]),
-    "",
-    `Skills: ${s.skills.length} (${["cursor", "claude-code"].map((e) => `${EDITOR_NAMES[e as Editor]} ${s.skills.filter((k) => k.editor === e).length}`).join(", ")}).`,
-    ...skillProblems.map((k) => `- ${k.name} (${EDITOR_NAMES[k.editor]}, ${k.path}): ${k.problems.map((p) => p.text).join(" ")}`),
   ].join("\n");
 }

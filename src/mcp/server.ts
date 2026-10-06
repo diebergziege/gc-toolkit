@@ -12,8 +12,7 @@ const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
 
 const INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
 transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
-monitoring); gc_ai_setup tells which MCP servers and skills the user's editors load and which org each
-server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
+monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
 on the Orgs page of the UI, never in the chat.`;
 
 type ToolResult = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
@@ -34,7 +33,7 @@ export function createServer(): McpServer {
     {
       title: "Open the gctk UI",
       description:
-        "Open the local gctk web UI in the user's browser: profiles (Orgs: add orgs and their OAuth credentials, which go straight into the OS keychain), ai-setup (the editors' MCP servers, skills and where their credentials are; fixes such as moving a plain-text secret into the keychain), demos (deploy a whole demo into an org with one button, start what it needs on this computer), site (a demo customer website with the org's Messenger), demo (Demo ready: agent home-screen data, refresh, clean up), axl (AI Agent eXperience Lab workshops) and monitoring (object counts against the org's limits). Use it when the user wants to connect an org, check or fix their AI setup, or prepare a demo. The UI's session link goes to the browser only; you never see it.",
+        "Open the local gctk web UI in the user's browser: profiles (Orgs: add orgs and their OAuth credentials, which go straight into the OS keychain), ai-setup (Cursor setup: the MCP servers Cursor loads, the org each works on, where its credentials are; fixes such as moving a plain-text secret into the keychain), demos (deploy a whole demo into an org with one button, start what it needs on this computer), site (a demo customer website with the org's Messenger), demo (Demo ready: agent home-screen data, refresh, clean up), axl (Projects: demo folders with their own org and Genesys tools, and AXL workshops) and monitoring (object counts against the org's limits). Use it when the user wants to connect an org, check or fix their AI setup, or prepare a demo. The UI's session link goes to the browser only; you never see it.",
       inputSchema: { page: z.enum(UI_PAGES).default("profiles") },
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
@@ -62,9 +61,9 @@ export function createServer(): McpServer {
   server.registerTool(
     "gc_ai_setup",
     {
-      title: "MCP servers and skills of the user's editors",
+      title: "Cursor's MCP servers",
       description:
-        "The MCP servers configured in the user's editors (Cursor, Claude Code, Claude Desktop, VS Code, Windsurf: user, project and plugin config files) and the skills they load. For each server: file, command, how it gets its Genesys credentials (plain text in the file, keychain, gctk profiles) and which gctk profile/org its OAuth client belongs to; problems such as plain-text secrets, the same secret in several files, missing commands and skills loaded twice. Secrets are always masked. Use it when the user asks which MCP server works on which org, where credentials are, or why a skill or server misbehaves. Read-only: fixes (moving a secret to the keychain, removing an entry) are pressed by the user on the AI setup page (gc_ui page ai-setup).",
+        "The MCP servers Cursor loads: ~/.cursor/mcp.json (every folder), Cursor plugins, and the .cursor/mcp.json of the folders Cursor knows. For each server: file, command, how it gets its Genesys credentials (plain text in the file, keychain, gctk orgs, a gctk project) and which gctk org its OAuth client belongs to; problems such as plain-text secrets, the same secret in several files and missing commands. Secrets are always masked. Use it when the user asks which MCP server works on which org, where credentials are, or why a server does not start. Read-only: fixes (moving a secret to the keychain, another org, removing an entry) are pressed by the user on the Cursor setup page (gc_ui page ai-setup); a folder's own org and tools are set on the Projects page (gc_ui page axl).",
       inputSchema: {},
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },

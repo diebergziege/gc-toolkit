@@ -28,7 +28,7 @@ describe("your data", () => {
     expect(d.places.find((p) => p.key === "profiles")).toMatchObject({ exists: true, items: 1, label: "Orgs" });
     expect(d.places.find((p) => p.key === "demos")).toMatchObject({ exists: false, bytes: 0 });
     expect(d.secrets.map((s) => s.account)).toEqual(["demo-org", "__mcp__abc", "__approval-key__", expect.stringMatching(/^__ui-token__/)]);
-    expect(d.secrets[1]!.what).toBe("Secret of ava-harness (AI setup, 2 entries in editor configs)");
+    expect(d.secrets[1]!.what).toBe("Secret of ava-harness (Cursor setup, 2 entries in editor configs)");
     expect(d.elsewhere.map((e) => e.path)).toEqual([path.join(home, "x.json"), path.join(home, "y.json")]);
   });
 

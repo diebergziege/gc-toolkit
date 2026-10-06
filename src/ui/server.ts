@@ -21,7 +21,7 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
-import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, removeSkill, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
+import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
@@ -247,7 +247,6 @@ route("POST", "/api/ai-setup/fix", ({ body }) => {
   } else throw new HttpError(400, 'fix must be "keychain", "restore", "remove", "clean-env" or "repair".');
   return scanAiSetup();
 });
-route("POST", "/api/ai-setup/skills/remove", ({ body }) => (removeSkill(str(body, "path")), scanAiSetup()));
 route("POST", "/api/ai-setup/skills/restore", ({ body }) => (restoreSkill(str(body, "id")), scanAiSetup()));
 route("POST", "/api/ai-setup/credentials", ({ body }) => {
   const keychain = body.keychain !== false;

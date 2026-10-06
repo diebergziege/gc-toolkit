@@ -12,9 +12,7 @@ import {
   parseJsonc,
   removeLocation,
   removeServer,
-  removeSkill,
   repairServer,
-  restoreSkill,
   restoreToFile,
   scanAiSetup,
   setCredentials,
@@ -54,7 +52,10 @@ beforeEach(() => {
   mem = new Map();
   store = { get: (a) => mem.get(a), set: (a, v) => void mem.set(a, v), remove: (a) => void mem.delete(a) };
   opts = { home, platform: "linux", store, clients: () => new Map([[CLIENT, "sandbox-org"]]) };
+  // A folder Cursor knows, with its own .cursor/mcp.json (the second config file of many tests).
+  addLocation(project, home);
 });
+const folderFile = () => path.join(project, ".cursor", "mcp.json");
 afterEach(() => {
   process.env = { ...saved };
   fs.rmSync(tmp, { recursive: true, force: true });
@@ -69,12 +70,12 @@ function fakeCommand(): string {
 }
 
 describe("discovery", () => {
-  it("finds user, project and plugin files; plugins and files with comments are read-only", () => {
+  it("finds only Cursor's files: the global one, known folders and plugins; plugins and files with comments are read-only", () => {
     const cmd = fakeCommand();
     write(path.join(home, ".cursor", "mcp.json"), { mcpServers: { "ava-harness": harness(cmd) } });
-    write(path.join(home, ".claude.json"), { projects: { [project]: { mcpServers: { local: { command: cmd } } } } });
-    write(path.join(project, ".mcp.json"), { mcpServers: { "ava-harness": harness(cmd) } });
-    write(path.join(project, ".vscode", "mcp.json"), `{\n  // comment\n  "servers": { "x": { "command": "${cmd}", }, },\n}`);
+    write(folderFile(), `{\n  // comment\n  "mcpServers": { "x": { "command": "${cmd}", }, },\n}`);
+    write(path.join(home, ".claude.json"), { mcpServers: { claude: { command: cmd } } });
+    write(path.join(project, ".mcp.json"), { mcpServers: { claude: { command: cmd } } });
     const cache = path.join(home, ".cursor", "plugins", "cache", "market", "gctk");
     write(path.join(cache, "old", "mcp.json"), { mcpServers: { old: { command: "node" } } });
     fs.utimesSync(path.join(cache, "old"), new Date(2020, 0, 1), new Date(2020, 0, 1));
@@ -83,16 +84,16 @@ describe("discovery", () => {
 
     const files = configFiles(opts);
     const byPath = new Map(files.map((f) => [f.path, f]));
-    expect(byPath.get(path.join(home, ".cursor", "mcp.json"))).toMatchObject({ editor: "cursor", scope: "user", exists: true, editable: true });
-    expect(byPath.get(path.join(project, ".mcp.json"))).toMatchObject({ editor: "claude-code", scope: "project", project });
-    expect(byPath.get(path.join(project, ".vscode", "mcp.json"))).toMatchObject({ editable: false, error: expect.stringMatching(/comments/) });
+    expect(files.every((f) => f.editor === "cursor")).toBe(true);
+    expect(byPath.get(path.join(home, ".cursor", "mcp.json"))).toMatchObject({ scope: "user", exists: true, editable: true });
+    expect(byPath.get(folderFile())).toMatchObject({ scope: "project", project, editable: false, error: expect.stringMatching(/comments/) });
     expect(byPath.get(path.join(cache, "new", "mcp.json"))).toMatchObject({ scope: "plugin", editable: false, plugin: "gctk" });
     expect(byPath.has(path.join(cache, "new", ".mcp.json"))).toBe(false); // Cursor reads mcp.json only
     expect(byPath.has(path.join(cache, "old", "mcp.json"))).toBe(false); // only the newest version
+    expect(byPath.has(path.join(home, ".claude.json"))).toBe(false);
 
     const s = scanAiSetup(opts);
-    expect(s.servers.map((x) => x.name).sort()).toEqual(["ava-harness", "ava-harness", "gctk", "local", "x"]);
-    expect(s.servers.find((x) => x.name === "local")).toMatchObject({ section: `projects:${project}`, scope: "project", project });
+    expect(s.servers.map((x) => x.name).sort()).toEqual(["ava-harness", "gctk", "x"]);
     expect(s.servers.find((x) => x.name === "gctk")).toMatchObject({ credentials: "gctk-profile", editable: false });
   });
 
@@ -100,7 +101,7 @@ describe("discovery", () => {
     expect(parseJsonc('{ "a": "http://x//y", /* c */ "b": [1,], }')).toEqual({ value: { a: "http://x//y", b: [1] }, comments: true });
   });
 
-  it("adds and removes locations; an added file gets its editor from the path", () => {
+  it("adds and removes locations; an added file is read as a Cursor config", () => {
     const f = path.join(tmp, "elsewhere", ".cursor", "mcp.json");
     write(f, { mcpServers: {} });
     addLocation(f, home);
@@ -117,13 +118,13 @@ describe("servers", () => {
     const js = path.join(tmp, "dist", "gctk.js");
     write(js, "");
     write(path.join(home, ".cursor", "mcp.json"), { mcpServers: { "ava-harness": harness(cmd), gone: { command: path.join(tmp, "nope") }, gctk: { command: "node", args: [js, "mcp"], env: { GCTK_WORKSPACE: "1", GCTK_PROFILE: "sandbox-org" } } } });
-    write(path.join(home, ".claude.json"), { mcpServers: { "ava-harness": harness(cmd) } });
+    write(folderFile(), { mcpServers: { "ava-harness": harness(cmd) } });
     const s = scanAiSetup(opts);
-    const h = s.servers.find((x) => x.file.endsWith("mcp.json") && x.name === "ava-harness")!;
+    const h = s.servers.find((x) => x.file === path.join(home, ".cursor", "mcp.json") && x.name === "ava-harness")!;
     expect(h).toMatchObject({ genesys: true, credentials: "plain", org: { profile: "sandbox-org", region: "mypurecloud.de", clientId: "485c8ae1…" } });
     expect(h.env.find((v) => v.name === "GENESYS_CLIENT_SECRET")).toEqual({ name: "GENESYS_CLIENT_SECRET", value: "••••1234", secret: true, plain: true });
     expect(h.problems.map((p) => p.fix)).toContain("keychain");
-    expect(h.problems.some((p) => /also written in: .*\.claude\.json/.test(p.text))).toBe(true);
+    expect(h.problems.some((p) => p.text.includes(`also written in: ${folderFile()}`))).toBe(true);
     expect(s.servers.find((x) => x.name === "gone")!.problems[0]).toMatchObject({ level: "warn", fix: "remove", text: expect.stringMatching(/does not exist/) });
     expect(s.servers.find((x) => x.name === "gctk")).toMatchObject({ credentials: "gctk-profile", org: { profile: "sandbox-org" }, problems: [expect.objectContaining({ fix: "clean-env" })] });
 
@@ -186,10 +187,10 @@ describe("fixes", () => {
   it("shares one keychain item for the same secret, so a new secret is entered once", () => {
     const cmd = fakeCommand();
     write(cursorFile(), { mcpServers: { "ava-harness": harness(cmd) } });
-    write(path.join(home, ".claude.json"), { mcpServers: { "ava-harness": harness(cmd) } });
+    write(folderFile(), { mcpServers: { "ava-harness": harness(cmd) } });
     const js = gctkJs();
     const a = moveToKeychain(addr(), { ...opts, gctkJs: js });
-    const b = moveToKeychain(addr(path.join(home, ".claude.json")), { ...opts, gctkJs: js });
+    const b = moveToKeychain(addr(folderFile()), { ...opts, gctkJs: js });
     expect(b.account).toBe(a.account);
     expect(scanAiSetup(opts).secrets[0]!.usedBy).toHaveLength(2);
 
@@ -201,7 +202,7 @@ describe("fixes", () => {
     // The item stays while another server still uses it.
     removeServer(addr(), opts);
     expect(mem.has(a.account)).toBe(true);
-    removeServer(addr(path.join(home, ".claude.json")), opts);
+    removeServer(addr(folderFile()), opts);
     expect(mem.has(a.account)).toBe(false);
   });
 
@@ -232,8 +233,9 @@ describe("fixes", () => {
   it("leaves no secret in the keychain when the move fails halfway", () => {
     const cmd = fakeCommand();
     write(cursorFile(), { mcpServers: { "ava-harness": harness(cmd) } });
-    fs.mkdirSync(path.dirname(process.env.GCTK_HOME!), { recursive: true });
-    fs.writeFileSync(process.env.GCTK_HOME!, "a file where the gctk home should be");
+    const blocked = path.join(tmp, "blocked-home");
+    fs.writeFileSync(blocked, "a file where the gctk home should be");
+    process.env.GCTK_HOME = blocked;
     expect(() => moveToKeychain(addr(), { ...opts, gctkJs: gctkJs() })).toThrow();
     expect(mem.size).toBe(0);
     expect(read(cursorFile()).mcpServers["ava-harness"].env.GENESYS_CLIENT_SECRET).toBe(SECRET);
@@ -266,19 +268,19 @@ describe("changing credentials", () => {
     const id = read(cursorFile()).mcpServers["ava-harness"].args[2];
     expect(launchSpec(id, {}, store).env).toMatchObject({ GENESYS_CLIENT_ID: NEW_ID, GENESYS_CLIENT_SECRET: "new-secret-0001", AVA_HABITAT: "prod-euw1" });
 
-    write(path.join(home, ".claude.json"), { mcpServers: { "ava-harness": harness(cmd) } });
-    setCredentials(addr(path.join(home, ".claude.json")), { secret: "kept-in-file-1", keychain: false }, opts);
-    expect(read(path.join(home, ".claude.json")).mcpServers["ava-harness"].env).toMatchObject({ GENESYS_CLIENT_ID: CLIENT, GENESYS_CLIENT_SECRET: "kept-in-file-1" });
+    write(folderFile(), { mcpServers: { "ava-harness": harness(cmd) } });
+    setCredentials(addr(folderFile()), { secret: "kept-in-file-1", keychain: false }, opts);
+    expect(read(folderFile()).mcpServers["ava-harness"].env).toMatchObject({ GENESYS_CLIENT_ID: CLIENT, GENESYS_CLIENT_SECRET: "kept-in-file-1" });
     expect(() => setCredentials(addr(), {}, opts)).toThrow(/what should change/);
   });
 
   it("takes the credentials of a gctk org, and gives a server its own keychain item when it shared one", () => {
     const cmd = fakeCommand();
     write(cursorFile(), { mcpServers: { "ava-harness": harness(cmd) } });
-    write(path.join(home, ".claude.json"), { mcpServers: { "ava-harness": harness(cmd) } });
+    write(folderFile(), { mcpServers: { "ava-harness": harness(cmd) } });
     const js = gctkJs();
     const a = moveToKeychain(addr(), { ...opts, gctkJs: js });
-    const b = moveToKeychain(addr(path.join(home, ".claude.json")), { ...opts, gctkJs: js });
+    const b = moveToKeychain(addr(folderFile()), { ...opts, gctkJs: js });
     expect(b.account).toBe(a.account);
 
     saveProfile({ name: "demo-ie", region: "mypurecloud.ie", tier: "sandbox", credentials: "env" });
@@ -289,79 +291,6 @@ describe("changing credentials", () => {
     // The other server keeps its own org and secret.
     expect(launchSpec(b.id, {}, store).env).toMatchObject({ GENESYS_CLIENT_ID: CLIENT, GENESYS_CLIENT_SECRET: SECRET });
     expect(scanAiSetup({ ...opts, clients: () => new Map([[CLIENT, "sandbox-org"], [NEW_ID, "demo-ie"]]) }).servers.find((x) => x.file === cursorFile())!.org).toMatchObject({ profile: "demo-ie" });
-  });
-});
-
-describe("projects", () => {
-  it("lists the known project folders with what they bring of their own", () => {
-    write(path.join(home, ".claude.json"), { projects: { [project]: {} } });
-    write(path.join(project, ".cursor", "mcp.json"), { mcpServers: { local: { command: "node" } } });
-    skill(path.join(project, ".claude", "skills"), "only-here");
-    expect(scanAiSetup(opts).projects.find((p) => p.path === project)).toEqual({ path: project, servers: 1, skills: 1 });
-  });
-});
-
-describe("removing a skill", () => {
-  it("moves a copy aside so it no longer loads twice, and restores it", () => {
-    write(path.join(home, ".claude.json"), { projects: { [project]: {} } });
-    skill(path.join(home, ".claude", "skills"), "ava-design");
-    skill(path.join(project, ".claude", "skills"), "ava-design");
-    const copy = path.join(project, ".claude", "skills", "ava-design");
-    expect(scanAiSetup(opts).skills.filter((k) => k.problems.some((p) => p.kind === "skill-twice"))).toHaveLength(2);
-
-    const r = removeSkill(copy, opts);
-    expect(fs.existsSync(copy)).toBe(false);
-    const after = scanAiSetup(opts);
-    expect(after.skills.some((k) => k.problems.some((p) => p.kind === "skill-twice"))).toBe(false);
-    expect(after.removedSkills).toEqual([expect.objectContaining({ id: r.id, name: "ava-design", from: copy })]);
-
-    restoreSkill(r.id);
-    expect(fs.readFileSync(path.join(copy, "SKILL.md"), "utf8")).toMatch(/name: ava-design/);
-    expect(scanAiSetup(opts).removedSkills).toEqual([]);
-  });
-
-  it("removes only the link of a linked skill, and never plugin skills", () => {
-    const target = path.join(tmp, "AI", "skills", "shared");
-    skill(path.dirname(target), "shared");
-    fs.mkdirSync(path.join(home, ".cursor", "skills"), { recursive: true });
-    fs.symlinkSync(target, path.join(home, ".cursor", "skills", "shared"));
-    const linked = scanAiSetup(opts).skills.find((k) => k.name === "shared")!;
-    expect(linked).toMatchObject({ link: target, removable: true });
-    removeSkill(linked.path, opts);
-    expect(fs.existsSync(path.join(target, "SKILL.md"))).toBe(true);
-    expect(fs.existsSync(linked.path)).toBe(false);
-
-    skill(path.join(home, ".cursor", "plugins", "cache", "m", "p", "v1", "skills"), "plug");
-    const plug = scanAiSetup(opts).skills.find((k) => k.name === "plug")!;
-    expect(plug.removable).toBe(false);
-    expect(() => removeSkill(plug.path, opts)).toThrow(/comes with the plugin p/);
-    expect(() => removeSkill(path.join(tmp, "nowhere"), opts)).toThrow(/not one of the skills/);
-  });
-});
-
-describe("skills", () => {
-  it("lists skills per editor and flags names loaded twice in one editor", () => {
-    const other = path.join(tmp, "other-proj");
-    fs.mkdirSync(other, { recursive: true });
-    write(path.join(home, ".claude.json"), { projects: { [project]: {}, [other]: {} } });
-    skill(path.join(home, ".cursor", "skills"), "ava-design");
-    skill(path.join(home, ".claude", "skills"), "ava-design");
-    skill(path.join(project, ".claude", "skills"), "ava-design");
-    skill(path.join(project, ".claude", "skills"), "only-here");
-    skill(path.join(other, ".claude", "skills"), "only-here");
-    fs.mkdirSync(path.join(home, ".claude", "skills", "synced"), { recursive: true });
-    fs.symlinkSync(path.join(tmp, "gone"), path.join(home, ".cursor", "skills", "broken"));
-
-    const skills = scanAiSetup(opts).skills;
-    const find = (dir: string, name: string) => skills.find((k) => k.path === path.join(dir, name))!;
-    // Cursor and Claude Code each load ava-design from their own folder: not a conflict.
-    expect(find(path.join(home, ".cursor", "skills"), "ava-design").problems).toEqual([]);
-    // Claude Code: the user skill and the project's copy compete while that project is open.
-    expect(find(path.join(home, ".claude", "skills"), "ava-design").problems[0]!.text).toMatch(new RegExp(`With ${project} open`));
-    // Two different projects are never loaded together.
-    expect(find(path.join(project, ".claude", "skills"), "only-here").problems).toEqual([]);
-    expect(find(path.join(home, ".claude", "skills"), "synced").problems[0]).toMatchObject({ level: "info" });
-    expect(find(path.join(home, ".cursor", "skills"), "broken").problems[0]!.text).toMatch(/broken link/);
   });
 });
 
