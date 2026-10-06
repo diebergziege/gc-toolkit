@@ -104,7 +104,15 @@
   Removing a skill (`removeSkill`) only takes the user's own or a project's skill, never a plugin's
   or a built-in one, and moves it (a link stays a link, its target is untouched) into
   `~/.config/gctk/removed-skills/`, from where `restoreSkill` puts it back.
-- AXL workshops (`src/core/axl.ts`, UI page "AXL", MCP tool `gc_axl`, hidden CLI `gctk axl-harness`):
+- Projects (decision 2026-10-06, UI page "Projects", page id `axl`): a folder a consultant builds a demo
+  in, with its own org (any tier; production only after a confirmation stored for exactly that org and
+  checked at every start, `productionConfirmed`). An AXL workshop is a project with `lab` not false.
+  The folder's `.cursor/mcp.json` gets the AVA harness and/or `tools`: copies of Genesys servers from the
+  user's configs (`toolTemplates`, program and settings only), each started by hidden
+  `gctk project-tool --project <id> --tool <name>`. Command, arguments and which variables get the
+  credentials live in `axl.json`, never in the folder; the page sends template ids, not commands.
+  Cursor only (no Claude Code project config).
+- AXL workshops (`src/core/axl.ts`, a kind of project, MCP tool `gc_axl`, hidden CLI `gctk axl-harness`):
   the lab runs in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list of
   workshops in the UI, each with its own org and folder. Saving a workshop's org or folder (or "Set
   up folder") writes the harness server into that folder's own `.cursor/mcp.json` (never the global

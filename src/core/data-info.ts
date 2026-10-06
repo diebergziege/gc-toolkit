@@ -61,7 +61,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["demos", "Demos: deployments and logs", "Per org what a deploy created (for Remove), the commands that run, and their logs."],
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
-  ["axl.json", "AXL workshops", "Your workshops with their org and folder."],
+  ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the Genesys tools of each folder (programs and settings, no credentials)."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
   ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],
   ["cache", "Cache", "Website logos and staged schedule uploads; safe to delete."],

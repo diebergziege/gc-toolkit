@@ -1,6 +1,6 @@
 import { Command, Option } from "commander";
 import { runLaunch } from "../core/ai-setup.js";
-import { runHarness } from "../core/axl.js";
+import { runHarness, runProjectTool } from "../core/axl.js";
 import { GenesysClient } from "../core/client.js";
 import { deleteCredentials, hasStoredCredentials, keychainName, storeCredentials } from "../core/credentials.js";
 import { setSnapshotSource, snapshotSource } from "../core/demos.js";
@@ -221,6 +221,21 @@ program
     if (!s) return console.log(`${demo}: no snapshot source on this computer.`);
     console.log(`${demo}: snapshots come from ${s.profile}`);
     for (const r of s.replace ?? []) console.log(`  replace "${r.value}" with "${r.with}"`);
+  });
+
+program
+  .command("project-tool", { hidden: true })
+  .description("internal: Cursor starts this for a Genesys tool of a gctk project folder (org and credentials from the Projects page)")
+  .option("--project <id>", "the project the folder belongs to")
+  .option("--tool <name>", "the tool, as set up for the project")
+  .action(async (o: { project?: string; tool?: string }) => {
+    try {
+      process.exitCode = await runProjectTool(o);
+    } catch (err) {
+      // stdout belongs to the MCP protocol; Cursor shows stderr in its MCP log.
+      process.stderr.write(`gctk: ${formatError(err)}\n`);
+      process.exitCode = 1;
+    }
   });
 
 program

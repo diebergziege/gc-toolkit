@@ -269,7 +269,7 @@ const VIEWS = [
   ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
   ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
   ["demo", "Demo ready", "Fill the agent's home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],
-  ["axl", "AXL", "AI Agent eXperience Lab: the org and the Cursor folder for the workshop"],
+  ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],
 ];
 const MINOR_VIEWS = [
   ["monitoring", "Monitoring", "How many queues, flows, data actions … an org has, next to its limits"],
@@ -1350,7 +1350,8 @@ function axlOpenInCursor(id, small) {
 }
 
 async function viewAxl() {
-  const st = await api("/api/axl");
+  const [st, templates] = await Promise.all([api("/api/axl"), api("/api/axl/tool-templates").catch(() => [])]);
+  state.toolTemplates = templates;
   const box = h("div", {});
   const draw = (next) => {
     const open = state.axlOpen;
@@ -1360,6 +1361,24 @@ async function viewAxl() {
   };
   draw(st);
   return box;
+}
+
+const isLabProject = (w) => w.lab !== false;
+const usesHarnessUi = (w) => isLabProject(w) || w.harness === true;
+const toolTitle = (n) => (TOOL_NAMES[n] || [n])[0];
+/** The tools a project's folder gets, in plain names. */
+const projectTools = (w) => [...(usesHarnessUi(w) ? ["AVA harness"] : []), ...(w.tools || []).map((t) => toolTitle(t.name))];
+
+/** Where a project stands: workshops by their harness, projects by their folder's tools. */
+function projectState(x) {
+  const w = x.workshop, f = x.folder;
+  if (isLabProject(w)) return axlHarnessState(x);
+  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];
+  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];
+  if (!projectTools(w).length) return ["no tools", "s-pending", "Pick the Genesys tools for this folder."];
+  if (!f.exists || f.stale || (!f.connected && !(f.tools || []).some((t) => t.connected))) return [f.stale ? "out of date" : "not set up", "s-pending", "Press Set up folder."];
+  const started = Object.keys(x.toolStarts || {}).length || x.lastStart;
+  return started ? ["running", "s-applied", "Cursor has started the tools of this folder."] : ["set up", "s-applied", "Open the folder in Cursor and switch its tools on (Settings → MCP)."];
 }
 
 function axlHarnessMissing(st, draw) {
@@ -1374,55 +1393,112 @@ function axlOverview(st, draw) {
   const open = (id) => { state.axlOpen = id; draw(st); };
   const rows = st.workshops.map((x) => {
     const w = x.workshop;
-    const [label, cls, hint] = axlHarnessState(x);
+    const [label, cls, hint] = projectState(x);
     const latest = x.sessions[0];
     return h("tr", {},
-      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),
+      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), isLabProject(w) ? [" ", pill("AXL workshop", "")] : null,
+        h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),
       h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),
+      h("td", {}, projectTools(w).join(", ") || h("span", { class: "muted" }, "–"),
+        isLabProject(w) && x.sessions.length ? h("div", { class: "muted", style: "font-size:12px" }, `${x.sessions.length} session${x.sessions.length > 1 ? "s" : ""} · ${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`) : null),
       h("td", { title: hint }, pill(label, cls)),
-      h("td", {}, x.sessions.length ? [`${x.sessions.length} · `, h("span", { class: "muted" }, `${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`)] : h("span", { class: "muted" }, "–")),
       h("td", { style: "white-space:nowrap;text-align:right" }, x.folder.exists ? axlOpenInCursor(w.id, true) : null, " ", h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(w.id) }, "Settings")));
   });
+  const harnessUsers = st.workshops.filter((x) => usesHarnessUi(x.workshop));
   return h("div", {},
-    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "AXL workshops"), h("span", { class: "spacer" }),
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Projects"), h("span", { class: "spacer" }),
       h("button", { class: "btn" , onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"),
-      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New workshop")),
-    h("p", { class: "lead" }, "Run AI Agent eXperience Labs in the Cursor app with the axl-lab-facilitator skill. Each workshop has its own org and its own folder; gctk gives the folder an AVA harness server that works on that org, with its credentials from the keychain. Other Cursor projects are not affected."),
-    axlHarnessMissing(st, draw),
-    st.globalHarness.present ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a workshop's, so switch it off in each workshop folder (Settings → MCP).`) : null,
+      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New project")),
+    h("p", { class: "lead" }, "A project is a folder you build a demo in with the AI in Cursor. Each project has its own org: gctk gives the folder the Genesys tools you pick, started with that org's credentials from the keychain, and nothing changes in your other folders. An AXL workshop is a project with the lab guide."),
+    harnessUsers.length ? axlHarnessMissing(st, draw) : null,
+    st.globalHarness.present && harnessUsers.length ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a project's, so switch it off in each project folder (Settings → MCP).`) : null,
     st.workshops.length
-      ? h("div", { class: "panel" }, h("table", {}, h("tr", {}, h("th", {}, "Workshop"), h("th", {}, "Org"), h("th", {}, "AVA harness"), h("th", {}, "Sessions"), h("th", {}, "")), rows))
-      : h("div", { class: "panel empty" }, "No workshops yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Add the first one"), "."));
+      ? h("div", { class: "panel", style: "overflow-x:auto" }, h("table", {}, h("tr", {}, h("th", {}, "Project"), h("th", {}, "Org"), h("th", {}, "Tools"), h("th", {}, "Status"), h("th", {}, "")), rows))
+      : h("div", { class: "panel empty" }, "No projects yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Create the first one"), "."));
 }
 
-function axlOrgSelect(st, value) {
-  return h("select", { "aria-label": "Org for the workshop" },
-    h("option", { value: "" }, st.choices.length ? "choose…" : "no sandbox or dev org"),
-    st.choices.map((c) => h("option", { value: c.name, selected: c.name === value }, `${c.name} · ${c.tier} · ${c.region}`)));
+/** Orgs for a project (any, production marked) or a workshop (sandbox and dev only). */
+function projectOrgSelect(st, value, lab) {
+  const list = lab ? st.choices : st.orgs;
+  return h("select", { "aria-label": "Org" },
+    h("option", { value: "" }, list.length ? "choose…" : lab ? "no sandbox or dev org" : "no org yet: add one on the Orgs page"),
+    list.map((c) => h("option", { value: c.name, selected: c.name === value }, `${c.name} · ${c.tier} · ${c.region}${c.tier === "production" ? " · PRODUCTION" : ""}`)));
+}
+/** Asks once before a project works on a production org; true when the org is fine to use. */
+function confirmOrg(st, name) {
+  const o = st.orgs.find((x) => x.name === name);
+  if (!o || o.tier !== "production") return { ok: true };
+  return { ok: confirm(`${name} is a PRODUCTION org.\n\nThe AI tools in this folder would read and change it directly, with that org's credentials. Use a sandbox or dev org for demos where you can.\n\nLet this project work on ${name}?`), confirmProduction: true };
+}
+
+/** Checkboxes for the AVA harness and the Genesys tools found in the user's configs. */
+function toolPicker(w, st) {
+  const lab = isLabProject(w);
+  const templates = state.toolTemplates || [];
+  const harness = h("input", { type: "checkbox", checked: usesHarnessUi(w) ? true : null, disabled: lab ? true : null, style: "width:auto" });
+  const stored = w.tools || [];
+  const boxes = [];
+  const line = (box, title, sub) => h("label", { style: "display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:14px" }, box, h("span", {}, h("strong", {}, title), sub ? h("div", { class: "muted", style: "font-size:12px" }, sub) : null));
+  const rows = [line(harness, "AVA harness", lab ? "always on for an AXL workshop" : `builds and tests AI agents · starts ${st.harnessCommand}${st.harnessInstalled ? "" : " (not installed yet)"}`)];
+  for (const t of templates) {
+    const has = stored.some((x) => x.name === t.name);
+    const box = h("input", { type: "checkbox", checked: has ? true : null, style: "width:auto" });
+    boxes.push([box, t.id]);
+    rows.push(line(box, toolTitle(t.name), `${t.name !== toolTitle(t.name) ? `${t.name} · ` : ""}as in ${t.from.replace(/^\/Users\/[^/]+/, "~")}`));
+  }
+  for (const x of stored.filter((x) => !templates.some((t) => t.name === x.name))) {
+    const box = h("input", { type: "checkbox", checked: true, style: "width:auto" });
+    boxes.push([box, `keep:${x.name}`]);
+    rows.push(line(box, toolTitle(x.name), "set up earlier; no longer found in your editor configs"));
+  }
+  if (!templates.length && !stored.length) rows.push(h("div", { class: "muted", style: "font-size:13px" }, "Other Genesys tools appear here once you have them in one of your editor configs (for example the Architect MCP server); gctk copies the program and settings, never the credentials."));
+  return { el: h("div", { style: "display:grid;gap:8px" }, rows), read: () => ({ ...(lab ? {} : { harness: harness.checked }), tools: boxes.filter(([b]) => b.checked).map(([, id]) => id) }) };
 }
 
 function axlNew(st, draw) {
   const back = () => { state.axlOpen = null; draw(st); };
-  const name = h("input", { placeholder: "e.g. Acme Bank", style: "min-width:260px", "aria-label": "Workshop name" });
-  const org = axlOrgSelect(st, "");
-  const folder = h("input", { placeholder: "/Users/you/AXL/acme-bank", style: "flex:1;min-width:320px", "aria-label": "Workshop folder" });
+  let lab = false;
+  const name = h("input", { placeholder: "e.g. Acme Bank", style: "min-width:260px", "aria-label": "Project name" });
+  const folder = h("input", { placeholder: "~/Demos/Acme Bank", style: "flex:1;min-width:320px", "aria-label": "Project folder" });
+  let folderTouched = false;
+  folder.addEventListener("input", () => { folderTouched = true; });
+  name.addEventListener("input", () => { if (!folderTouched) folder.value = name.value.trim() ? `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}` : ""; });
+  const orgBox = h("div");
+  const toolsBox = h("div");
+  let org, picker;
+  const drawType = () => {
+    org = projectOrgSelect(st, org?.value, lab);
+    put(orgBox, h("label", {}, lab ? "Org the lab builds in (sandbox or dev)" : "Org the AI works on in this folder", org));
+    picker = toolPicker({ lab: lab ? undefined : false, harness: false }, st);
+    put(toolsBox, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:6px" }, "Genesys tools for this folder"), picker.el);
+    if (!folderTouched && name.value.trim()) folder.value = `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}`;
+  };
+  const kind = (value, title, sub) => h("button", { class: "ws-opt", "aria-pressed": String(lab === value), onclick: (e) => { lab = value; for (const b of e.currentTarget.parentElement.children) b.setAttribute("aria-pressed", String(b === e.currentTarget)); drawType(); } },
+    h("span", { class: "mark" }), h("span", {}, h("strong", {}, title), h("small", {}, sub)));
+  drawType();
   const create = async () => {
+    const c = confirmOrg(st, org.value);
+    if (!c.ok) return;
     try {
-      const r = await api("/api/axl/workshops", { method: "POST", body: { name: name.value, profile: org.value, folder: folder.value } });
+      const r = await api("/api/axl/workshops", { method: "POST", body: { name: name.value, profile: org.value, folder: folder.value, lab, ...(c.confirmProduction ? { confirmProduction: true } : {}), ...picker.read() } });
       state.axlOpen = r.id;
       draw(r);
     } catch (err) { showError(err); }
   };
   return h("div", {},
-    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All workshops")),
-    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New AXL workshop"),
+    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All projects")),
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New project"),
     h("div", { class: "panel" },
-      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:10px" },
+      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:12px" },
+        h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px" },
+          kind(false, "Demo project", "A folder for building a demo with the AI, on any of your orgs."),
+          kind(true, "AXL workshop", "An AI Agent eXperience Lab: AVA harness, lab guide and sessions; sandbox or dev orgs only.")),
         h("label", {}, "Name (usually the customer)", name),
-        h("label", {}, "Org the lab builds in (sandbox or dev)", org),
-        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder)),
-      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder with axl-sessions/ and writes the AVA harness server with this org into its .cursor/mcp.json."),
-      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create workshop"), h("button", { class: "btn", onclick: back }, "Cancel"))));
+        orgBox,
+        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder),
+        toolsBox),
+      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder and writes the chosen tools into its .cursor/mcp.json, each started through gctk with this org's credentials from the keychain. No secret goes into the folder."),
+      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create project"), h("button", { class: "btn", onclick: back }, "Cancel"))));
 }
 
 // A condensed AXL Session Field Guide (2026-09-24): what to do in each step, the prompts to paste
@@ -1633,74 +1709,122 @@ function axlGuide(x) {
   return panel;
 }
 
+/** What the AI in Cursor gets in this folder: its own servers, your global ones and plugins. */
+function folderServers(w) {
+  const box = h("div", {}, h("div", { class: "muted" }, "Reading your Cursor configs…"));
+  if (!w.folder) { put(box, h("div", { class: "muted" }, "Set the folder first.")); return box; }
+  api("/api/ai-setup").then((s) => {
+    const list = s.servers.filter((x) => x.editor === "cursor" && (x.scope === "user" || x.scope === "plugin" || x.project === w.folder));
+    const own = new Set(list.filter((x) => x.project === w.folder).map((x) => x.name));
+    const from = (x) => x.project === w.folder ? "this folder" : x.scope === "plugin" ? `plugin ${x.plugin}` : "all projects (~/.cursor/mcp.json)";
+    const org = (x) => x.credentials === "gctk-profile" ? "needs no org" : x.org?.profile || (x.org?.clientId ? "an OAuth client gctk does not know" : x.genesys ? "org not known" : "–");
+    put(box, list.length ? h("table", {}, h("tr", {}, h("th", {}, "Server"), h("th", {}, "From"), h("th", {}, "Org"), h("th", {}, "")),
+      [...list].sort((a, b) => (a.project === w.folder ? 0 : 1) - (b.project === w.folder ? 0 : 1) || a.name.localeCompare(b.name)).map((x) => h("tr", {},
+        h("td", {}, h("strong", {}, toolTitle(x.name)), x.name !== toolTitle(x.name) ? h("div", { class: "muted mono", style: "font-size:11.5px" }, x.name) : null),
+        h("td", { class: "muted" }, from(x)),
+        h("td", {}, org(x), x.org?.profile && w.profile && x.genesys && x.org.profile !== w.profile && x.project !== w.folder ? [" ", pill("another org", "s-pending")] : null),
+        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder's: switch this one off here (Settings → MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on AI setup", "s-failed") : null))))
+      : h("div", { class: "muted" }, "Cursor loads no MCP servers in this folder yet."));
+  }).catch((err) => put(box, h("div", { class: "error" }, err.message)));
+  return box;
+}
+
 function axlDetail(st, x, draw) {
   const w = x.workshop, f = x.folder, org = x.org;
+  const lab = isLabProject(w);
   const back = () => { state.axlOpen = null; draw(st); };
-  const put = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };
-  const step = (n, title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${n}. ${title}`), ...body);
+  const put2 = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };
+  let n = 0;
+  const step = (title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${++n}. ${title}`), ...body);
   const note = (text) => h("p", { class: "muted", style: "font-size:13px;margin:8px 0" }, text);
+  const setupBtn = () => h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder");
 
-  const name = h("input", { value: w.name, style: "font-size:18px;font-weight:600;min-width:260px", "aria-label": "Workshop name" });
-  name.addEventListener("change", () => put({ name: name.value }));
+  const name = h("input", { value: w.name, style: "font-size:18px;font-weight:600;min-width:260px", "aria-label": "Project name" });
+  name.addEventListener("change", () => put2({ name: name.value }));
 
-  // 1. Org
-  const sel = axlOrgSelect(st, w.profile);
-  sel.addEventListener("change", () => put({ profile: sel.value }));
-  const orgPanel = step(1, "Org for the workshop",
-    h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),
-    note("Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the workshop folder right away; restart the ava-harness server in Cursor afterwards (step 3)."),
-    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The workshop folder now starts the AVA harness with ${w.profile}. Restart the ava-harness server in Cursor so it takes effect.`) : null,
+  // Org
+  const sel = projectOrgSelect(st, w.profile, lab);
+  sel.addEventListener("change", () => {
+    const c = confirmOrg(st, sel.value);
+    if (!c.ok) { sel.value = w.profile || ""; return; }
+    put2({ profile: sel.value, ...(c.confirmProduction ? { confirmProduction: true } : {}) });
+  });
+  const orgPanel = step(lab ? "Org for the workshop" : "Org for this folder",
+    h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat && usesHarnessUi(w) ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),
+    note(lab ? "Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the folder right away; restart the tools in Cursor afterwards."
+      : "The org every Genesys tool in this folder works on. A new org goes into the folder right away; restart the tools in Cursor afterwards (switch them off and on under Settings → MCP)."),
+    org?.tier === "production" && !lab ? h("div", { class: "warn" }, "A production org: the AI tools in this folder change it directly.") : null,
+    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The folder's tools now work on ${w.profile}. Restart them in Cursor so it takes effect.`) : null,
     org?.problem ? h("div", { class: "error" }, org.problem) : null,
     org && !org.credentialsStored ? h("div", { class: "warn" }, "No credentials stored for this org. Enter them on the Orgs page.") : null);
 
-  // 2. Folder
-  const dir = h("input", { value: w.folder || "", placeholder: "/Users/you/AXL/customer", style: "flex:1;min-width:280px", "aria-label": "Workshop folder" });
+  // Folder
+  const dir = h("input", { value: w.folder || "", placeholder: "~/Demos/customer", style: "flex:1;min-width:280px", "aria-label": "Project folder" });
   const folderState = !w.folder ? null
-    : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; it is created as soon as an org is chosen.")
-    : f.stale ? h("div", { class: "warn" }, `The folder's harness server is out of date${f.org && f.org !== w.profile ? ` (set to ${f.org})` : ""}. Press Set up folder.`)
-    : f.connected ? h("div", { class: "okbox" }, `Set up: the folder starts the AVA harness with ${f.org}.`)
+    : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; Set up folder creates it.")
+    : f.stale ? h("div", { class: "warn" }, "The folder's tools are out of date. Press Set up folder.")
+    : (f.connected || (f.tools || []).some((t) => t.connected)) ? h("div", { class: "okbox" }, `Set up: the folder starts ${projectTools(w).join(", ")} with ${w.profile}.`)
     : h("div", { class: "warn" }, "Not set up yet.");
-  const folderPanel = step(2, "Workshop folder",
-    h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put({ folder: dir.value }) }, "Save")),
-    note(`The folder you open in Cursor for this workshop. The lab keeps each customer's session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server with this workshop's org into the folder's .cursor/mcp.json (your other entries there stay).`),
+  const folderPanel = step("Folder",
+    h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put2({ folder: dir.value }) }, "Save")),
+    note(lab ? `The folder you open in Cursor for this workshop. The lab keeps each customer's session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server into the folder's .cursor/mcp.json (your other entries there stay).`
+      : "The folder you open in Cursor for this demo. gctk writes the tools into its .cursor/mcp.json; your own entries there stay."),
     folderState,
     w.folder ? h("div", { class: "row", style: "margin-top:8px" },
-      f.connected && !f.stale ? null : h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder"),
+      f.exists && !f.stale && (f.connected || (f.tools || []).some((t) => t.connected)) ? null : setupBtn(),
       f.exists ? h("button", { class: "btn", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: {} }).catch(showError) }, "Show in Finder") : null) : null);
 
-  // 3. Cursor: new project servers start only after the user switches them on.
-  const [label, cls, hint] = axlHarnessState(x);
-  const cursorPanel = step(3, "In Cursor",
+  // Tools (projects only; a workshop always has the harness)
+  let toolsPanel = null;
+  if (!lab) {
+    const picker = toolPicker(w, st);
+    toolsPanel = step("Genesys tools in this folder",
+      note("Each tool starts through gctk with the org above; its credentials come from the keychain, never from the folder."),
+      picker.el,
+      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save tools")));
+  }
+
+  // What Cursor loads here
+  const loadsPanel = step("What the AI gets in this folder",
+    note("Every MCP server Cursor loads when this folder is open: the folder's own, your global ones and plugins. A global server with the same name as one of the folder's runs next to it; switch it off for this folder in Cursor."),
+    folderServers(w));
+
+  // Cursor
+  const [label, cls, hint] = projectState(x);
+  const cursorPanel = step("In Cursor",
     h("div", { class: cls === "s-applied" ? "okbox" : "warn" }, pill(label, cls), " ", hint),
     h("ol", { style: "margin:8px 0;padding-left:20px;font-size:13.5px" },
-      h("li", {}, "Open the workshop folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),
-      h("li", {}, "Settings → MCP: switch on this project's ava-harness. Cursor never starts a new project server by itself; after an org change, switch it off and on again."),
-      st.globalHarness.present ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other projects.") : null,
-      h("li", {}, "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator.")),
+      h("li", {}, "Open the folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),
+      h("li", {}, "Settings → MCP: switch on this folder's tools. Cursor never starts a new project server by itself; after an org change, switch them off and on again."),
+      st.globalHarness.present && usesHarnessUi(w) ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other folders.") : null,
+      h("li", {}, lab ? "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator." : "Ask the AI to confirm the org: \"Which Genesys Cloud org are you connected to?\" Then start building.")),
     h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"));
 
-  // 4. Sessions
-  const stageIdx = (s) => AXL_STAGES.findIndex(([id]) => id === s.stage);
-  const sessions = x.sessions.length ? h("table", {},
-    h("tr", {}, h("th", {}, "Session"), h("th", {}, "Reached"), h("th", {}, "Artifacts"), h("th", {}, "Changed"), h("th", {}, "")),
-    x.sessions.map((s) => h("tr", {},
-      h("td", {}, h("strong", {}, s.name.replace(/^AXL-/i, ""))),
-      h("td", {}, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, AXL_STAGES.map(([id, lbl], i) => h("span", { class: `pill ${i <= stageIdx(s) ? "s-applied" : ""}`, title: lbl }, lbl)))),
-      h("td", { class: "muted" }, s.artifacts.map((a) => AXL_ARTIFACT_LABELS[a] || a).join(", ") || "–"),
-      h("td", { class: "muted", style: "white-space:nowrap" }, time(s.modified)),
-      h("td", {}, h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: { session: s.name } }).catch(showError) }, "Open")))))
-    : h("div", { class: "muted" }, x.sessionsDir ? "No sessions yet. They appear here when the lab writes its first artifact." : "Set the workshop folder first.");
+  // Sessions (workshops)
+  let sessionsPanel = null;
+  if (lab) {
+    const stageIdx = (s) => AXL_STAGES.findIndex(([id]) => id === s.stage);
+    sessionsPanel = step("Sessions", x.sessions.length ? h("table", {},
+      h("tr", {}, h("th", {}, "Session"), h("th", {}, "Reached"), h("th", {}, "Artifacts"), h("th", {}, "Changed"), h("th", {}, "")),
+      x.sessions.map((s) => h("tr", {},
+        h("td", {}, h("strong", {}, s.name.replace(/^AXL-/i, ""))),
+        h("td", {}, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, AXL_STAGES.map(([id, lbl], i) => h("span", { class: `pill ${i <= stageIdx(s) ? "s-applied" : ""}`, title: lbl }, lbl)))),
+        h("td", { class: "muted" }, s.artifacts.map((a) => AXL_ARTIFACT_LABELS[a] || a).join(", ") || "–"),
+        h("td", { class: "muted", style: "white-space:nowrap" }, time(s.modified)),
+        h("td", {}, h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: { session: s.name } }).catch(showError) }, "Open")))))
+      : h("div", { class: "muted" }, x.sessionsDir ? "No sessions yet. They appear here when the lab writes its first artifact." : "Set the folder first."));
+  }
 
   const remove = h("button", { class: "btn danger", onclick: async () => {
-    if (!confirm(`Remove the workshop "${w.name}" from gctk? Its AVA harness server is taken out of the folder's .cursor/mcp.json; the folder and its sessions stay.`)) return;
+    if (!confirm(`Remove the project "${w.name}" from gctk? Its tools are taken out of the folder's .cursor/mcp.json; the folder and everything in it stay.`)) return;
     try { const r = await api(axlUrl(w.id), { method: "DELETE" }); state.axlOpen = null; draw(r); } catch (err) { showError(err); }
-  } }, "Remove workshop");
+  } }, "Remove project");
 
   return h("div", {},
-    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All workshops")),
-    h("div", { class: "row", style: "margin-bottom:12px" }, name, pill(label, cls), h("span", { class: "spacer" }), remove),
-    axlHarnessMissing(st, draw),
-    orgPanel, folderPanel, cursorPanel, step(4, "Sessions", sessions), axlGuide(x));
+    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All projects")),
+    h("div", { class: "row", style: "margin-bottom:12px" }, name, lab ? pill("AXL workshop", "") : null, pill(label, cls), h("span", { class: "spacer" }), remove),
+    usesHarnessUi(w) ? axlHarnessMissing(st, draw) : null,
+    orgPanel, folderPanel, toolsPanel, loadsPanel, cursorPanel, sessionsPanel, lab ? axlGuide(x) : null);
 }
 
 // ----------------------------------------------------------- monitoring
@@ -2099,6 +2223,7 @@ const CREDS = {
   keychain: ["secret in the keychain, started through gctk", "s-applied"],
   "gctk-profile": ["gctk profiles (keychain)", "s-applied"],
   axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],
+  project: ["project org (keychain, through gctk)", "s-applied"],
 };
 const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };
 /** Plain names for the Genesys tools people meet most. */
@@ -2263,7 +2388,7 @@ function aiOverview(s, ctx) {
     .filter((e) => s.servers.some((x) => x.editor === e) || e === "cursor" || e === "claude-code");
   const orgOf = (x) => {
     if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");
-    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null, x.credentials === "axl" ? h("span", { class: "muted", style: "font-size:12px" }, " · set on the AXL page") : null); }
+    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null, x.credentials === "axl" || x.credentials === "project" ? h("span", { class: "muted", style: "font-size:12px" }, " · set on the Projects page") : null); }
     if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);
     if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");
     return h("span", { class: "muted" }, "no org set");
@@ -2339,7 +2464,7 @@ function serverRow(x, ctx, opts = {}) {
       x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,
       x.credentialKeys ? credentialsForm(x, ctx)
         : x.credentials === "gctk-profile" ? h("div", { class: "muted", style: "font-size:13px" }, "Its credentials are the orgs on the Orgs page.")
-        : x.credentials === "axl" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the AXL page.") : null,
+        : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the Projects page.") : null,
       x.editable ? h("div", { class: "row" },
         x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,
         x.problems.some((p) => p.fix === "clean-env") ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, FIX_LABELS["clean-env"]) : null,

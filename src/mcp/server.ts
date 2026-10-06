@@ -11,9 +11,9 @@ declare const __GCTK_VERSION__: string;
 const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
 
 const INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
-transparent. gc_ui opens it (orgs, AI setup, demo website, Demo ready, AXL workshops, monitoring);
-gc_ai_setup tells which MCP servers and skills the user's editors load and which org each server
-works on; gc_axl gives the AXL workshop settings. Secrets are never shown. Org credentials are entered
+transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
+monitoring); gc_ai_setup tells which MCP servers and skills the user's editors load and which org each
+server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
 on the Orgs page of the UI, never in the chat.`;
 
 type ToolResult = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
@@ -50,9 +50,9 @@ export function createServer(): McpServer {
   server.registerTool(
     "gc_axl",
     {
-      title: "AXL workshop settings",
+      title: "Project and AXL workshop settings",
       description:
-        "AXL (AI Agent eXperience Lab) workshops the user manages on the AXL page of the gctk UI. Pass folder = your Cursor workspace to get that workshop: the org the ava-harness MCP server builds in, the workshop folder (sessions in its axl-sessions/), whether Cursor started the harness for it, and its sessions with their artifacts. Without folder: the list of workshops. Call it at the start of an AXL session and tell the facilitator which org the lab builds in. Read-only.",
+        "Project folders and AXL (AI Agent eXperience Lab) workshops the user manages on the Projects page of the gctk UI. Pass folder = your Cursor workspace to get that folder's project: the Genesys Cloud org its tools work on and which Genesys tools gctk starts there; for an AXL workshop also the folder's sessions (axl-sessions/), whether Cursor started the ava-harness, and the sessions' artifacts. Without folder: the list. Call it before you build in a folder and tell the user which org you are about to change. Read-only.",
       inputSchema: { folder: z.string().max(1000).optional().describe("absolute path of the Cursor workspace the lab runs in") },
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },

@@ -42,7 +42,7 @@ itself.
   published WFM schedule. Existing objects are reused, a second press creates nothing twice, and
   **Clean up** removes or restores exactly what the page did. **Refresh dates** moves the demo data
   forward when it has aged. Changes happen as soon as you press a button
-- **AXL**: set up and follow AI Agent eXperience Labs that run in the Cursor app: several workshops,
+- **Projects**: a folder for each demo you build with the AI in Cursor, each with its own org. gctk gives the folder the Genesys tools you pick (the AVA harness, and Genesys MCP servers copied from your own configs), started with that org's credentials from the keychain, and shows everything Cursor loads there. **AXL** workshops are projects with the lab guide: several workshops,
   each with its own org (sandbox or dev) and folder. gctk gives that folder its own AVA harness
   server, started with the org's credentials from the keychain, and lists the sessions with the
   artifacts they reached
@@ -111,7 +111,7 @@ Open button; this is the overview:
 | `~/.config/gctk/demos/` | Demos: what each deploy created per org (and your parameter values), logs |
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
-| `~/.config/gctk/axl.json`, `harness-starts.json` | AXL workshops |
+| `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
 | `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
 | OS keychain, service `gctk` | org client IDs and secrets, AI setup secrets, the signing key, the UI token |
@@ -138,7 +138,7 @@ Open button; this is the overview:
 |---|---|
 | `gc_ui` | open a page of the UI in the user's browser (the session link never reaches the AI) |
 | `gc_ai_setup` | the editors' MCP servers and skills, which org each server uses, where its secret is (masked, read-only) |
-| `gc_axl` | the AXL workshops and their orgs (read-only) |
+| `gc_axl` | which org and Genesys tools a project folder or AXL workshop has (read-only) |
 
 ## CLI
 

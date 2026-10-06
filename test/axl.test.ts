@@ -11,6 +11,7 @@ import {
   recordHarnessStart,
   listAxlSessions,
   loadAxlSettings,
+  projectToolSpec,
   removeWorkshop,
   sageRoute,
   saveHarnessCommand,
@@ -141,9 +142,9 @@ describe("workshop folder", () => {
 
   it("does not touch anything without a folder and an allowed org", () => {
     const w = saveWorkshop({ name: "Lab" });
-    expect(() => setupWorkshopFolder(w.id, "/x/dist/gctk.js")).toThrow(/workshop folder first/);
+    expect(() => setupWorkshopFolder(w.id, "/x/dist/gctk.js")).toThrow(/the folder first/);
     saveWorkshop({ id: w.id, folder: path.join(tmp, "ws") });
-    expect(() => setupWorkshopFolder(w.id, "/x/dist/gctk.js")).toThrow(/org for the workshop first/);
+    expect(() => setupWorkshopFolder(w.id, "/x/dist/gctk.js")).toThrow(/the org first/);
     profile("lab", "sandbox");
     saveWorkshop({ id: w.id, profile: "lab" });
     profile("lab", "production");
@@ -232,8 +233,8 @@ describe("harness launcher", () => {
     expect(text).toMatch(/Workshop "Lab" \(id lab\)/);
     expect(text).toMatch(/Org for the AVA harness: lab \(sandbox, mypurecloud\.de, habitat prod-euc1\)/);
     expect(text).toContain(`sessions in ${path.join(dir, "axl-sessions")}`);
-    expect(formatAxlStatus(st, "/elsewhere")).toMatch(/No workshop uses \/elsewhere/);
-    expect(formatAxlStatus(st)).toMatch(/- Lab \(id lab\): lab/);
+    expect(formatAxlStatus(st, "/elsewhere")).toMatch(/No project uses \/elsewhere/);
+    expect(formatAxlStatus(st)).toMatch(/- Lab \(id lab, AXL workshop\): lab/);
   });
 });
 
@@ -287,5 +288,80 @@ describe("in Cursor", () => {
     const st = axlStatus(file);
     expect(st.globalHarness).toEqual({ present: true, inlineSecret: true });
     expect(JSON.stringify(st)).not.toContain("s3cret");
+  });
+});
+
+describe("projects (folders that are not AXL workshops)", () => {
+  const tool = (cmd: string) => ({ name: "genesys-cloud-architect-mcp", command: cmd, args: ["--stdio"], env: { LOG_LEVEL: "info", GENESYS_CLIENT_SECRET: "never" }, keys: { clientId: "GENESYS_CLIENT_ID", secret: "GENESYS_CLIENT_SECRET", region: "GENESYS_REGION" } });
+
+  it("takes any org, a production org only when confirmed for exactly that org", () => {
+    profile("sbx", "sandbox");
+    profile("prod-de", "production");
+    profile("prod-ie", "production", "mypurecloud.ie");
+    expect(() => saveWorkshop({ name: "Acme", profile: "prod-de", lab: false })).toThrow(/production org/);
+    const w = saveWorkshop({ name: "Acme", profile: "prod-de", lab: false, confirmProduction: true });
+    expect(w).toMatchObject({ lab: false, profile: "prod-de", productionConfirmed: "prod-de" });
+    // The confirmation is for that org only.
+    expect(() => saveWorkshop({ id: w.id, profile: "prod-ie" })).toThrow(/production org/);
+    expect(saveWorkshop({ id: w.id, profile: "sbx" }).productionConfirmed).toBeUndefined();
+    // A workshop stays sandbox or dev.
+    expect(() => saveWorkshop({ name: "Lab", profile: "prod-de", confirmProduction: true })).toThrow(/only run on sandbox or dev/);
+  });
+
+  it("writes the chosen tools into the folder, started through gctk with the project's org, and removes them again", () => {
+    profile("sbx", "sandbox");
+    const js = fakeGctk();
+    const cmd = path.join(tmp, "architect-mcp");
+    fs.writeFileSync(cmd, "");
+    const folder = path.join(tmp, "acme");
+    const w = saveWorkshop({ name: "Acme", profile: "sbx", folder, lab: false, tools: [tool(cmd)] });
+    expect(loadAxlSettings().workshops[0]!.tools![0]!.env).toEqual({ LOG_LEVEL: "info" });
+    expect(workshopFolderStatus(w)).toMatchObject({ exists: false });
+    expect(setupWorkshopFolder(w.id, js)).toBe(true);
+    const file = workshopMcpFile(folder);
+    const mcp = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(mcp.mcpServers).toEqual({ "genesys-cloud-architect-mcp": { command: process.execPath, args: [js, "project-tool", "--project", w.id, "--tool", "genesys-cloud-architect-mcp"] } });
+    expect(fs.existsSync(path.join(folder, "axl-sessions"))).toBe(false);
+    expect(workshopFolderStatus(loadAxlSettings().workshops[0]!)).toMatchObject({ stale: false, tools: [{ name: "genesys-cloud-architect-mcp", connected: true }] });
+    expect(setupWorkshopFolder(w.id, js)).toBe(false);
+
+    // The AVA harness on, the tool off: the folder follows.
+    harness();
+    saveWorkshop({ id: w.id, harness: true, tools: [] });
+    expect(workshopFolderStatus(loadAxlSettings().workshops[0]!).stale).toBe(true);
+    setupWorkshopFolder(w.id, js);
+    expect(Object.keys(JSON.parse(fs.readFileSync(file, "utf8")).mcpServers)).toEqual(["ava-harness"]);
+    expect(harnessEnv(process.env, { workshop: w.id, org: "sbx" }).env).toMatchObject({ GENESYS_CLIENT_ID: "client-id", AVA_HABITAT: "prod-euc1" });
+    expect(removeWorkshop(w.id)).toEqual({ removedServer: true });
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).mcpServers).toEqual({});
+  });
+
+  it("never replaces a server of the same name the user wrote into the folder", () => {
+    profile("sbx", "sandbox");
+    const js = fakeGctk();
+    const cmd = path.join(tmp, "architect-mcp");
+    fs.writeFileSync(cmd, "");
+    const folder = path.join(tmp, "acme");
+    fs.mkdirSync(path.join(folder, ".cursor"), { recursive: true });
+    fs.writeFileSync(workshopMcpFile(folder), JSON.stringify({ mcpServers: { "genesys-cloud-architect-mcp": { command: "mine" } } }));
+    const w = saveWorkshop({ name: "Acme", profile: "sbx", folder, lab: false, tools: [tool(cmd)] });
+    expect(() => setupWorkshopFolder(w.id, js)).toThrow(/already has its own/);
+  });
+
+  it("starts a tool with the project's org in the variables it names, from what gctk stored, not from the folder", () => {
+    profile("sbx", "sandbox", "euw2.pure.cloud");
+    const cmd = path.join(tmp, "architect-mcp");
+    fs.writeFileSync(cmd, "");
+    const w = saveWorkshop({ name: "Acme", profile: "sbx", lab: false, tools: [tool(cmd)] });
+    const spec = projectToolSpec({ project: w.id, tool: "genesys-cloud-architect-mcp" }, { PATH: "/bin", GCTK_UI_TOKEN: "x" });
+    expect(spec.command).toBe(cmd);
+    expect(spec.args).toEqual(["--stdio"]);
+    expect(spec.env).toMatchObject({ PATH: "/bin", LOG_LEVEL: "info", GENESYS_CLIENT_ID: "client-id", GENESYS_CLIENT_SECRET: "client-secret", GENESYS_REGION: "euw2.pure.cloud" });
+    expect(spec.env.GCTK_UI_TOKEN).toBeUndefined();
+    expect(() => projectToolSpec({ project: w.id, tool: "something-else" })).toThrow(/has no tool/);
+    expect(() => projectToolSpec({ project: "nope", tool: "genesys-cloud-architect-mcp" })).toThrow();
+    // A production org needs its confirmation at every start.
+    profile("sbx", "production", "euw2.pure.cloud");
+    expect(() => projectToolSpec({ project: w.id, tool: "genesys-cloud-architect-mcp" })).toThrow(/production org/);
   });
 });

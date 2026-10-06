@@ -21,11 +21,11 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
-import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, removeSkill, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, updateSecret } from "../core/ai-setup.js";
+import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, removeSkill, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
-import { axlStatus, getWorkshop, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
+import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
 import { gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
 import indexHtml from "./index.html";
@@ -174,6 +174,25 @@ const applyWorkshop = (id: string) => {
   return gctkJs && w.profile && w.folder ? setupWorkshopFolder(id, gctkJs) : false;
 };
 const pickStr = (body: Json, k: string) => (typeof body[k] === "string" ? (body[k] as string) : undefined);
+/**
+ * Project fields from the page. Tools are picked by template id from the server's own scan (or
+ * "keep:<name>" for one the project has already), never sent as commands.
+ */
+const projectFields = (body: Json, existing: ProjectTool[] = []) => {
+  const out: { lab?: boolean; harness?: boolean; tools?: ProjectTool[]; confirmProduction?: boolean } = {};
+  if (typeof body.lab === "boolean") out.lab = body.lab;
+  if (typeof body.harness === "boolean") out.harness = body.harness;
+  if (body.confirmProduction === true) out.confirmProduction = true;
+  if (Array.isArray(body.tools)) {
+    const ids = body.tools.filter((x): x is string => typeof x === "string");
+    const all = toolTemplates();
+    const kept = ids.filter((id) => id.startsWith("keep:")).map((id) => existing.find((t) => t.name === id.slice(5)));
+    const unknown = ids.filter((id) => !id.startsWith("keep:") && !all.some((t) => t.id === id));
+    if (unknown.length || kept.some((t) => !t)) throw new HttpError(400, "A tool is no longer in your editor configs; refresh the page.");
+    out.tools = [...(kept as ProjectTool[]), ...all.filter((t) => ids.includes(t.id))];
+  }
+  return out;
+};
 const shownWorkshop = (id: string) => {
   const w = getWorkshop(id);
   if (!w.folder || !fs.existsSync(w.folder)) throw new HttpError(400, "Set up the workshop folder first.");
@@ -181,13 +200,15 @@ const shownWorkshop = (id: string) => {
 };
 route("GET", "/api/axl", () => axlStatus());
 route("PUT", "/api/axl/settings", ({ body }) => (saveHarnessCommand(pickStr(body, "harnessCommand") ?? ""), axlStatus()));
+route("GET", "/api/axl/tool-templates", () => toolTemplates());
 route("POST", "/api/axl/workshops", ({ body }) => {
-  const w = saveWorkshop({ name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder") });
+  const w = saveWorkshop({ name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder"), ...projectFields(body) });
   return { ...axlStatus(), id: w.id, folderUpdated: applyWorkshop(w.id) };
 });
 route("PUT", "/api/axl/workshops/:id", ({ params, body }) => {
-  const w = saveWorkshop({ id: params.id!, name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder"), brief: body.brief });
-  const touched = pickStr(body, "profile") !== undefined || pickStr(body, "folder") !== undefined;
+  const fields = projectFields(body, getWorkshop(params.id!).tools);
+  const w = saveWorkshop({ id: params.id!, name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder"), brief: body.brief, ...fields });
+  const touched = pickStr(body, "profile") !== undefined || pickStr(body, "folder") !== undefined || fields.harness !== undefined || fields.tools !== undefined;
   return { ...axlStatus(), id: w.id, folderUpdated: touched ? applyWorkshop(w.id) : false };
 });
 route("DELETE", "/api/axl/workshops/:id", ({ params }) => ({ ...axlStatus(), ...removeWorkshop(params.id!) }));

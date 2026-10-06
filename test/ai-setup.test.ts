@@ -18,6 +18,7 @@ import {
   restoreToFile,
   scanAiSetup,
   setCredentials,
+  toolTemplates,
   updateSecret,
   type ScanOptions,
   type SecretStore,
@@ -371,6 +372,7 @@ describe("gctk entries across plugin updates", () => {
     write(v1, "// gctk 1");
     write(v2, "// gctk 2");
     expect(ensureStableGctk(v1, "0.25.0")).toBe(stableGctkJs());
+    expect(read(path.join(path.dirname(stableGctkJs()), "package.json"))).toMatchObject({ type: "module" });
     expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 1");
     ensureStableGctk(v2, "0.26.0");
     expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 2");
@@ -395,5 +397,22 @@ describe("gctk entries across plugin updates", () => {
     expect(entry().problems).toEqual([]);
     write(file, { mcpServers: { other: { command: process.execPath, args: ["serve"] } } });
     expect(() => repairServer({ file, section: "mcpServers", name: "other" }, { ...opts, gctkJs: stable })).toThrow(/does not start through gctk/);
+  });
+});
+
+describe("tools for project folders", () => {
+  it("offers the user's Genesys servers as templates, without any credential", () => {
+    const cmd = path.join(tmp, "bin", "architect-mcp");
+    write(cmd, "");
+    fs.chmodSync(cmd, 0o755);
+    write(path.join(home, ".cursor", "mcp.json"), { mcpServers: {
+      "genesys-cloud-architect-mcp": { command: cmd, args: ["--stdio"], env: { GENESYS_CLIENT_ID: CLIENT, GENESYS_CLIENT_SECRET: SECRET, GENESYS_REGION: "mypurecloud.de", LOG_LEVEL: "info", OTHER_TOKEN: "${env:X}" } },
+      "ava-harness": harness(cmd),
+      weather: { command: cmd, env: { API_KEY: "k" } },
+    } });
+    const list = toolTemplates(opts);
+    expect(list).toEqual([expect.objectContaining({ name: "genesys-cloud-architect-mcp", command: cmd, args: ["--stdio"], env: { LOG_LEVEL: "info" }, keys: { clientId: "GENESYS_CLIENT_ID", secret: "GENESYS_CLIENT_SECRET", region: "GENESYS_REGION" } })]);
+    expect(JSON.stringify(list)).not.toContain(SECRET);
+    expect(JSON.stringify(list)).not.toContain(CLIENT);
   });
 });

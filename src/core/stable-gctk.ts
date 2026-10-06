@@ -29,6 +29,12 @@ const hash = (file: string) => crypto.createHash("sha256").update(fs.readFileSyn
 /** Brings the stable copy up to the running gctk (unless that one is older) and returns its path. */
 export function ensureStableGctk(current: string, version = VERSION): string {
   const target = stableGctkJs();
+  // gctk.js is an ES module; outside the plugin nothing else tells Node so.
+  const pkg = path.join(path.dirname(target), "package.json");
+  if (!fs.existsSync(pkg)) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(pkg, `${JSON.stringify({ type: "module", private: true, description: "gctk for your editors (written by gctk)" }, null, 2)}\n`);
+  }
   if (path.resolve(current) === path.resolve(target)) return target;
   const versionFile = `${target}.version`;
   let have: string | undefined;

@@ -92,7 +92,7 @@ export interface ServerInfo extends ServerAddress {
   disabled: boolean;
   genesys: boolean;
   /** How the server gets its Genesys credentials. */
-  credentials: "none" | "plain" | "reference" | "keychain" | "gctk-profile" | "axl";
+  credentials: "none" | "plain" | "reference" | "keychain" | "gctk-profile" | "axl" | "project";
   org?: { profile?: string; clientId?: string; region?: string };
   /** Started through gctk mcp-launch. */
   launch?: { id: string; account: string; valid: boolean; secretNames: string[] };
@@ -546,6 +546,16 @@ function describe(file: ConfigFile, section: string, project: string | undefined
     credentials = "axl";
     const i = args.indexOf("--org");
     org = { profile: i >= 0 ? args[i + 1] : undefined };
+  } else if (isGctkJs(args[0]) && args[1] === "project-tool") {
+    credentials = "project";
+    const i = args.indexOf("--project");
+    let profile: string | undefined;
+    try {
+      profile = loadAxlSettings().workshops.find((w) => w.id === args[i + 1])?.profile;
+    } catch {
+      profile = undefined;
+    }
+    org = { profile };
   } else if (record || launchId) {
     credentials = "keychain";
     const id = record?.clientId;
@@ -603,7 +613,7 @@ function describe(file: ConfigFile, section: string, project: string | undefined
     org,
     launch: launchId ? { id: launchId, account: record?.account ?? "", valid: validRecord(record), secretNames: record?.secretNames ?? [] } : undefined,
     ...(() => {
-      if (!genesys || !editable || transport !== "stdio" || credentials === "gctk-profile" || credentials === "axl" || (launchId && !validRecord(record))) return {};
+      if (!genesys || !editable || transport !== "stdio" || credentials === "gctk-profile" || credentials === "axl" || credentials === "project" || (launchId && !validRecord(record))) return {};
       const keys = credentialKeysOf(record ? [...Object.keys(record.env), ...record.secretNames] : Object.keys(rawEnv));
       return keys ? { credentialKeys: keys } : {};
     })(),
@@ -786,6 +796,68 @@ const isLink = (p: string) => {
   }
 };
 
+// ------------------------------------------------------------ project tools
+
+/** A Genesys MCP server from the user's configs that a project folder can get (see axl.ts ProjectTool). */
+export interface ToolTemplate {
+  id: string;
+  name: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  keys: { clientId: string; secret: string; region?: string; habitat?: string };
+  /** Where it was found. */
+  from: string;
+  editor: Editor;
+}
+
+
+/**
+ * Genesys servers the user already runs, as templates for project folders: the program and its
+ * settings, never a credential (the project's org fills those in at every start). The AVA harness is
+ * built in and gctk's own servers start through gctk already, so neither is offered.
+ */
+export function toolTemplates(o: ScanOptions = {}): ToolTemplate[] {
+  const records = loadRecords();
+  const out = new Map<string, ToolTemplate & { plugin: boolean }>();
+  for (const f of configFiles(o)) {
+    if (!f.exists) continue;
+    const json = readJson(f.path).value;
+    if (!json) continue;
+    for (const { servers } of sectionsOf(f, json)) {
+      for (const [name, e] of Object.entries(servers)) {
+        if (name === "ava-harness" || typeof e.command !== "string" || typeof e.url === "string") continue;
+        const args = gctkArgs(e);
+        const launchId = launchIdOf(e);
+        const record = launchId ? records[launchId] : undefined;
+        if (launchId && !validRecord(record)) continue;
+        if (!record && isGctkJs(args[0])) continue;
+        const rawEnv = record ? record.env : Object.fromEntries(Object.entries((e.env as Record<string, unknown>) ?? {}).map(([k, v]) => [k, String(v ?? "")]));
+        const names = record ? [...Object.keys(record.env), ...record.secretNames] : Object.keys(rawEnv);
+        const keys = credentialKeysOf(names);
+        const command = record?.command ?? e.command;
+        const genesys = GENESYS.test(name) || GENESYS.test(command) || names.some((k) => GENESYS_ENV.test(k));
+        if (!genesys || !keys?.clientId || !keys.secret) continue;
+        let resolved: string;
+        try {
+          resolved = record ? record.command : resolveCommand(e.command, rawEnv);
+        } catch {
+          continue;
+        }
+        const cmdArgs = record ? record.args : args;
+        const used = [keys.clientId, keys.secret, keys.region, keys.habitat].filter(Boolean);
+        const env = Object.fromEntries(Object.entries(rawEnv).filter(([k, v]) => !used.includes(k) && !isSecretName(k) && !isReference(v)));
+        // One template per tool: the user's own config before a plugin's (a plugin path names its version, which an update deletes).
+        const prev = out.get(name);
+        if (prev && !(prev.plugin && f.scope !== "plugin")) continue;
+        const id = sha(`${name}\n${resolved}\n${cmdArgs.join("\u0000")}`).slice(0, 12);
+        out.set(name, { id, name, command: resolved, args: cmdArgs, env, keys: keys as ToolTemplate["keys"], from: f.path, editor: f.editor, plugin: f.scope === "plugin" });
+      }
+    }
+  }
+  return [...out.values()].map(({ plugin: _p, ...t }) => t).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // --------------------------------------------------------------------- fixes
 
 function locate(a: ServerAddress, o: ScanOptions = {}): { file: ConfigFile; json: Record<string, unknown>; indent: string | number; servers: Record<string, Entry>; entry: Entry } {
@@ -919,7 +991,7 @@ export function restoreToFile(a: ServerAddress, opts: { store?: SecretStore } & 
 /** The gctk.js an entry gctk wrote starts (node <gctk.js> mcp-launch|axl-harness|mcp …), if it is one. */
 function viaGctk(command: string | undefined, args: string[]): string | undefined {
   const [js, sub] = args;
-  return command && js && path.isAbsolute(js) && /gctk\.js$/.test(js) && ["mcp-launch", "axl-harness", "mcp"].includes(sub ?? "") ? js : undefined;
+  return command && js && path.isAbsolute(js) && /gctk\.js$/.test(js) && ["mcp-launch", "axl-harness", "project-tool", "mcp"].includes(sub ?? "") ? js : undefined;
 }
 
 /** Points an entry gctk wrote to a gctk.js that exists (the stable copy) and node, nothing else changes. */
@@ -1088,6 +1160,7 @@ const CRED_TEXT: Record<ServerInfo["credentials"], string> = {
   keychain: "secret in the keychain (started through gctk)",
   "gctk-profile": "gctk profiles (keychain)",
   axl: "AXL workshop org (keychain, through gctk)",
+  project: "gctk project org (keychain, through gctk)",
 };
 
 /** What gc_ai_setup tells the AI: servers (Genesys first), problems and skill conflicts; secrets masked. */
