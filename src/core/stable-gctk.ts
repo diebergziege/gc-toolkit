@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { gctkHome } from "./paths.js";
 
 /**
@@ -15,6 +16,22 @@ declare const __GCTK_VERSION__: string;
 const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "0.0.0";
 
 export const stableGctkJs = () => path.join(gctkHome(), "bin", "gctk.js");
+
+/**
+ * The gctk.js bundle this process runs, however it was started: npx starts it through a link in
+ * node_modules/.bin (no .js), a plugin or the stable copy directly. Undefined in a development run
+ * (tsx on the sources), which config entries must never point to.
+ */
+export function runningGctkJs(argv1 = process.argv[1]): string | undefined {
+  const here = fileURLToPath(import.meta.url);
+  if (/gctk\.js$/.test(here)) return here;
+  try {
+    const real = fs.realpathSync(argv1 ?? "");
+    return /gctk\.js$/.test(real) ? real : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 const parts = (v: string) => v.split(/[.-]/).slice(0, 3).map((n) => Number.parseInt(n, 10) || 0);
 /** a < b as versions (major.minor.patch). */

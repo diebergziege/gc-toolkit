@@ -1,7 +1,7 @@
 {
   "name": "genesys-cloud-toolkit",
   "description": "A local UI that makes your AI setup and Genesys Cloud demos transparent and easy: orgs with credentials in the OS keychain, your editors' MCP servers and skills (which org each server uses, where its secret is), a demo customer website, Demo ready data for the agent's home screen, AXL workshops and org monitoring.",
-  "version": "0.29.0",
+  "version": "0.29.1",
   "author": {
     "name": "diebergziege",
     "url": "https://github.com/diebergziege"

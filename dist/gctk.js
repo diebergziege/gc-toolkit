@@ -38640,8 +38640,19 @@ async function runProjectTool(ref) {
 import crypto2 from "node:crypto";
 import fs5 from "node:fs";
 import path5 from "node:path";
-var VERSION = true ? "0.29.0" : "0.0.0";
+import { fileURLToPath } from "node:url";
+var VERSION = true ? "0.29.1" : "0.0.0";
 var stableGctkJs = () => path5.join(gctkHome(), "bin", "gctk.js");
+function runningGctkJs(argv1 = process.argv[1]) {
+  const here = fileURLToPath(import.meta.url);
+  if (/gctk\.js$/.test(here)) return here;
+  try {
+    const real = fs5.realpathSync(argv1 ?? "");
+    return /gctk\.js$/.test(real) ? real : void 0;
+  } catch {
+    return void 0;
+  }
+}
 var parts = (v) => v.split(/[.-]/).slice(0, 3).map((n) => Number.parseInt(n, 10) || 0);
 function olderVersion(a, b) {
   const [x, y] = [parts(a), parts(b)];
@@ -39575,7 +39586,7 @@ import { spawn as spawn3 } from "node:child_process";
 import crypto4 from "node:crypto";
 import fs8 from "node:fs";
 import path8 from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/core/demo-local.ts
 import fs7 from "node:fs";
@@ -39883,7 +39894,7 @@ function setSnapshotSource(id, source) {
 }
 function builtInDemosDir() {
   if (process.env.GCTK_DEMOS_DIR) return process.env.GCTK_DEMOS_DIR;
-  const here = path8.dirname(fileURLToPath(import.meta.url));
+  const here = path8.dirname(fileURLToPath2(import.meta.url));
   return [path8.resolve(here, "../demos"), path8.resolve(here, "../../demos")].find((d) => fs8.existsSync(d));
 }
 function sources() {
@@ -52913,7 +52924,7 @@ function readLogo(name) {
 }
 
 // src/ui/server.ts
-var VERSION2 = true ? "0.29.0" : "dev";
+var VERSION2 = true ? "0.29.1" : "dev";
 var MAX_BODY = 1024 * 1024;
 var MAX_UPLOAD_BODY = 4 * 1024 * 1024;
 var HttpError = class extends Error {
@@ -53006,8 +53017,8 @@ route("GET", "/api/monitoring", async ({ query }) => {
   return report;
 });
 var installedGctk = () => {
-  const js2 = process.argv[1] ?? "";
-  return /gctk\.js$/.test(js2) ? ensureStableGctk(js2) : void 0;
+  const js2 = runningGctkJs();
+  return js2 ? ensureStableGctk(js2) : void 0;
 };
 var applyWorkshop = (id) => {
   const w = getWorkshop(id);
@@ -53339,8 +53350,8 @@ async function startUi(opts = {}) {
 }
 
 // src/ui/daemon.ts
-var VERSION3 = true ? "0.29.0" : "dev";
-var BUILD_ID = true ? "9cd96dc" : "dev";
+var VERSION3 = true ? "0.29.1" : "dev";
+var BUILD_ID = true ? "ee24e66" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto9.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path14.join(gctkHome(), "ui.json");
@@ -53437,7 +53448,7 @@ async function ensureSharedUi() {
 }
 
 // src/mcp/server.ts
-var VERSION4 = true ? "0.29.0" : "dev";
+var VERSION4 = true ? "0.29.1" : "dev";
 var INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
 transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
 monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
@@ -53517,7 +53528,7 @@ async function ask(question, opts = {}) {
 }
 
 // src/cli/index.ts
-var VERSION5 = true ? "0.29.0" : "dev";
+var VERSION5 = true ? "0.29.1" : "dev";
 var program2 = new Command().name("gctk").description("Genesys Cloud Toolkit: a local UI that makes your AI setup and Genesys Cloud demos transparent").version(VERSION5).option("-p, --profile <name>", "profile to use (default: GCTK_PROFILE or the active profile)");
 var profile = program2.command("profile").description("manage org connections (profiles)");
 profile.command("add <name>").description("create a profile and store its OAuth client credentials in the keychain").requiredOption("-r, --region <region>", "domain (mypurecloud.de) or region key (eu-central-1)").addOption(new Option("-t, --tier <tier>", "environment tier").choices([...TIERS]).makeOptionMandatory()).option("-d, --description <text>", "free text, e.g. customer or purpose").option("--env-credentials", "read credentials from GCTK_CLIENT_ID / GCTK_CLIENT_SECRET instead of the keychain (CI)").option("--no-login", "do not ask for credentials now").action(async (name, o) => {
@@ -53664,7 +53675,8 @@ program2.command("mcp-launch <id>", { hidden: true }).description("internal: the
 });
 program2.command("mcp").description("run the MCP server on stdio (used by Cursor / Claude Code to open the UI)").action(() => {
   try {
-    if (/gctk\.js$/.test(process.argv[1] ?? "")) ensureStableGctk(process.argv[1]);
+    const js2 = runningGctkJs();
+    if (js2) ensureStableGctk(js2);
   } catch {
   }
   return runMcpServer();

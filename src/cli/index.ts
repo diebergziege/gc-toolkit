@@ -4,7 +4,7 @@ import { runHarness, runProjectTool } from "../core/axl.js";
 import { GenesysClient } from "../core/client.js";
 import { deleteCredentials, hasStoredCredentials, keychainName, storeCredentials } from "../core/credentials.js";
 import { setSnapshotSource, snapshotSource } from "../core/demos.js";
-import { ensureStableGctk } from "../core/stable-gctk.js";
+import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { formatError, GctkError } from "../core/errors.js";
 import { toJson } from "../core/output.js";
 import { paths } from "../core/paths.js";
@@ -257,7 +257,8 @@ program
   .action(() => {
     // The editor starts this after every plugin update: refresh the copy that config entries use.
     try {
-      if (/gctk\.js$/.test(process.argv[1] ?? "")) ensureStableGctk(process.argv[1]!);
+      const js = runningGctkJs();
+      if (js) ensureStableGctk(js);
     } catch {
       // a read-only home: the entries keep the copy they have
     }

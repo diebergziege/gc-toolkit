@@ -22,7 +22,7 @@ import {
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
-import { ensureStableGctk } from "../core/stable-gctk.js";
+import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
@@ -164,8 +164,8 @@ route("GET", "/api/monitoring", async ({ query }) => {
 /** The folder's ava-harness server runs this gctk (dist/gctk.js), not a development run. */
 /** Config entries gctk writes start the copy in the gctk home, which plugin updates do not delete. */
 const installedGctk = () => {
-  const js = process.argv[1] ?? "";
-  return /gctk\.js$/.test(js) ? ensureStableGctk(js) : undefined;
+  const js = runningGctkJs();
+  return js ? ensureStableGctk(js) : undefined;
 };
 /** After a change of org or folder: rewrite the folder's harness server right away. */
 const applyWorkshop = (id: string) => {

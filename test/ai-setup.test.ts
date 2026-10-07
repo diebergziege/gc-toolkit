@@ -23,7 +23,7 @@ import {
   type SecretStore,
 } from "../src/core/ai-setup.js";
 import { saveProfile } from "../src/core/profiles.js";
-import { ensureStableGctk, olderVersion, stableGctkJs } from "../src/core/stable-gctk.js";
+import { ensureStableGctk, olderVersion, runningGctkJs, stableGctkJs } from "../src/core/stable-gctk.js";
 
 let tmp: string;
 let home: string;
@@ -311,6 +311,12 @@ describe("gctk entries across plugin updates", () => {
     expect(fs.readFileSync(stableGctkJs(), "utf8")).toBe("// gctk 2");
     expect(ensureStableGctk(stableGctkJs())).toBe(stableGctkJs());
     expect([olderVersion("0.9.1", "0.10.0"), olderVersion("1.0.0", "0.10.0"), olderVersion("0.25.0", "0.25.0")]).toEqual([true, false, false]);
+    // npx starts gctk through a link without .js: the bundle behind it counts (a development run has none).
+    const bin = path.join(tmp, "npx", "node_modules", ".bin", "gctk");
+    fs.mkdirSync(path.dirname(bin), { recursive: true });
+    fs.symlinkSync(v2, bin);
+    expect(runningGctkJs(bin)).toBe(fs.realpathSync(v2));
+    expect(runningGctkJs(path.join(tmp, "src", "cli", "index.ts"))).toBeUndefined();
   });
 
   it("finds an entry whose gctk was deleted by an update and repairs it", () => {
