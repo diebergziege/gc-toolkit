@@ -8,6 +8,7 @@ import {
   configFiles,
   formatAiSetup,
   launchSpec,
+  linkToOrg,
   moveToKeychain,
   parseJsonc,
   removeLocation,
@@ -343,5 +344,101 @@ describe("tools for project folders", () => {
     expect(list).toEqual([expect.objectContaining({ name: "genesys-cloud-architect-mcp", command: cmd, args: ["--stdio"], env: { LOG_LEVEL: "info" }, keys: { clientId: "GENESYS_CLIENT_ID", secret: "GENESYS_CLIENT_SECRET", region: "GENESYS_REGION" } })]);
     expect(JSON.stringify(list)).not.toContain(SECRET);
     expect(JSON.stringify(list)).not.toContain(CLIENT);
+  });
+});
+
+describe("linking to an org (the Orgs page keeps the credentials)", () => {
+  let orgMem: Map<string, { clientId: string; clientSecret: string }>;
+  let o: ScanOptions;
+  const js = () => { const f = path.join(tmp, "gctk", "bin", "gctk.js"); write(f, ""); return f; };
+  const file = () => path.join(home, ".cursor", "mcp.json");
+  const at = () => ({ file: file(), section: "mcpServers", name: "ava-harness" });
+  beforeEach(() => {
+    orgMem = new Map();
+    o = { ...opts, orgs: { load: (p) => { const c = orgMem.get(p.name); if (!c) throw new Error("no creds"); return c; }, save: (p, c) => void orgMem.set(p.name, c), remove: (n) => void orgMem.delete(n) } };
+    saveProfile({ name: "sandbox-org", region: "mypurecloud.de", tier: "sandbox", credentials: "keychain" });
+  });
+
+  it("links a plain entry to the org with its OAuth client: no copy of the secret, credentials from the org at every start", () => {
+    write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
+    expect(scanAiSetup(o).servers[0]!.linkOrg).toEqual({ match: "sandbox-org", region: "mypurecloud.de" });
+    expect(linkToOrg(at(), { ...o, gctkJs: js() })).toEqual({ profile: "sandbox-org", created: false });
+    const e = read(file()).mcpServers["ava-harness"];
+    expect(e.args[1]).toBe("mcp-launch");
+    expect(JSON.stringify(e)).not.toContain(SECRET);
+    expect(mem.size).toBe(0);
+    const x = scanAiSetup(o).servers[0]!;
+    expect(x).toMatchObject({ credentials: "org", org: { profile: "sandbox-org" } });
+    expect(x.linkOrg).toBeUndefined();
+    expect(x.problems).toEqual([]);
+    // A rotated secret on the Orgs page reaches the server at its next start.
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: "rotated-secret-0000" });
+    const spec = launchSpec(e.args[2], {}, store, o.orgs);
+    expect(spec.env).toMatchObject({ GENESYS_CLIENT_ID: CLIENT, GENESYS_CLIENT_SECRET: "rotated-secret-0000", AVA_HABITAT: "prod-euc1", FASTMCP_LOG_LEVEL: "ERROR" });
+  });
+
+  it("asks before it drops a secret that differs from the org's", () => {
+    write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: "the-org-has-another-one" });
+    expect(() => linkToOrg(at(), { ...o, gctkJs: js() })).toThrow(/different secret/);
+    expect(read(file()).mcpServers["ava-harness"].env.GENESYS_CLIENT_SECRET).toBe(SECRET);
+    linkToOrg(at(), { ...o, gctkJs: js(), useOrgSecret: true });
+    expect(scanAiSetup(o).servers[0]!.credentials).toBe("org");
+  });
+
+  it("adds the entry's credentials as a new org, with the region the entry names, and links to it", () => {
+    write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
+    const unknown = { ...o, clients: () => new Map<string, string>() };
+    expect(() => linkToOrg(at(), { ...unknown, gctkJs: js() })).toThrow(/not one of your orgs/);
+    expect(linkToOrg(at(), { ...unknown, gctkJs: js(), newOrg: { name: "dach-demo", tier: "sandbox" } })).toEqual({ profile: "dach-demo", created: true });
+    expect(orgMem.get("dach-demo")).toEqual({ clientId: CLIENT, clientSecret: SECRET });
+    expect(scanAiSetup(unknown).servers[0]!.org).toMatchObject({ profile: "dach-demo", region: "mypurecloud.de" });
+    expect(() => linkToOrg(at(), { ...unknown, gctkJs: js(), newOrg: { name: "dach-demo", tier: "sandbox" } })).toThrow();
+  });
+
+  it("moves a keychain entry of its own to the org and deletes that entry", () => {
+    const cmd = fakeCommand();
+    write(file(), { mcpServers: { "ava-harness": harness(cmd) } });
+    moveToKeychain(at(), { ...o, gctkJs: js() });
+    expect(mem.size).toBe(1);
+    expect(scanAiSetup(o).servers[0]!.problems).toEqual([expect.objectContaining({ kind: "not-linked", fix: "link" })]);
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
+    linkToOrg(at(), { ...o, gctkJs: js() });
+    expect(mem.size).toBe(0);
+    expect(scanAiSetup(o).secrets).toEqual([]);
+  });
+
+  it("says so when the linked org is gone", () => {
+    write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
+    linkToOrg(at(), { ...o, gctkJs: js() });
+    fs.rmSync(path.join(process.env.GCTK_HOME!, "profiles", "sandbox-org.yaml"));
+    expect(scanAiSetup(o).servers[0]!.problems).toEqual([expect.objectContaining({ kind: "launch-invalid", fix: "link" })]);
+    expect(() => launchSpec(read(file()).mcpServers["ava-harness"].args[2], {}, store, o.orgs)).toThrow(/no longer on the Orgs page/);
+  });
+
+  it("flags an entry that starts gctk from a folder of this computer only, and repairs it", () => {
+    const dev = path.join(tmp, "checkout", "dist", "gctk.js");
+    write(dev, "");
+    write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
+    linkToOrg(at(), { ...o, gctkJs: dev });
+    expect(scanAiSetup(o).servers[0]!.problems).toEqual([expect.objectContaining({ kind: "unstable-path", fix: "repair" })]);
+    repairServer(at(), { ...o, gctkJs: js() });
+    expect(read(file()).mcpServers["ava-harness"].args[0]).toBe(js());
+    expect(scanAiSetup(o).servers[0]!.problems).toEqual([]);
+  });
+});
+
+describe("the gctk entry itself", () => {
+  it("switches an entry that loads gctk as github:… (needs git) to the download link", () => {
+    const f = path.join(home, ".cursor", "mcp.json");
+    write(f, { mcpServers: { gctk: { command: "npx", args: ["-y", "github:diebergziege/gc-toolkit", "mcp"] } } });
+    const x = scanAiSetup(opts).servers[0]!;
+    expect(x).toMatchObject({ credentials: "gctk-profile", problems: [expect.objectContaining({ kind: "old-package", fix: "repair" })] });
+    repairServer({ file: f, section: "mcpServers", name: "gctk" }, { ...opts, gctkJs: "/unused/gctk.js" });
+    expect(read(f).mcpServers.gctk).toEqual({ command: "npx", args: ["-y", "https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz", "mcp"] });
+    expect(scanAiSetup(opts).servers[0]!.problems).toEqual([]);
   });
 });

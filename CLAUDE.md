@@ -13,6 +13,10 @@
 - The UI (`src/ui/`) builds DOM from text nodes only. It listens on 127.0.0.1, needs the session
   token (URL fragment, keychain), refuses foreign Host headers, cross-origin and non-JSON writes.
 - After source changes: `npm run check`, then commit `dist/gctk.js` with the change.
+- `dist/gctk.js` bundles everything, so package.json has no runtime `dependencies` (all are
+  devDependencies): `npx` then starts gctk in a second or two. Cursor without the plugin starts it as
+  `npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz mcp` (README
+  button); `github:…` needs git on the user's computer, so Cursor setup flags it and repairs it.
 - The root `.mcp.json` is the Claude Code plugin's MCP config (Claude Code only loads plugin servers
   from a file with exactly that name). It uses `${CLAUDE_PLUGIN_ROOT}`, so do not approve it as a
   project server when working in this repo; test with `claude --plugin-dir .` instead.
@@ -90,8 +94,13 @@
   skills (skills an earlier gctk moved aside can still be restored). Secrets
   leave the module only masked (page and tool). Fixes change the user's config files and exist only
   as UI routes (a click), never as MCP tools; plugin files and JSON with comments are never
-  rewritten. "Move to keychain" stores the file's own secret (not a gctk profile's) and rewrites the
-  entry to `gctk mcp-launch <id>`; the launch record (resolved command, arguments, variables, PATH,
+  rewritten. The Orgs page is the one place for OAuth credentials (decision 2026-10-07): `linkToOrg` links a
+  server to an org (the one with its OAuth client, another one, or its own credentials added as a new
+  org) and rewrites the entry to `gctk mcp-launch <id>`; the signed record names `profile` and `keys`,
+  and the launcher reads client ID, secret and region from that org at every start (a rotated secret
+  reaches every server). Older records with a keychain entry of their own (`moveToKeychain`) still
+  start and are offered "Link to org"; linking deletes that entry. Entries whose gctk.js is not the
+  stable copy are flagged ("only work on this computer") and repaired; the launch record (resolved command, arguments, variables, PATH,
   cwd, secret names) is signed with the key in `src/core/approval.ts`, and the child gets only the
   record's environment plus a short pass-through list (locale, proxies), never the config's `env`,
   so an edited config or record cannot reuse the secret. Keychain item, record and file change all

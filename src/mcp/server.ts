@@ -42,7 +42,7 @@ export function createServer(): McpServer {
         const url = await ensureSharedUi();
         return (await openBrowser(`${url}&view=${page}`))
           ? `Opened the gctk UI (${page}) in the user's browser. It keeps running in the background, also after this session, and all sessions share it.`
-          : "Could not open a browser on this machine. Ask the user to run `npx -y github:diebergziege/gc-toolkit ui` in a terminal.";
+          : "Could not open a browser on this machine. Ask the user to run `npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz ui` in a terminal.";
       }),
   );
 

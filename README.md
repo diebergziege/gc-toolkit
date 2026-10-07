@@ -5,14 +5,15 @@ non-technical users. It runs on your computer, opens from Cursor or Claude Code,
 itself.
 
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
-  straight into the OS keychain, never into a file or the chat. Pick the org you work on by default
+  straight into the OS keychain, never into a file or the chat. Each org shows which Cursor servers
+  and projects use it. Pick the org you work on by default
 - **Cursor setup**: the MCP servers Cursor loads in every folder (`~/.cursor/mcp.json` and Cursor
   plugins), which gctk org each Genesys server's OAuth client belongs to, and whether it can start.
-  **Use another org** gives a server the credentials of one of your orgs, which stay in the
-  keychain. Flags plain-text secrets, the same secret in several files and entries that cannot
-  start; one click moves a plain-text secret into the keychain (the entry then starts through
-  gctk), and back, or repairs an entry an update broke. A rotated secret is entered once for every
-  server using it. Folders with their own `.cursor/mcp.json` are listed, each one click away from
+  The **Orgs** page is the one place for OAuth credentials: a server is linked to an org and takes
+  client ID, secret and region from there at every start, so a rotated secret is entered once.
+  A plain-text secret in a config file becomes an org (or is linked to the org with the same OAuth
+  client) with one click; **Use another org** switches a server to another of your orgs. Flags
+  entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from
   becoming a project. Secrets are never shown
 - **Demos**: deploy a whole demo into another org with one button. The demos ship with gctk
   (`demos/`, first: **Vendor Battle**, Lumea Energie & Smart Home), so anyone with the plugin can
@@ -52,15 +53,36 @@ no tools to read or change a Genesys Cloud org.
 
 ## Install
 
-Requirements: Node.js 22 or newer (`node --version`) and Cursor or Claude Code. No clone, no build.
+You need **Node.js 22 or newer**. If `node --version` in a terminal says nothing or an older
+version, install the LTS version from [nodejs.org](https://nodejs.org) (the normal installer for Mac
+or Windows; it brings `npx` along). Nothing else: no git, no clone, no build.
 
-### Cursor
+### Cursor: one click
 
-1. Open **Customize → Plugins** (Cursor Settings) and choose **From GitHub Repository**.
-2. Enter `https://github.com/diebergziege/gc-toolkit` and install **Genesys Cloud Toolkit**.
-3. Reload the window. Customize should now list the `gctk` MCP server.
-4. **Updates:** update the plugin under Customize → Plugins. If no update is offered, remove it and
-   add it again from the GitHub repository, then reload the window.
+[![Add gctk to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=gctk&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImh0dHBzOi8vZ2l0aHViLmNvbS9kaWViZXJnemllZ2UvZ2MtdG9vbGtpdC9hcmNoaXZlL3JlZnMvaGVhZHMvbWFpbi50YXIuZ3oiLCJtY3AiXX0=)
+
+1. Click the button, let your browser open Cursor, and confirm **Install**.
+2. In Cursor, ask the AI: *"Open the gctk UI."*
+
+It adds this entry to `~/.cursor/mcp.json`; you can also paste it there yourself:
+
+```json
+"gctk": {
+  "command": "npx",
+  "args": ["-y", "https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz", "mcp"]
+}
+```
+
+Cursor starts the newest gctk each time (a start takes a second or two; the first one needs
+internet access to github.com). If Cursor says it cannot find `npx` although Node.js is installed,
+restart Cursor, or use the full path from `which npx` as `command`.
+
+### Cursor: as a plugin
+
+If your Cursor admin allows plugins from GitHub: **Customize → Plugins** (Cursor Settings) → **From
+GitHub Repository** → `https://github.com/diebergziege/gc-toolkit` → install **Genesys Cloud
+Toolkit**, then reload the window. Updates come under Customize → Plugins. (Teams that block
+third-party plugins use the button above.)
 
 ### Claude Code (terminal)
 
@@ -74,7 +96,7 @@ claude plugin install genesys-cloud-toolkit@genesys-cloud-toolkit
 ### Without an editor
 
 ```bash
-npx -y github:diebergziege/gc-toolkit ui
+npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz ui
 ```
 
 Orgs, credentials, AXL workshops and Demo ready's records are kept across updates; the UI restarts

@@ -21,7 +21,7 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
-import { addLocation, cleanEnv, moveToKeychain, removeLocation, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
+import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
@@ -248,6 +248,20 @@ route("POST", "/api/ai-setup/fix", ({ body }) => {
   return scanAiSetup();
 });
 route("POST", "/api/ai-setup/skills/restore", ({ body }) => (restoreSkill(str(body, "id")), scanAiSetup()));
+// Links a server to an org on the Orgs page (an existing one, or its own credentials as a new org).
+route("POST", "/api/ai-setup/link", ({ body }) => {
+  const gctkJs = installedGctk();
+  if (!gctkJs) throw new HttpError(400, "Linking needs the installed gctk (dist/gctk.js), not a development run.");
+  const n = body.newOrg && typeof body.newOrg === "object" ? (body.newOrg as Json) : undefined;
+  const r = linkToOrg(serverOf(body), {
+    gctkJs,
+    profile: str(body, "profile", false) || undefined,
+    useOrgSecret: body.useOrgSecret === true,
+    ...(n ? { newOrg: { name: str(n, "name"), tier: str(n, "tier") as Tier, region: str(n, "region", false) || undefined } } : {}),
+  });
+  if (r.created) clients.delete(r.profile);
+  return { ...scanAiSetup(), linked: r };
+});
 route("POST", "/api/ai-setup/credentials", ({ body }) => {
   const keychain = body.keychain !== false;
   setCredentials(serverOf(body), { profile: str(body, "profile", false) || undefined, clientId: str(body, "clientId", false), secret: str(body, "secret", false), region: str(body, "region", false), keychain }, { gctkJs: installedGctk() });

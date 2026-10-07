@@ -236,7 +236,7 @@ async function api(path, opts = {}) {
     body,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.code });
   return data;
 }
 
@@ -1269,9 +1269,20 @@ function demoCleanup(pick) {
 // ------------------------------------------------------------- profiles
 async function viewProfiles() {
   const o = state.overview || await api("/api/overview");
+  // Where each org is used: Cursor servers linked to it, projects and AXL workshops. Read once per visit.
+  state.orgUse = {};
+  Promise.all([api("/api/ai-setup").catch(() => ({ servers: [] })), api("/api/axl").catch(() => ({ workshops: [] }))]).then(([s, axl]) => {
+    const use = {};
+    const add = (name, text) => (use[name] ||= []).push(text);
+    for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} (${whereText(x)})`);
+    for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "project" : "AXL workshop"} ${w.name}`);
+    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" · ")] : h("span", { class: "muted" }, "Not used by Cursor or a project yet."));
+    state.orgUse = use;
+  });
+  state.orgUseEls = {};
   return h("div", {},
     h("h2", {}, "Orgs"),
-    h("p", { class: "lead" }, "One entry (profile) per Genesys Cloud org you work in, for example your demo org and a sandbox. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain."),
+    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; Cursor's servers and your projects use them from here."),
     h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),
     o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),
     addProfileForm(o));
@@ -1292,12 +1303,13 @@ function profileCard(p) {
       p.active ? pill("working on", "") : null, h("span", { class: "spacer" }),
       p.credentialsStored ? pill("credentials ok", "a-granted") : pill("no credentials", "a-missing")),
     p.description ? h("div", { class: "muted" }, p.description) : null,
+    (state.orgUseEls[p.name] = h("div", { style: "font-size:13px;margin-top:4px" }, h("span", { class: "muted" }, "Checking where it is used…"))),
     h("details", {}, h("summary", {}, "Credentials"),
       h("div", { class: "row" }, cid, csec, h("button", { class: "btn", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Store & verify"))),
     h("div", { class: "row", style: "margin-top:8px" },
       !p.active ? h("button", { class: "btn", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Work on this org") : null,
       h("span", { class: "spacer" }),
-      h("button", { class: "btn danger", onclick: () => { if (confirm(`Delete profile ${p.name} and its stored credentials?`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),
+      h("button", { class: "btn danger", onclick: () => { const used = (state.orgUse || {})[p.name] || []; if (confirm(`Delete the org ${p.name} and its stored credentials?${used.length ? `\n\nThese then stop working:\n• ${used.join("\n• ")}` : ""}`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),
     msg);
 }
 
@@ -2222,7 +2234,8 @@ const CREDS = {
   none: ["no credentials", ""],
   plain: ["secret in plain text in the file", "s-failed"],
   reference: ["secret from a variable", ""],
-  keychain: ["secret in the keychain, started through gctk", "s-applied"],
+  keychain: ["secret in a keychain entry of its own", "s-pending"],
+  org: ["org on the Orgs page", "s-applied"],
   "gctk-profile": ["gctk orgs (keychain)", "s-applied"],
   axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],
   project: ["project org (keychain, through gctk)", "s-applied"],
@@ -2278,6 +2291,21 @@ function aiSetupReport(s, msg, draw, projects) {
     async restoreSkill(r) {
       try { done(`Restored ${r.name} to ${r.from}.`, await api("/api/ai-setup/skills/restore", { method: "POST", body: { id: r.id } })); } catch (err) { failed(err); }
     },
+    /** Links x to an org on the Orgs page; asks once when x's secret differs from the org's. */
+    async link(x, body) {
+      const call = (extra) => api("/api/ai-setup/link", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body, ...extra } });
+      try {
+        let r;
+        try { r = await call({}); }
+        catch (err) {
+          if (err.code !== "SECRET_DIFFERS") throw err;
+          if (!confirm(`${err.message}\n\nUse the org's secret? The one ${x.credentials === "plain" ? "in the file" : "in its own keychain entry"} is dropped. (If the org's is the old one, cancel and store the new secret on the Orgs page first.)`)) return;
+          r = await call({ useOrgSecret: true });
+        }
+        await refreshOverview();
+        done(r.linked.created ? `Added the org ${r.linked.profile} on the Orgs page and linked ${x.name} to it.` : `Linked ${x.name} to the org ${r.linked.profile}.`, r);
+      } catch (err) { failed(err); }
+    },
     async setCredentials(x, body) {
       try { done(`Saved the new credentials of ${x.name}.`, await api("/api/ai-setup/credentials", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body } })); } catch (err) { failed(err); }
     },
@@ -2300,6 +2328,40 @@ function aiSetupReport(s, msg, draw, projects) {
         s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
       filesPanel(s, msg, draw)));
   return [todoPanel(s, ctx), aiOverview(s, ctx), folderPanel(s, projects), details];
+}
+
+/**
+ * Moves a server's credentials to the Orgs page: link to the org with the same OAuth client, or add
+ * them as a new org (region from the entry), or pick another org.
+ */
+function linkControl(x, ctx) {
+  const L = x.linkOrg;
+  if (!L) return null;
+  if (L.match) return h("button", { class: "btn primary", title: `Its OAuth client is the one of ${L.match}; the secret then comes from the Orgs page.`, onclick: () => {
+    if (confirm(`Link "${x.name}" (${whereText(x)}) to the org ${L.match}?\n\nIts client ID and secret then come from the Orgs page; ${x.credentials === "plain" ? "the secret leaves the file" : "its own keychain entry is deleted"}.`)) ctx.link(x, { profile: L.match });
+  } }, `Link to ${L.match}`);
+  const orgsNow = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  if (x.credentials === "org") {
+    // Linked to an org that is gone: only another org can take over (no secret left to add).
+    const sel = h("select", { "aria-label": "Org" }, h("option", { value: "" }, orgsNow.length ? "Link to another org…" : "no org on the Orgs page"), orgsNow.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`)));
+    sel.addEventListener("change", () => { if (sel.value) ctx.link(x, { profile: sel.value, useOrgSecret: true }); });
+    return sel;
+  }
+  const box = h("div", { style: "flex-basis:100%;display:none" });
+  const name = h("input", { placeholder: "e.g. dach-sandbox", style: "min-width:180px", "aria-label": "Org name" });
+  const tier = h("select", { "aria-label": "Tier" }, h("option", { value: "" }, "tier…"), ["sandbox", "dev", "test", "production"].map((t) => h("option", { value: t }, t)));
+  const region = h("input", { value: L.region || "", placeholder: "region, e.g. mypurecloud.de", style: "min-width:200px", "aria-label": "Region" });
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  const other = orgs.length ? h("select", { "aria-label": "Existing org" }, h("option", { value: "" }, "or use one of your orgs…"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`))) : null;
+  other?.addEventListener("change", () => { if (other.value && confirm(`Let "${x.name}" work on ${other.value} instead? Its own client ID and secret are dropped.`)) ctx.link(x, { profile: other.value }); else other.value = ""; });
+  put(box, h("div", { class: "row", style: "margin:6px 0 2px" }, name, tier, region,
+    h("button", { class: "btn primary", onclick: () => {
+      if (!name.value.trim() || !tier.value) { alert("Give the org a name and choose its tier."); return; }
+      ctx.link(x, { newOrg: { name: name.value.trim(), tier: tier.value, region: region.value } });
+    } }, "Add org and link"), other),
+    h("div", { class: "muted", style: "font-size:12px" }, "The client ID and secret it has now become this org on the Orgs page; the server then takes them from there."));
+  const open = h("button", { class: "btn primary", onclick: () => { box.style.display = box.style.display === "none" ? "" : "none"; } }, "Add as an org");
+  return [open, box];
 }
 
 /** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */
@@ -2326,14 +2388,19 @@ function todoPanel(s, ctx) {
   const broken = [...having("missing-command"), ...having("launch-invalid")];
   const removable = broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair"));
   const groups = [
-    group("Secrets in plain text", `Anyone who can read these files can use the secret.${shared ? " Several share one secret; in the keychain it becomes one entry." : ""}`,
-      secrets.map((x) => row(x, "plain-secret", canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null)),
-      canMove.length > 1 ? h("button", { class: "btn primary", onclick: () => ctx.fixAll(canMove, "keychain", `Move the secrets of ${canMove.length} entries into the keychain`) }, `Move all ${canMove.length} to the keychain`) : null),
+    group("Secrets in plain text", `Anyone who can read these files can use the secret. Move it to the Orgs page: gctk keeps it in the keychain, and you see there which OAuth clients you have.${shared ? " Several entries share one secret; as an org it is kept once." : ""}`,
+      secrets.map((x) => row(x, "plain-secret", x.linkOrg ? linkControl(x, ctx) : canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null))),
+    group("Credentials not on the Orgs page", "Each has a keychain entry of its own, so the Orgs page does not show it. Link it to an org: one place for every OAuth client, and a new secret is entered once.",
+      having("not-linked").map((x) => row(x, "not-linked", linkControl(x, ctx)))),
     group("Entries that cannot start", "The program or script they point to is gone, so Cursor shows an error for them.",
-      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "repair")
+      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "link") ? linkControl({ ...x, linkOrg: x.linkOrg || {} }, ctx) : x.problems.some((p) => p.fix === "repair")
         ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")
         : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),
       removable.length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(removable, "remove", `Remove ${removable.length} entries that cannot start`) }, "Remove all") : null),
+    group("Older gctk entries", "They load gctk as github:…, which needs git and starts slowly. Repair switches them to the download link.",
+      having("old-package").map((x) => row(x, "old-package", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),
+    group("Entries that only work on this computer", "They start gctk from a development checkout or a plugin version an update deletes. Repair points them to the copy every computer with gctk has.",
+      having("unstable-path").map((x) => row(x, "unstable-path", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),
     group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
     group("Secrets in headers", "Remote servers: gctk cannot move these. Use Cursor's variables (for example ${env:NAME}) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),
     group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),

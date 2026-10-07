@@ -5,10 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { sign, verify } from "./approval.js";
 import { loadAxlSettings, HABITATS } from "./axl.js";
-import { loadCredentials, readSecret, removeSecret, writeSecret } from "./credentials.js";
+import { type ClientCredentials, deleteCredentials, loadCredentials, readSecret, removeSecret, storeCredentials, writeSecret } from "./credentials.js";
 import { GctkError } from "./errors.js";
 import { gctkHome } from "./paths.js";
-import { listProfiles, loadProfile } from "./profiles.js";
+import { assertProfileName, listProfiles, loadProfile, type Profile, removeProfile, saveProfile, TIERS, type Tier } from "./profiles.js";
+import { stableGctkJs } from "./stable-gctk.js";
 import { resolveRegion } from "./regions.js";
 
 /**
@@ -52,13 +53,13 @@ export interface ConfigFile {
   error?: string;
 }
 
-export type ProblemKind = "plain-secret" | "header-secret" | "same-secret" | "launch-invalid" | "missing-command" | "obsolete-env" | "unknown-client";
+export type ProblemKind = "plain-secret" | "header-secret" | "same-secret" | "launch-invalid" | "missing-command" | "obsolete-env" | "unknown-client" | "not-linked" | "unstable-path" | "old-package";
 
 export interface Problem {
   kind: ProblemKind;
   level: "warn" | "info";
   text: string;
-  fix?: "keychain" | "restore" | "remove" | "clean-env" | "repair";
+  fix?: "keychain" | "restore" | "remove" | "clean-env" | "repair" | "link";
 }
 
 export interface ShownVar {
@@ -92,12 +93,14 @@ export interface ServerInfo extends ServerAddress {
   disabled: boolean;
   genesys: boolean;
   /** How the server gets its Genesys credentials. */
-  credentials: "none" | "plain" | "reference" | "keychain" | "gctk-profile" | "axl" | "project";
+  credentials: "none" | "plain" | "reference" | "keychain" | "org" | "gctk-profile" | "axl" | "project";
   org?: { profile?: string; clientId?: string; region?: string };
   /** Started through gctk mcp-launch. */
   launch?: { id: string; account: string; valid: boolean; secretNames: string[] };
   /** The variables that carry the Genesys credentials, when gctk can change them here (setCredentials). */
   credentialKeys?: CredentialKeys;
+  /** Can be linked to an org on the Orgs page (linkToOrg): the org with its OAuth client, and the region the entry names. */
+  linkOrg?: { match?: string; region?: string };
   problems: Problem[];
 }
 
@@ -146,6 +149,14 @@ export interface SecretStore {
 }
 export const keychainStore: SecretStore = { get: readSecret, set: writeSecret, remove: removeSecret };
 
+/** Where the orgs' credentials live (the OS keychain; tests pass their own). */
+export interface OrgStore {
+  load(p: Profile): ClientCredentials;
+  save(p: Profile, c: ClientCredentials): void;
+  remove(name: string): void;
+}
+export const keychainOrgs: OrgStore = { load: loadCredentials, save: storeCredentials, remove: deleteCredentials };
+
 export interface ScanOptions {
   home?: string;
   platform?: NodeJS.Platform;
@@ -154,6 +165,7 @@ export interface ScanOptions {
   store?: SecretStore;
   /** Client id → gctk profile (default: from the keychain, one read per profile). */
   clients?: () => Map<string, string>;
+  orgs?: OrgStore;
 }
 
 // ------------------------------------------------------------------ helpers
@@ -406,6 +418,10 @@ interface LaunchRecord {
   cwd?: string;
   pathEnv?: string;
   createdAt: string;
+  /** Linked to this org: client ID, secret and region come from the Orgs page at every start. */
+  profile?: string;
+  /** With profile: the variables that get them. */
+  keys?: CredentialKeys;
   signature: string;
 }
 type Unsigned = Omit<LaunchRecord, "signature">;
@@ -481,11 +497,13 @@ function describe(file: ConfigFile, section: string, project: string | undefined
   const record = launchId ? records[launchId] : undefined;
   const env = shownVars(record ? record.env : e.env);
   if (record) for (const n of record.secretNames) env.push({ name: n, value: "in the keychain", secret: true, plain: false });
+  if (record?.profile && record.keys) for (const n of [record.keys.clientId, record.keys.secret, record.keys.region, record.keys.habitat]) if (n) env.push({ name: n, value: `from the org ${record.profile}`, secret: n === record.keys.secret, plain: false });
   const headers = shownVars(e.headers);
   const transport = typeof e.url === "string" || e.type === "http" || e.type === "sse" || e.type === "streamable-http" ? "http" : "stdio";
   const command = typeof e.command === "string" ? e.command : undefined;
   const shownArgs = (record ? record.args : args).map((a) => a.replace(ARG_SECRET, (_m, k: string, v: string) => `${k}${mask(v)}`));
-  const allEnv = record ? { ...record.env, ...Object.fromEntries(record.secretNames.map((n) => [n, ""])) } : rawEnv;
+  const linkedNames = record?.keys ? [record.keys.clientId, record.keys.secret, record.keys.region, record.keys.habitat].filter((n): n is string => Boolean(n)) : [];
+  const allEnv = record ? { ...record.env, ...Object.fromEntries([...record.secretNames, ...linkedNames].map((n) => [n, ""])) } : rawEnv;
   const genesys = GENESYS.test(name) || GENESYS.test(record?.command ?? command ?? "") || shownArgs.some((a) => GENESYS.test(a)) || Object.keys(allEnv).some((k) => GENESYS_ENV.test(k)) || GENESYS.test(String(e.url ?? ""));
   const problems: Problem[] = [];
   const editable = file.editable;
@@ -506,10 +524,20 @@ function describe(file: ConfigFile, section: string, project: string | undefined
       profile = undefined;
     }
     org = { profile };
+  } else if (record?.profile) {
+    credentials = "org";
+    let region: string | undefined;
+    try {
+      region = loadProfile(record.profile).region;
+    } catch {
+      problems.push({ kind: "launch-invalid", level: "warn", text: `It is linked to the org ${record.profile}, which is no longer on the Orgs page. Link it to another org.`, fix: editable ? "link" : undefined });
+    }
+    org = { profile: record.profile, region };
   } else if (record || launchId) {
     credentials = "keychain";
     const id = record?.clientId;
     org = { clientId: id ? showClientId(id) : undefined, profile: id ? clients().get(id) : undefined, region: record ? regionFrom(record.env) : undefined };
+    if (record && validRecord(record)) problems.push({ kind: "not-linked", level: "info", text: `Its secret is a keychain entry of its own, not one of your orgs, so the Orgs page does not show it.${org.profile ? ` It is the OAuth client of ${org.profile}: link it to that org.` : " Add it as an org and link it."}`, fix: editable ? "link" : undefined });
   } else if ((isGctkJs(args[0]) && (args[1] === "mcp" || args.length === 1)) || /\/dist\/gctk\.js|genesys-cloud-toolkit|diebergziege\/gc-toolkit/.test(args.join(" "))) {
     credentials = "gctk-profile";
     org = rawEnv.GCTK_PROFILE ? { profile: rawEnv.GCTK_PROFILE } : undefined;
@@ -537,6 +565,8 @@ function describe(file: ConfigFile, section: string, project: string | undefined
   // gctk's own entry point first: a plugin update deletes the version folder it pointed to.
   const own = viaGctk(command, args);
   if (own && !fs.existsSync(own)) problems.push({ kind: "missing-command", level: "warn", text: `It starts through gctk at ${own}, which no longer exists (gctk was updated, moved or removed). Repair points it to the copy of gctk that stays across updates.`, fix: editable ? "repair" : undefined });
+  else if (args.some((x) => OLD_PACKAGE.test(x))) problems.push({ kind: "old-package", level: "info", text: "It loads gctk as github:…, which needs git on the computer and takes much longer to start. Repair switches it to the download link that needs no git.", fix: editable ? "repair" : undefined });
+  else if (own && args[1] !== "mcp" && path.resolve(own) !== path.resolve(stableGctkJs())) problems.push({ kind: "unstable-path", level: "info", text: `It starts gctk from ${own}, a folder of this computer only (a development checkout or a plugin version an update deletes). Repair points it to ${stableGctkJs()}, which every computer with gctk has.`, fix: editable ? "repair" : undefined });
   else if (transport === "stdio" && cmd && path.isAbsolute(cmd) && !fs.existsSync(cmd)) problems.push({ kind: "missing-command", level: "warn", text: `The command ${cmd} does not exist; the editor cannot start this server.`, fix: editable ? "remove" : undefined });
   else if (transport === "stdio" && script && path.isAbsolute(script) && /\.(c|m)?js$/.test(script) && !fs.existsSync(script)) problems.push({ kind: "missing-command", level: "warn", text: `The script ${script} no longer exists (an older version, moved or deleted).`, fix: editable ? "remove" : undefined });
   if (genesys && org?.clientId && !org.profile) problems.push({ kind: "unknown-client", level: "info", text: `The OAuth client ${org.clientId} is not one of your gctk profiles, so gctk cannot tell which org it is.` });
@@ -564,8 +594,11 @@ function describe(file: ConfigFile, section: string, project: string | undefined
     launch: launchId ? { id: launchId, account: record?.account ?? "", valid: validRecord(record), secretNames: record?.secretNames ?? [] } : undefined,
     ...(() => {
       if (!genesys || !editable || transport !== "stdio" || credentials === "gctk-profile" || credentials === "axl" || credentials === "project" || (launchId && !validRecord(record))) return {};
-      const keys = credentialKeysOf(record ? [...Object.keys(record.env), ...record.secretNames] : Object.keys(rawEnv));
-      return keys ? { credentialKeys: keys } : {};
+      const keys = record?.keys ?? credentialKeysOf(record ? [...Object.keys(record.env), ...record.secretNames] : Object.keys(rawEnv));
+      if (!keys) return {};
+      // Linkable: the secret is readable here (in the file or a keychain entry of its own), or the client ID names an org.
+      const canLink = credentials !== "org" && keys.clientId && keys.secret && (credentials === "plain" || credentials === "keychain" || org?.profile);
+      return { credentialKeys: keys, ...(canLink ? { linkOrg: { ...(org?.profile ? { match: org.profile } : {}), ...(org?.region ? { region: org.region } : {}) } } : {}) };
     })(),
     problems,
   };
@@ -606,6 +639,7 @@ export function scanAiSetup(o: ScanOptions = {}): AiSetup {
   const store = o.store ?? keychainStore;
   const byAccount = new Map<string, ManagedSecret>();
   for (const r of Object.values(records)) {
+    if (!r.account) continue;
     const m = byAccount.get(r.account) ?? { account: r.account, names: [], usedBy: [], stored: false, clientId: r.clientId ? showClientId(r.clientId) : undefined, profile: r.clientId ? clients().get(r.clientId) : undefined };
     m.names = [...new Set([...m.names, ...r.secretNames])];
     m.usedBy.push({ id: r.id, server: r.server, file: r.file });
@@ -834,7 +868,7 @@ function dropRecord(id: string, store: SecretStore): void {
   if (!r) return;
   delete records[id];
   saveRecords(records);
-  if (!Object.values(records).some((x) => x.account === r.account)) {
+  if (r.account && !Object.values(records).some((x) => x.account === r.account)) {
     try {
       store.remove(r.account);
     } catch {
@@ -844,20 +878,25 @@ function dropRecord(id: string, store: SecretStore): void {
 }
 
 /** Puts the secrets back into the file and the original command back into the entry. */
-export function restoreToFile(a: ServerAddress, opts: { store?: SecretStore } & ScanOptions = {}): void {
+export function restoreToFile(a: ServerAddress, opts: { store?: SecretStore; orgs?: OrgStore } & ScanOptions = {}): void {
   const store = opts.store ?? keychainStore;
   const { json, indent, servers, entry } = locate(a, opts);
   const id = launchIdOf(entry);
   const r = id ? loadRecords()[id] : undefined;
   if (!id || !validRecord(r)) throw new GctkError("INVALID_INPUT", `${a.name} does not start through gctk with a valid launch record.`);
-  const raw = store.get(r.account);
+  const raw = r.account ? store.get(r.account) : "{}";
   if (!raw) throw new GctkError("INVALID_INPUT", "The secret is no longer in the keychain. Enter it again under Secrets in the keychain, then restore.");
-  const secrets = JSON.parse(raw) as Record<string, string>;
+  const secrets = { ...(JSON.parse(raw) as Record<string, string>), ...(r.profile ? orgValues(r, opts.orgs ?? keychainOrgs) : {}) };
+  const names = [...r.secretNames, ...(r.keys ? [r.keys.clientId, r.keys.secret, r.keys.region, r.keys.habitat].filter((n): n is string => Boolean(n)) : [])];
   const { command: _c, args: _a, ...keep } = entry;
-  servers[a.name] = { ...keep, command: r.original, ...(r.args.length ? { args: r.args } : {}), env: { ...r.env, ...Object.fromEntries(r.secretNames.map((n) => [n, secrets[n] ?? ""])) } };
+  servers[a.name] = { ...keep, command: r.original, ...(r.args.length ? { args: r.args } : {}), env: { ...r.env, ...Object.fromEntries(names.map((n) => [n, secrets[n] ?? ""])) } };
   writeJson(a.file, json, indent);
   dropRecord(id, store);
 }
+
+/** How Cursor starts gctk from GitHub without git (npm needs git for github: packages). */
+export const GCTK_PACKAGE = "https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz";
+const OLD_PACKAGE = /^github:diebergziege\/(gc-toolkit|genesys-cloud-toolkit)(#.*)?$/;
 
 /** The gctk.js an entry gctk wrote starts (node <gctk.js> mcp-launch|axl-harness|mcp …), if it is one. */
 function viaGctk(command: string | undefined, args: string[]): string | undefined {
@@ -869,6 +908,11 @@ function viaGctk(command: string | undefined, args: string[]): string | undefine
 export function repairServer(a: ServerAddress, opts: { gctkJs: string; node?: string } & ScanOptions): void {
   const { json, indent, servers, entry } = locate(a, opts);
   const args = Array.isArray(entry.args) ? entry.args.map(String) : [];
+  if (args.some((x) => OLD_PACKAGE.test(x))) {
+    servers[a.name] = { ...entry, args: args.map((x) => (OLD_PACKAGE.test(x) ? GCTK_PACKAGE : x)) };
+    writeJson(a.file, json, indent);
+    return;
+  }
   if (!viaGctk(typeof entry.command === "string" ? entry.command : undefined, args)) throw new GctkError("INVALID_INPUT", `${a.name} does not start through gctk.`);
   const node = typeof entry.command === "string" && fs.existsSync(entry.command) ? entry.command : opts.node ?? process.execPath;
   servers[a.name] = { ...entry, command: node, args: [opts.gctkJs, ...args.slice(1)] };
@@ -928,9 +972,10 @@ export function setCredentials(a: ServerAddress, input: CredentialInput, opts: {
   const store = opts.store ?? keychainStore;
   let v: { clientId?: string; secret?: string; region?: string };
   if (input.profile) {
-    const p = loadProfile(input.profile);
-    const c = loadCredentials(p);
-    v = { clientId: c.clientId, secret: c.clientSecret, region: p.region };
+    // An org from the Orgs page: link to it, so its credentials stay in one place.
+    if (!opts.gctkJs) throw new GctkError("INVALID_INPUT", "Linking to an org needs the installed gctk (dist/gctk.js).");
+    linkToOrg(a, { ...opts, gctkJs: opts.gctkJs, profile: input.profile, useOrgSecret: true });
+    return;
   } else {
     v = { clientId: input.clientId?.trim() || undefined, secret: input.secret?.trim() || undefined, region: input.region?.trim() ? resolveRegion(input.region.trim()) : undefined };
   }
@@ -951,6 +996,7 @@ export function setCredentials(a: ServerAddress, input: CredentialInput, opts: {
     const records = loadRecords();
     const r = records[id];
     if (!validRecord(r)) throw new GctkError("INVALID_INPUT", `${a.name} starts through gctk, but its launch record is missing or was changed.`);
+    if (r.profile) throw new GctkError("INVALID_INPUT", `${a.name} is linked to the org ${r.profile}: change that org on the Orgs page, or link ${a.name} to another org.`);
     const keys = credentialKeysOf([...Object.keys(r.env), ...r.secretNames]);
     if (!keys) throw new GctkError("INVALID_INPUT", `${a.name} has no Genesys credential variables.`);
     const env = { ...r.env };
@@ -985,18 +1031,160 @@ export function setCredentials(a: ServerAddress, input: CredentialInput, opts: {
   }
 }
 
+/** The linked org's credentials in the variables the record names. */
+function orgValues(r: LaunchRecord, orgs: OrgStore): Record<string, string> {
+  if (!r.profile || !r.keys) return {};
+  let p: Profile;
+  try {
+    p = loadProfile(r.profile);
+  } catch {
+    throw new GctkError("MCP_LAUNCH", `${r.server} is linked to the org ${r.profile}, which is no longer on the Orgs page. Link it to another org on the Cursor setup page of the gctk UI.`);
+  }
+  const c = orgs.load(p);
+  const out: Record<string, string> = {};
+  if (r.keys.clientId) out[r.keys.clientId] = c.clientId;
+  if (r.keys.secret) out[r.keys.secret] = c.clientSecret;
+  if (r.keys.region) out[r.keys.region] = p.region;
+  if (r.keys.habitat && HABITATS[p.region]) out[r.keys.habitat] = HABITATS[p.region]!;
+  return out;
+}
+
+export interface LinkInput {
+  /** An org on the Orgs page; without it, the org whose OAuth client the entry uses. */
+  profile?: string;
+  /** Add the entry's credentials as a new org (its region from the entry unless given). */
+  newOrg?: { name: string; tier: Tier; region?: string; description?: string };
+  /** The entry's secret differs from the org's: use the org's anyway. */
+  useOrgSecret?: boolean;
+}
+
+/**
+ * Links a Genesys server to an org on the Orgs page, so the Orgs page is the one place for OAuth
+ * credentials: the entry then starts `gctk mcp-launch <id>`, whose signed record names the org and
+ * the variables, and gets client ID, secret and region from that org at every start. The secret it
+ * had (in the file or a keychain entry of its own) becomes a new org, or is dropped for the org that
+ * has the same OAuth client. Other secrets of the server stay in a keychain entry of its own.
+ */
+export function linkToOrg(a: ServerAddress, input: LinkInput & { gctkJs: string; node?: string; store?: SecretStore } & ScanOptions): { profile: string; created: boolean } {
+  const store = input.store ?? keychainStore;
+  const orgs = input.orgs ?? keychainOrgs;
+  const { file, json, indent, servers, entry } = locate(a, input);
+  if (typeof entry.command !== "string" || typeof entry.url === "string") throw new GctkError("INVALID_INPUT", `${a.name} is not started as a program on this computer.`);
+  const records = loadRecords();
+  const oldId = launchIdOf(entry);
+  const old = oldId ? records[oldId] : undefined;
+  if (oldId && !validRecord(old)) throw new GctkError("INVALID_INPUT", `${a.name} starts through gctk, but its launch record is missing or was changed. Remove the entry and add the server again.`);
+
+  // What the server has now: settings, secrets, program.
+  let env: Record<string, string>;
+  let secrets: Record<string, string>;
+  let base: Pick<Unsigned, "command" | "original" | "args" | "cwd" | "pathEnv">;
+  if (old) {
+    env = { ...old.env };
+    secrets = old.account ? (JSON.parse(store.get(old.account) ?? "{}") as Record<string, string>) : {};
+    base = { command: old.command, original: old.original, args: old.args, ...(old.cwd ? { cwd: old.cwd } : {}), ...(old.pathEnv !== undefined ? { pathEnv: old.pathEnv } : {}) };
+  } else {
+    const raw = Object.fromEntries(Object.entries((entry.env as Record<string, unknown>) ?? {}).map(([k, v]) => [k, String(v ?? "")]));
+    secrets = Object.fromEntries(Object.entries(raw).filter(([k, v]) => isSecretName(k) && v && !isReference(v)));
+    env = Object.fromEntries(Object.entries(raw).filter(([k]) => !(k in secrets)));
+    base = { command: resolveCommand(entry.command, raw), original: entry.command, args: gctkArgs(entry), ...(typeof entry.cwd === "string" ? { cwd: entry.cwd } : file.scope === "project" && file.project ? { cwd: file.project } : {}), pathEnv: raw.PATH ?? process.env.PATH ?? "" };
+  }
+  const keys = old?.keys ?? credentialKeysOf([...Object.keys(env), ...Object.keys(secrets), ...(old?.secretNames ?? [])]);
+  if (!keys?.clientId || !keys.secret) throw new GctkError("INVALID_INPUT", `${a.name} has no Genesys client ID and secret variables, so it cannot be linked to an org.`);
+  const fileClient = env[keys.clientId] && !isReference(env[keys.clientId]!) ? env[keys.clientId] : old?.clientId;
+  const fileSecret = secrets[keys.secret];
+  const fileRegion = regionFrom(env);
+
+  // The org.
+  let profile: Profile;
+  let created = false;
+  if (input.newOrg) {
+    const name = input.newOrg.name.trim();
+    assertProfileName(name);
+    if (listProfiles().includes(name)) throw new GctkError("PROFILE_EXISTS", `An org "${name}" exists already; choose another name, or link to it.`);
+    if (!TIERS.includes(input.newOrg.tier)) throw new GctkError("INVALID_INPUT", `Unknown tier "${input.newOrg.tier}".`);
+    const region = input.newOrg.region?.trim() ? resolveRegion(input.newOrg.region.trim()) : fileRegion;
+    if (!region) throw new GctkError("INVALID_INPUT", "Enter the org's region (the domain you log in with, e.g. mypurecloud.de).");
+    if (!fileClient || !fileSecret) throw new GctkError("INVALID_INPUT", `gctk cannot read ${a.name}'s client ID and secret, so it cannot add them as an org.`);
+    profile = { name, region, tier: input.newOrg.tier, credentials: "keychain", ...(input.newOrg.description ? { description: input.newOrg.description } : {}) };
+  } else {
+    const clients = input.clients ?? clientsFromProfiles;
+    const name = input.profile ?? (fileClient ? clients().get(fileClient) : undefined);
+    if (!name) throw new GctkError("ORG_UNKNOWN", `${a.name}'s OAuth client is not one of your orgs. Add it as an org.`);
+    profile = loadProfile(name);
+    const c = orgs.load(profile);
+    if (!input.useOrgSecret && fileClient === c.clientId && fileSecret && fileSecret !== c.clientSecret) {
+      throw new GctkError("SECRET_DIFFERS", `${a.name} has a different secret than the org ${name} for the same OAuth client. One of them is out of date (rotated?).`);
+    }
+  }
+
+  const id = oldId ?? crypto.randomBytes(6).toString("hex");
+  const credentialNames = [keys.clientId, keys.secret, keys.region, keys.habitat].filter((n): n is string => Boolean(n));
+  const others = Object.fromEntries(Object.entries(secrets).filter(([k]) => !credentialNames.includes(k)));
+  const account = Object.keys(others).length ? (old?.account && Object.values(records).every((x) => x.id === id || x.account !== old.account) ? old.account : `__mcp__${id}`) : "";
+  const unsigned: Unsigned = {
+    id,
+    server: a.name,
+    file: a.file,
+    section: a.section,
+    ...base,
+    env: Object.fromEntries(Object.entries(env).filter(([k]) => !credentialNames.includes(k))),
+    secretNames: Object.keys(others),
+    account,
+    profile: profile.name,
+    keys,
+    createdAt: new Date().toISOString(),
+  };
+  const { env: _e, cwd: _c, ...keep } = entry;
+  servers[a.name] = { ...keep, command: input.node ?? process.execPath, args: [input.gctkJs, "mcp-launch", id] };
+  // The org, the record and the file change together, or none of them.
+  const before = { ...records };
+  let profileSaved = false;
+  try {
+    if (input.newOrg) {
+      saveProfile(profile);
+      profileSaved = true;
+      orgs.save(profile, { clientId: fileClient!, clientSecret: fileSecret! });
+      created = true;
+    }
+    if (account) store.set(account, JSON.stringify(others));
+    saveRecords({ ...records, [id]: { ...unsigned, signature: sign(signed(unsigned)) } });
+    writeJson(a.file, json, indent);
+  } catch (err) {
+    try {
+      saveRecords(before);
+    } catch {
+      // the record was never written
+    }
+    if (account && account !== old?.account) store.remove(account);
+    if (created) orgs.remove(profile.name);
+    if (profileSaved) removeProfile(profile.name);
+    throw err;
+  }
+  // The keychain entry of its own is no longer needed once no record uses it.
+  if (old?.account && old.account !== account && !Object.values(loadRecords()).some((x) => x.account === old.account)) {
+    try {
+      store.remove(old.account);
+    } catch {
+      // already gone
+    }
+  }
+  return { profile: profile.name, created };
+}
+
 // ------------------------------------------------------------------ launcher
 
 /** Variables the editor may pass through to the server; everything else comes from the signed record. */
 const PASS_THROUGH = /^(LANG|LC_[A-Z]+|TERM|TZ|HTTPS?_PROXY|NO_PROXY|https?_proxy|no_proxy)$/;
 
 /** Environment and command for `gctk mcp-launch <id>`; refuses unsigned or edited records. */
-export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, store: SecretStore = keychainStore): { command: string; args: string[]; env: NodeJS.ProcessEnv; cwd?: string; record: LaunchRecord } {
+export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, store: SecretStore = keychainStore, orgs: OrgStore = keychainOrgs): { command: string; args: string[]; env: NodeJS.ProcessEnv; cwd?: string; record: LaunchRecord } {
   const r = loadRecords()[id];
   if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the Cursor setup page of the gctk UI and set the server up again.`);
-  const raw = store.get(r.account);
+  const raw = r.account ? store.get(r.account) : "{}";
   if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the Cursor setup page of the gctk UI.`);
   const secrets = JSON.parse(raw) as Record<string, string>;
+  const fromOrg = r.profile ? orgValues(r, orgs) : {};
   const user = os.userInfo();
   const env: NodeJS.ProcessEnv = {
     ...Object.fromEntries(Object.entries(base).filter(([k]) => PASS_THROUGH.test(k))),
@@ -1007,6 +1195,7 @@ export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, st
     PATH: r.pathEnv ?? "",
     ...r.env,
     ...Object.fromEntries(r.secretNames.map((n) => [n, secrets[n] ?? ""])),
+    ...fromOrg,
   };
   return { command: r.command, args: r.args, env, ...(r.cwd ? { cwd: r.cwd } : {}), record: r };
 }
@@ -1028,7 +1217,8 @@ const CRED_TEXT: Record<ServerInfo["credentials"], string> = {
   none: "no credentials",
   plain: "secret in plain text in the file",
   reference: "secret from a variable",
-  keychain: "secret in the keychain (started through gctk)",
+  keychain: "secret in a keychain entry of its own (started through gctk)",
+  org: "linked to an org on the Orgs page (started through gctk)",
   "gctk-profile": "gctk profiles (keychain)",
   axl: "AXL workshop org (keychain, through gctk)",
   project: "gctk project org (keychain, through gctk)",
