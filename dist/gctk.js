@@ -40911,13 +40911,19 @@ async function orgDemoStatus(id, profile2, client) {
   }
   if (local?.created.length) return { unregistered: { at: local.at, created: local.created.length }, ...template ? { template } : {} };
   if (local) fs8.rmSync(recordFile(id, profile2), { force: true });
-  const objects = [...snap?.objects ?? [], ...m.create ?? []];
-  const existing = [];
-  for (let i = 0; i < objects.length; i += 6) {
-    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type].find(c, obj.name).then((x) => x ? `${TYPES[obj.type].label} "${obj.name}"` : void 0).catch(() => void 0)));
-    existing.push(...found.filter((x) => Boolean(x)));
-  }
+  const existing = (await findDemoObjects(id, c)).map((x) => `${x.label} "${x.name}"`);
   return { existing, ...template ? { template } : {} };
+}
+async function findDemoObjects(id, c) {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const objects = [...readSnapshot(src.pkg)?.objects ?? [], ...m.create ?? []];
+  const out = [];
+  for (let i = 0; i < objects.length; i += 6) {
+    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type].find(c, obj.name).then((x) => x ? { type: obj.type, label: TYPES[obj.type].label, name: obj.name, id: x } : void 0).catch(() => void 0)));
+    out.push(...found.filter((x) => Boolean(x)));
+  }
+  return out;
 }
 var presenterTemplate = (m, snap) => m.presenterContact ? snap?.objects.find((o) => o.type === "externalcontact" && o.name === m.presenterContact) : void 0;
 async function registerDeployment(id, profile2, client) {
@@ -53666,7 +53672,7 @@ async function startUi(opts = {}) {
 
 // src/ui/daemon.ts
 var VERSION3 = true ? "0.30.0" : "dev";
-var BUILD_ID = true ? "a32f7d6" : "dev";
+var BUILD_ID = true ? "553b6ea" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto9.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path14.join(gctkHome(), "ui.json");

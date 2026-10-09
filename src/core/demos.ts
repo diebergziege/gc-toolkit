@@ -838,6 +838,13 @@ const TYPES: Record<string, TypeDef> = {
   },
 };
 const ORDER = Object.keys(TYPES);
+
+/** Deletes one object of a demo type the way Remove does (e.g. a library's responses first). */
+export const removeDemoObject = (type: string, c: GenesysClient, id: string) => {
+  const def = TYPES[type];
+  if (!def) throw invalid(`Unknown type "${type}".`);
+  return def.remove(c, id);
+};
 export const DEMO_TYPES = Object.fromEntries(ORDER.map((t) => [t, TYPES[t]!.label]));
 
 const token = (type: string, name: string, sub?: string) => `@{${type}:${name}${sub ? `#${sub}` : ""}}`;
@@ -1297,13 +1304,21 @@ export async function orgDemoStatus(id: string, profile: string, client?: Genesy
   }
   if (local?.created.length) return { unregistered: { at: local.at, created: local.created.length }, ...(template ? { template } : {}) };
   if (local) fs.rmSync(recordFile(id, profile), { force: true });
-  const objects = [...(snap?.objects ?? []), ...(m.create ?? [])];
-  const existing: string[] = [];
-  for (let i = 0; i < objects.length; i += 6) {
-    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type]!.find(c, obj.name).then((x) => (x ? `${TYPES[obj.type]!.label} "${obj.name}"` : undefined)).catch(() => undefined)));
-    existing.push(...found.filter((x): x is string => Boolean(x)));
-  }
+  const existing = (await findDemoObjects(id, c)).map((x) => `${x.label} "${x.name}"`);
   return { existing, ...(template ? { template } : {}) };
+}
+
+/** The demo's objects (snapshot and package) that exist in the org by name, with their ids. Read-only. */
+export async function findDemoObjects(id: string, c: GenesysClient): Promise<Array<{ type: string; label: string; name: string; id: string }>> {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const objects = [...(readSnapshot(src.pkg)?.objects ?? []), ...(m.create ?? [])];
+  const out: Array<{ type: string; label: string; name: string; id: string }> = [];
+  for (let i = 0; i < objects.length; i += 6) {
+    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type]!.find(c, obj.name).then((x) => (x ? { type: obj.type, label: TYPES[obj.type]!.label, name: obj.name, id: x } : undefined)).catch(() => undefined)));
+    out.push(...found.filter((x): x is NonNullable<typeof x> => Boolean(x)));
+  }
+  return out;
 }
 
 const presenterTemplate = (m: DemoManifest, snap?: Snapshot) => (m.presenterContact ? snap?.objects.find((o) => o.type === "externalcontact" && o.name === m.presenterContact) : undefined);
