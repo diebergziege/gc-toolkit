@@ -3,7 +3,7 @@
 # in the chosen org. Everything the objects need (wrap-up codes, intents, workbin, schemas, topics)
 # is picked up automatically. The source org is not named here: "Take snapshot" is only offered on
 # a computer where it is set (`gctk demo-source vendor-battle <profile> --replace "Name=@{presenter.name}"`).
-name: Vendor Battle – Lumea Energie & Smart Home
+name: Lumea Energie & Smart Home
 description: >
   Customer Service Summit 2026: WhatsApp bot, agent with Copilot (checklists, canned responses,
   knowledge, NLU rules, a third-party answer from the "ERP"), case management with two case plans,

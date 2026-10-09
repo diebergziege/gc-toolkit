@@ -2299,7 +2299,7 @@ function aiSetupReport(s, msg, draw, projects) {
         try { r = await call({}); }
         catch (err) {
           if (err.code !== "SECRET_DIFFERS") throw err;
-          if (!confirm(`${err.message}\n\nUse the org's secret? The one ${x.credentials === "plain" ? "in the file" : "in its own keychain entry"} is dropped. (If the org's is the old one, cancel and store the new secret on the Orgs page first.)`)) return;
+          if (!confirm(`${err.message.replace(/^[A-Z_]+: /, "")}\n\nUse the org's secret? The one ${x.credentials === "plain" ? "in the file" : "in its own keychain entry"} is dropped. (If the org's is the old one, cancel and store the new secret on the Orgs page first.)`)) return;
           r = await call({ useOrgSecret: true });
         }
         await refreshOverview();
