@@ -2,7 +2,7 @@
 # customer's lines are German on purpose: the Copilot NLU intents are trained on these phrases.
 # The trigger reference below the scenes is built from the snapshot (rules, intents, checklists).
 summary: >
-  Markus Berger, customer for nine years, gets a bill with 246,80 € to pay extra. He complained
+  @{customer.name}, customer for nine years, gets a bill with 246,80 € to pay extra. He complained
   by email three weeks ago and never got an answer, and his contract ends in six weeks. Bill
   complaint and churn risk meet in one conversation. The demo turns this "moment of frustration"
   into a "moment of value": the bot recognises him and hands over, Copilot guides the agent with two
@@ -10,7 +10,7 @@ summary: >
   becomes an offer that is the upsell itself (LumeaSolar Flex: renewal, dynamic tariff and solar
   advice in one), confirmed as a case that comes back to the agent.
 persona: >
-  Markus Berger (Herr), Musterstraße 1, 22767 Hamburg. Tariff LumeaPrivat Klassik, 36,8 ct/kWh,
+  @{customer.name}, Musterstraße 1, 22767 Hamburg. Tariff LumeaPrivat Klassik, 36,8 ct/kWh,
   instalment 138 € a month. Consumption 2025: 4.750 kWh instead of the forecast 4.200 kWh. Contract
   ends in 42 days, notice period ends in 14 days. The presenter's phone and email play his.
 duration: 20 minutes (3 framing · 12 live demo · 3 value and measurement · 2 buffer)
@@ -44,7 +44,7 @@ scenes:
         channel: web
         text: "Open the chat on the Lumea website (any \"Chat starten\" button). The bot greets at once; there is no first message to type."
       - who: bot
-        text: "Guten Tag Herr Berger. Ich bin der KI-Assistent der Lumea Energie & Smart Home GmbH. Ich sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen."
+        text: "Guten Tag. Ich bin der KI-Assistent der Lumea Energie & Smart Home GmbH. Ich sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen."
       - who: bot
         text: "Geht es Ihnen nur um Ihre Rechnung oder auch um Ihren Vertrag?"
       - who: customer
@@ -164,7 +164,7 @@ scenes:
         text: "Insert the closing summary (canned response „07 Abschluss“) and end the conversation."
     triggers:
       - when: Button „Angebot verbindlich anlegen“
-        then: "gctk creates the case in the org (case plan „Lumea Vertragsangebot“, contact Markus Berger, intake data of the offer). Checklist 2, item „Zusage einholen und Vorgang anlegen“ ticks once you tell the customer."
+        then: "gctk creates the case in the org (case plan „Lumea Vertragsangebot“, contact @{customer.name}, intake data of the offer). Checklist 2, item „Zusage einholen und Vorgang anlegen“ ticks once you tell the customer."
       - when: Button „Bestätigung per SMS senden“
         then: "gctk sends an agentless SMS from the org's SMS number to the customer's mobile. Inserting the confirmation ticks checklist 2, item „Bestätigung auf den hinterlegten Kanal senden“ (canned response „06 Bestaetigung Vertragsverlaengerung“ is the fallback)."
       - when: The closing summary

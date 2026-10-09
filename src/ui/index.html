@@ -1991,8 +1991,17 @@ async function viewDemos() {
 // The demo story: scenes in stage order (who says or does what, and what it triggers), plus a
 // reference of all triggers read from the demo's Copilot, NLU, checklists and analytics topics.
 const STORY_WHO = { customer: ["Customer types", "#2a5c9c"], bot: ["Bot", "#6b5aa6"], agent: ["Agent writes", "#2f8f43"], you: ["You", "#7a6a50"] };
-function storyPanel(d) {
-  const s = d.story;
+/** @{customer.*} in the story: the presenter's persona (or the package's customer until they join). */
+function customerTokens(p) {
+  if (!p) return {};
+  const name = `${p.firstName} ${p.lastName}`.trim();
+  return { salutation: p.salutation || "", firstName: p.firstName, lastName: p.lastName, name, initials: `${p.firstName.charAt(0)}${p.lastName.charAt(0)}`.toUpperCase(), greeting: p.salutation ? `${p.salutation} ${p.lastName}` : name };
+}
+function storyPanel(d, persona) {
+  const [first, ...rest] = (d.manifest?.presenterContact || "").split(" ");
+  const cust = customerTokens(persona || (first ? { firstName: first, lastName: rest.join(" ") } : undefined));
+  const fill = (v) => typeof v === "string" ? v.replace(/@\{customer\.(\w+)\}/g, (t, k) => cust[k] ?? t) : Array.isArray(v) ? v.map(fill) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)])) : v;
+  const s = fill(d.story);
   if (!s) return null;
   const m = d.manifest;
   const chLabel = (id) => (m.channels || []).find((c) => c.id === id)?.label.replace(/^Lumea /, "") || id;
@@ -2055,11 +2064,20 @@ function demoDetail(d, data, pick, keep, msg) {
   if (!profiles.some((p) => p.name === pick.profile)) pick.profile = profiles.find((p) => p.name !== d.sourceProfile)?.name || profiles[0]?.name || "";
   const orgSel = h("select", { onchange: () => { pick.profile = orgSel.value; keep(); render(); } },
     profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier}, ${p.region})${p.name === d.sourceProfile ? " · the snapshot source" : ""}`)));
+  // The demo's deployment in this org comes from the org itself (every gctk sees the same).
+  let orgStatus = null;
+  const storyBox = h("div", {}, storyPanel(d));
+  // The presenter's customer persona: salutation and name of the contact they play (unique in the org).
+  const personaOn = Boolean(m.presenterContact);
+  const persona = { salutation: h("select", { "aria-label": "Salutation" }, [["Herr", "Herr"], ["Frau", "Frau"], ["", "–"]].map(([v, l]) => h("option", { value: v }, l))), firstName: h("input", { placeholder: "First name", "aria-label": "Customer first name", style: "min-width:140px" }), lastName: h("input", { placeholder: "Last name", "aria-label": "Customer last name", style: "min-width:140px" }) };
+  const personaValue = () => ({ salutation: persona.salutation.value, firstName: persona.firstName.value.trim(), lastName: persona.lastName.value.trim() });
+  const personaFields = () => personaOn ? h("label", { style: "grid-column:1/-1" }, "Your customer (the contact you play; the name must be unique in the org)", h("div", { class: "row" }, persona.salutation, persona.firstName, persona.lastName)) : null;
   const deployed = d.deployments.find((x) => x.profile === pick.profile);
   const prereqBox = h("div", {}, h("div", { class: "muted" }, "Checking the org …"));
   const divSel = h("select", {}, h("option", {}, "…"));
   const userSel = h("select", { style: "min-width:240px" }, h("option", {}, "…"));
   const waSel = h("select", { style: "min-width:240px" }, h("option", { value: "" }, "…"));
+  userSel.addEventListener("change", () => { if (orgStatus?.deployment) drawDeploy(); });
   let whatsapp = [];
   // Parameters: the presenter's own values (e.g. the phone that plays the customer), prefilled from the last deploy into this org.
   const paramInputs = (m.parameters || []).map((p) => ({ p, el: h("input", { type: p.format === "email" ? "email" : p.format === "phone" ? "tel" : "text", value: deployed?.params?.[p.id] || "", placeholder: p.format === "phone" ? "+4915112345678" : p.format === "email" ? "name@example.com" : "", style: "min-width:240px" }) }));
@@ -2088,6 +2106,7 @@ function demoDetail(d, data, pick, keep, msg) {
     } catch (err) { out.firstChild.append(h("div", { class: "error" }, err.message)); }
     const fresh = await api("/api/demos");
     Object.assign(d, fresh.demos.find((x) => x.id === d.id));
+    try { orgStatus = (await api(`/api/demos/${d.id}/org?profile=${encodeURIComponent(pick.profile)}`)).status; } catch {}
     drawDeploy();
   };
 
@@ -2103,31 +2122,79 @@ function demoDetail(d, data, pick, keep, msg) {
       h("input", { type: "radio", name: `channel-${d.id}`, checked: ch.id === pick.channel, onchange: () => { pick.channel = ch.id; drawDeploy(); }, style: "margin-top:4px" }),
       h("span", {}, h("strong", {}, ch.label), ch.description ? h("div", { class: "muted", style: "font-size:13px" }, ch.description) : null))))) : null;
   const drawDeploy = () => {
-    const dep = d.deployments.find((x) => x.profile === pick.profile);
-    put(deployBox,
-      d.snapshot ? null : h("div", { class: "warn" }, d.canSnapshot ? `No snapshot yet: take one from ${d.sourceProfile} under "What the demo contains" first.` : "No snapshot yet, so this demo cannot be deployed. Update gctk to get it."),
-      dep ? h("div", { class: "okbox" }, `Deployed into ${pick.profile} on ${time(dep.at)}: ${dep.created} objects created${dep.reused ? `, ${dep.reused} were already there` : ""}${dep.division ? `, division ${dep.division}` : ""}${dep.presenter ? `, presenter ${dep.presenter}` : ""}${dep.channel ? `, customer channel: ${channelLabel(dep.channel)}` : ""}.${dep.routing ? ` WhatsApp ${dep.routing.integration}${dep.routing.phone ? ` (${dep.routing.phone})` : ""} routes to the demo.` : ""}`) : null,
-      channelPick(),
-      h("div", { class: "grid", style: "margin-top:12px" }, h("label", {}, "Division", divSel), h("label", {}, "Presenter (member of the demo's queues)", userSel),
-        routingHere() ? h("label", {}, `WhatsApp number (routed to "${m.messageRouting.flow}")`, waSel) : null,
-        paramInputs.map(({ p, el }) => h("label", {}, `${p.label}${p.optional ? "" : " *"}`, el))),
-      h("div", { class: "row", style: "margin-top:10px" },
-        h("button", { class: "btn primary", disabled: !d.snapshot, onclick: () => {
-          const wa = routingHere() ? whatsapp.find((w) => w.id === waSel.value) : undefined;
-          if (routingHere() && !wa && !confirm("No WhatsApp number is selected, so no message routing changes and the customer cannot write via WhatsApp. Deploy anyway?")) return;
-          const route = wa ? `\n\nMessages to WhatsApp ${wa.name}${wa.phone ? ` (${wa.phone})` : ""} then go to "${m.messageRouting.flow}"${wa.flow && wa.flow !== m.messageRouting.flow ? ` instead of "${wa.flow}" (Remove puts "${wa.flow}" back)` : ""}.` : "";
-          const params = Object.fromEntries(paramInputs.map(({ p, el }) => [p.id, el.value.trim()]));
-          const empty = paramInputs.find(({ p, el }) => !p.optional && !el.value.trim());
-          if (empty) { empty.el.focus(); put(msg, h("div", { class: "error" }, `Enter "${empty.p.label}".`)); return; }
-          put(msg);
-          const via = channels.length ? `\n\nCustomer channel: ${channelLabel(pick.channel)}.` : "";
-          if (!confirm(`Deploy "${m.name}" into ${pick.profile}?${via} Objects that already exist with the same name are reused; everything else is created.${route}`)) return;
-          follow(`/api/demos/${d.id}/deploy`, { profile: pick.profile, divisionId: divSel.value, presenterId: userSel.value, whatsappIntegrationId: wa ? wa.id : "", channel: pick.channel, params }, `Deploying into ${pick.profile}`, (r) => `Done: ${r.created.length} objects in ${pick.profile}${r.reused.length ? `, ${r.reused.length} were already there` : ""}.`);
-        } }, dep ? "Deploy again (adds what is missing)" : `Deploy into ${pick.profile}`),
-        dep ? h("button", { class: "btn danger", onclick: () => {
-          if (!confirm(`Remove everything this page created in ${pick.profile} (${dep.created} objects)? Objects that were already there stay.`)) return;
-          follow(`/api/demos/${d.id}/remove`, { profile: pick.profile }, `Removing from ${pick.profile}`, (r) => `Removed ${r.removed} objects.${r.failed.length ? ` Not removed: ${r.failed.join("; ")}` : ""}`);
-        } }, "Remove from this org") : null));
+    const st = orgStatus;
+    const dep = st?.deployment;
+    // which: "deploy" (everything), "join" (the presenter's own), "update" (the org's own).
+    const fields = (which) => [
+      which === "deploy" ? channelPick() : null,
+      h("div", { class: "grid", style: "margin-top:12px" },
+        which === "deploy" ? h("label", {}, "Division", divSel) : null,
+        which !== "update" ? h("label", {}, which === "join" ? "Presenter (you)" : "Presenter (you; member of the demo's queues)", userSel) : null,
+        which === "deploy" && routingHere() ? h("label", {}, `WhatsApp number (routed to "${m.messageRouting.flow}")`, waSel) : null,
+        which !== "update" ? personaFields() : null,
+        paramInputs.filter(({ p }) => which === "deploy" || (which === "join" ? p.perPresenter : !p.perPresenter)).map(({ p, el }) => h("label", {}, `${p.label}${p.optional ? "" : " *"}`, el)))];
+    const deploy = (update) => {
+      const wa = !update && routingHere() ? whatsapp.find((w) => w.id === waSel.value) : undefined;
+      if (!update && routingHere() && !wa && !confirm("No WhatsApp number is selected, so no message routing changes and the customer cannot write via WhatsApp. Deploy anyway?")) return;
+      const route = wa ? `\n\nMessages to WhatsApp ${wa.name}${wa.phone ? ` (${wa.phone})` : ""} then go to "${m.messageRouting.flow}"${wa.flow && wa.flow !== m.messageRouting.flow ? ` instead of "${wa.flow}" (Remove puts "${wa.flow}" back)` : ""}.` : "";
+      const params = Object.fromEntries(paramInputs.map(({ p, el }) => [p.id, el.value.trim()]));
+      const empty = paramInputs.find(({ p, el }) => !p.optional && !el.value.trim() && (!update || !p.perPresenter));
+      if (!update && personaOn && (!userSel.value || !personaValue().firstName || !personaValue().lastName)) { put(msg, h("div", { class: "error" }, "Choose yourself as the presenter and give your customer a first and last name.")); return; }
+      if (empty) { empty.el.focus(); put(msg, h("div", { class: "error" }, `Enter "${empty.p.label}".`)); return; }
+      put(msg);
+      const via = channels.length && !update ? `\n\nCustomer channel: ${channelLabel(pick.channel)}.` : "";
+      const ask = update
+        ? `Update the deployment of "${m.name}" in ${pick.profile} to the demo's latest version? It stays the one deployment everyone in this org shares; nothing is created twice.`
+        : `Deploy "${m.name}" into ${pick.profile}?${via} Objects that already exist with the same name are used as they are; everything else is created. Everyone with gctk then sees this deployment.${route}`;
+      if (!confirm(ask)) return;
+      follow(`/api/demos/${d.id}/deploy`, { profile: pick.profile, divisionId: divSel.value, presenterId: update ? "" : userSel.value, whatsappIntegrationId: wa ? wa.id : "", channel: dep?.channel || pick.channel, params, update, ...(!update && personaOn ? { persona: personaValue() } : {}) }, update ? `Updating in ${pick.profile}` : `Deploying into ${pick.profile}`, (r) => `Done: ${r.created.length} objects in ${pick.profile}${r.reused.length ? `, ${r.reused.length} were already there` : ""}.`);
+    };
+    const warnBox = (text) => h("div", { class: "warn" }, text);
+    let body;
+    if (!d.snapshot) body = warnBox(d.canSnapshot ? `No snapshot yet: take one from ${d.sourceProfile} under "What the demo contains" first.` : "No snapshot yet, so this demo cannot be deployed. Update gctk to get it.");
+    else if (!st) body = h("div", { class: "muted" }, "Checking whether the demo is in this org …");
+    else if (dep && dep.deploying) body = [warnBox(`${dep.by} is deploying it into ${pick.profile} right now (started ${time(dep.at)}). Wait until it is done, then reload this page.`)];
+    else if (dep) {
+      const names = dep.presenters.map((x) => x.customer ? `${x.name} (customer ${x.customer})` : x.name).join(", ");
+      const meId = st.me?.presenterId || userSel.value;
+      const meIn = dep.presenters.some((x) => x.id === meId);
+      const join = async () => {
+        if (!userSel.value) { put(msg, h("div", { class: "error" }, "Choose yourself as the presenter first.")); return; }
+        const params = Object.fromEntries(paramInputs.filter(({ p }) => p.perPresenter).map(({ p, el }) => [p.id, el.value.trim()]));
+        try { orgStatus = await api(`/api/demos/${d.id}/join`, { method: "POST", body: { profile: pick.profile, presenterId: userSel.value, params, ...(personaOn ? { persona: personaValue() } : {}) } }); put(msg, h("div", { class: "okbox" }, meIn ? "Your customer is updated." : "You present this demo now, with your own customer.")); drawDeploy(); put(storyBox, storyPanel(d, orgStatus.me?.persona || orgStatus.template)); }
+        catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+      };
+      body = [
+        h("div", { class: dep.state === "deployed" ? "okbox" : "warn" },
+          `${dep.state === "deployed" ? "Deployed" : "Partly deployed"} in ${pick.profile} by ${dep.by} on ${time(dep.at)}: ${dep.created} objects created${dep.reused ? `, ${dep.reused} were already there` : ""}${dep.channel ? `, customer channel ${channelLabel(dep.channel)}` : ""}. Presenters: ${names || "nobody yet"}.${dep.routing ? ` WhatsApp ${dep.routing.integration}${dep.routing.phone ? ` (${dep.routing.phone})` : ""} routes to the demo.` : ""}${dep.error ? ` Last problem: ${dep.error}` : ""}`),
+        h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, "A demo exists once per org and everyone shares it: whoever has gctk sees this deployment. Join it to present (you become a member of the demo's queues), update it to the demo's latest version, or remove it for everyone."),
+        fields("join"),
+        h("div", { class: "row", style: "margin-top:10px" },
+          h("button", { class: "btn primary", onclick: join }, meIn ? "Save my customer" : "Join as presenter"),
+          meIn ? h("button", { class: "btn", onclick: async () => {
+            if (!confirm(`Leave the demo in ${pick.profile}? Your customer contact${st.me?.persona?.lastName ? ` "${st.me.persona.firstName} ${st.me.persona.lastName}"` : ""} is deleted and you leave the demo's queues; the demo stays for the others.`)) return;
+            try { orgStatus = await api(`/api/demos/${d.id}/leave`, { method: "POST", body: { profile: pick.profile, presenterId: meId } }); put(msg, h("div", { class: "okbox" }, "You no longer present this demo.")); drawDeploy(); put(storyBox, storyPanel(d, orgStatus.template)); }
+            catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+          } }, "Leave") : null,
+          h("button", { class: "btn", onclick: () => deploy(true) }, dep.state === "deployed" ? "Update to the latest version" : "Finish the deploy"),
+          h("span", { class: "spacer" }),
+          h("button", { class: "btn danger", onclick: () => {
+            if (!confirm(`Remove "${m.name}" from ${pick.profile} for everyone?\n\n${dep.created} objects gctk created are deleted${names ? `, and the presenters (${names}) lose the demo` : ""}. Objects that were already there stay.`)) return;
+            follow(`/api/demos/${d.id}/remove`, { profile: pick.profile }, `Removing from ${pick.profile}`, (r) => `Removed ${r.removed} objects.${r.failed.length ? ` Not removed: ${r.failed.join("; ")}` : ""}`);
+          } }, "Remove for everyone"))];
+    } else if (st.unregistered) {
+      body = [warnBox(`This computer deployed the demo into ${pick.profile} on ${time(st.unregistered.at)} (${st.unregistered.created} objects), but the org does not know it yet: colleagues would not see it and could deploy it again.`),
+        h("button", { class: "btn primary", onclick: async () => {
+          try { orgStatus = await api(`/api/demos/${d.id}/register`, { method: "POST", body: { profile: pick.profile } }); drawDeploy(); }
+          catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+        } }, "Register it in the org")];
+    } else {
+      body = [
+        st.existing?.length ? warnBox(`${st.existing.length} of the demo's objects are in ${pick.profile} already, built by hand or by an older gctk: ${st.existing.slice(0, 6).join(", ")}${st.existing.length > 6 ? " …" : ""}. The deploy uses them and never changes or deletes them.`) : null,
+        fields("deploy"),
+        h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => deploy(false) }, `Deploy into ${pick.profile}`))];
+    }
+    put(deployBox, body);
   };
 
   const drawCommands = (cmds) => put(cmdBox, (cmds || []).length ? cmds.map((c) => {
@@ -2161,6 +2228,13 @@ function demoDetail(d, data, pick, keep, msg) {
     put(waSel, h("option", { value: "" }, whatsapp.length ? "Do not change message routing" : "No WhatsApp integration in this org"),
       whatsapp.map((w, i) => h("option", { value: w.id, selected: i === 0 }, `${w.name}${w.phone ? ` · ${w.phone}` : ""}${w.flow ? ` · now → ${w.flow}` : " · no flow yet"}`)));
     drawCommands(o.commands);
+    orgStatus = o.status;
+    const mine = o.status?.me;
+    for (const { p, el } of paramInputs) if (!el.value) el.value = (p.perPresenter ? mine?.params?.[p.id] : o.status?.deployment?.params?.[p.id]) || "";
+    if (mine?.persona?.lastName) { persona.salutation.value = mine.persona.salutation || ""; persona.firstName.value = mine.persona.firstName; persona.lastName.value = mine.persona.lastName; }
+    if (mine?.presenterId) userSel.value = mine.presenterId;
+    put(storyBox, storyPanel(d, mine?.persona?.lastName ? mine.persona : o.status?.template));
+    drawDeploy();
   }).catch((err) => put(prereqBox, h("div", { class: "error" }, err.message)));
   drawDeploy();
 
@@ -2169,7 +2243,7 @@ function demoDetail(d, data, pick, keep, msg) {
     h("div", { class: "panel" },
       h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" }), h("label", { class: "row" }, "Org", orgSel)),
       m.description ? h("p", { class: "muted", style: "margin:6px 0 0" }, m.description) : null),
-    storyPanel(d),
+    storyBox,
     step(1, "Prerequisites in the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. The ones it can check show their state; check the others yourself."), prereqBox),
     permissionsPanel(d),
     step(2, "Deploy", deployBox),

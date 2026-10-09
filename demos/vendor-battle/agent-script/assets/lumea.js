@@ -68,8 +68,8 @@ const COMPLAINT_DATE  = day(-21); // Beschwerde vor 3 Wochen, unbeantwortet
 
 const LUMEA = {
   kundennummer: 'LE-4827193',
-  name: 'Markus & Sandra Berger',
-  inhaber: 'Markus Berger',
+  name: '@{customer.firstName} & Sandra @{customer.lastName}',
+  inhaber: '@{customer.name}',
   haushalt: '44 / 41 Jahre · 2 Kinder',
   wohnen: 'Eigenheim, Bj. 2009, 140 m², ländlicher Stadtrand',
   kundeSeit: 'März 2017',
@@ -131,7 +131,7 @@ const MAIL_BESCHWERDE = {
       'Betrag zustande kommt. Und ich erwarte eine Antwort – nicht in vier Wochen.',
     'Ich bin seit neun Jahren Kunde bei Ihnen und habe immer pünktlich gezahlt. Wenn sich ' +
       'das nicht zügig klären lässt, werde ich mich nach einem anderen Anbieter umsehen.',
-    'Mit freundlichen Grüßen\nMarkus Berger',
+    'Mit freundlichen Grüßen\n@{customer.name}',
   ],
 };
 

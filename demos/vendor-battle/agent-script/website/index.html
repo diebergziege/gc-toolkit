@@ -82,14 +82,14 @@
       <a href="#smarthome">Smart Home</a>
       <a href="#service">Service</a>
     </nav>
-    <div class="account"><div class="avatar">MB</div><div><b>Markus Berger</b><div class="muted">Mein Lumea</div></div></div>
+    <div class="account"><div class="avatar">@{customer.initials}</div><div><b>@{customer.name}</b><div class="muted">Mein Lumea</div></div></div>
   </div>
 </header>
 
 <div class="hero">
   <div class="wrap">
     <div>
-      <h1>Guten Tag, Herr Berger.<br>Heute Energie für morgen.</h1>
+      <h1>Guten Tag, @{customer.greeting}.<br>Heute Energie für morgen.</h1>
       <p>Ökostrom aus Norddeutschland, dynamische Tarife mit Smart Meter und Photovoltaik vom Dach bis zum Speicher – alles aus einer Hand.</p>
       <button class="btn sun" data-chat>Frage stellen – im Chat</button>
       <a class="btn ghost" href="#tarife" style="margin-left:10px">Tarife vergleichen</a>
@@ -204,7 +204,7 @@
       g[e].t = 1 * new Date(); g[e].c = es;
       ys = document.createElement("script"); ys.async = 1; ys.src = n; ys.charset = "utf-8"; document.head.appendChild(ys);
     })(window, "Genesys", `https://apps.${REGION}/genesys-bootstrap/genesys.min.js`, { environment: ENVIRONMENT, deploymentId: DEPLOYMENT });
-    Genesys("command", "Database.set", { messaging: { customAttributes: { kunde: "Markus Berger", vertragskonto: "4711 2025", quelle: "Website" } } });
+    Genesys("command", "Database.set", { messaging: { customAttributes: { kunde: "@{customer.name}", vertragskonto: "4711 2025", quelle: "Website" } } });
   }
   for (const b of document.querySelectorAll("[data-chat]")) b.addEventListener("click", () => {
     if (READY && window.Genesys) Genesys("command", "Messenger.open");

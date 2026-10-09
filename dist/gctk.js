@@ -797,7 +797,7 @@ var require_createNode = __commonJS({
       if (value instanceof String || value instanceof Number || value instanceof Boolean || typeof BigInt !== "undefined" && value instanceof BigInt) {
         value = value.valueOf();
       }
-      const { aliasDuplicateObjects, onAnchor, onTagObj, schema, sourceObjects } = ctx;
+      const { aliasDuplicateObjects, onAnchor, onTagObj, schema: schema2, sourceObjects } = ctx;
       let ref = void 0;
       if (aliasDuplicateObjects && value && typeof value === "object") {
         ref = sourceObjects.get(value);
@@ -811,7 +811,7 @@ var require_createNode = __commonJS({
       }
       if (tagName?.startsWith("!!"))
         tagName = defaultTagPrefix + tagName.slice(2);
-      let tagObj = findTagObject(value, tagName, schema.tags);
+      let tagObj = findTagObject(value, tagName, schema2.tags);
       if (!tagObj) {
         if (value && typeof value.toJSON === "function") {
           value = value.toJSON();
@@ -822,7 +822,7 @@ var require_createNode = __commonJS({
             ref.node = node3;
           return node3;
         }
-        tagObj = value instanceof Map ? schema[identity.MAP] : Symbol.iterator in Object(value) ? schema[identity.SEQ] : schema[identity.MAP];
+        tagObj = value instanceof Map ? schema2[identity.MAP] : Symbol.iterator in Object(value) ? schema2[identity.SEQ] : schema2[identity.MAP];
       }
       if (onTagObj) {
         onTagObj(tagObj);
@@ -848,7 +848,7 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path15, value) {
+    function collectionFromPath(schema2, path15, value) {
       let v = value;
       for (let i = path15.length - 1; i >= 0; --i) {
         const k = path15[i];
@@ -866,16 +866,16 @@ var require_Collection = __commonJS({
         onAnchor: () => {
           throw new Error("This should not happen, please report a bug.");
         },
-        schema,
+        schema: schema2,
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
     var isEmptyPath = (path15) => path15 == null || typeof path15 === "object" && !!path15[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
-      constructor(type, schema) {
+      constructor(type, schema2) {
         super(type);
         Object.defineProperty(this, "schema", {
-          value: schema,
+          value: schema2,
           configurable: true,
           enumerable: false,
           writable: true
@@ -886,11 +886,11 @@ var require_Collection = __commonJS({
        *
        * @param schema - If defined, overwrites the original's schema
        */
-      clone(schema) {
+      clone(schema2) {
         const copy = Object.create(Object.getPrototypeOf(this), Object.getOwnPropertyDescriptors(this));
-        if (schema)
-          copy.schema = schema;
-        copy.items = copy.items.map((it) => identity.isNode(it) || identity.isPair(it) ? it.clone(schema) : it);
+        if (schema2)
+          copy.schema = schema2;
+        copy.items = copy.items.map((it) => identity.isNode(it) || identity.isPair(it) ? it.clone(schema2) : it);
         if (this.range)
           copy.range = this.range.slice();
         return copy;
@@ -1842,12 +1842,12 @@ var require_Pair = __commonJS({
         this.key = key;
         this.value = value;
       }
-      clone(schema) {
+      clone(schema2) {
         let { key, value } = this;
         if (identity.isNode(key))
-          key = key.clone(schema);
+          key = key.clone(schema2);
         if (identity.isNode(value))
-          value = value.clone(schema);
+          value = value.clone(schema2);
         return new _Pair(key, value);
       }
       toJSON(_, ctx) {
@@ -2040,17 +2040,17 @@ var require_YAMLMap = __commonJS({
       static get tagName() {
         return "tag:yaml.org,2002:map";
       }
-      constructor(schema) {
-        super(identity.MAP, schema);
+      constructor(schema2) {
+        super(identity.MAP, schema2);
         this.items = [];
       }
       /**
        * A generic collection parsing method that can be extended
        * to other node classes that inherit from YAMLMap
        */
-      static from(schema, obj, ctx) {
+      static from(schema2, obj, ctx) {
         const { keepUndefined, replacer } = ctx;
-        const map2 = new this(schema);
+        const map2 = new this(schema2);
         const add = (key, value) => {
           if (typeof replacer === "function")
             value = replacer.call(obj, key, value);
@@ -2066,8 +2066,8 @@ var require_YAMLMap = __commonJS({
           for (const key of Object.keys(obj))
             add(key, obj[key]);
         }
-        if (typeof schema.sortMapEntries === "function") {
-          map2.items.sort(schema.sortMapEntries);
+        if (typeof schema2.sortMapEntries === "function") {
+          map2.items.sort(schema2.sortMapEntries);
         }
         return map2;
       }
@@ -2174,7 +2174,7 @@ var require_map = __commonJS({
           onError("Expected a mapping for this tag");
         return map3;
       },
-      createNode: (schema, obj, ctx) => YAMLMap.YAMLMap.from(schema, obj, ctx)
+      createNode: (schema2, obj, ctx) => YAMLMap.YAMLMap.from(schema2, obj, ctx)
     };
     exports.map = map2;
   }
@@ -2194,8 +2194,8 @@ var require_YAMLSeq = __commonJS({
       static get tagName() {
         return "tag:yaml.org,2002:seq";
       }
-      constructor(schema) {
-        super(identity.SEQ, schema);
+      constructor(schema2) {
+        super(identity.SEQ, schema2);
         this.items = [];
       }
       add(value) {
@@ -2270,9 +2270,9 @@ var require_YAMLSeq = __commonJS({
           onComment
         });
       }
-      static from(schema, obj, ctx) {
+      static from(schema2, obj, ctx) {
         const { replacer } = ctx;
-        const seq2 = new this(schema);
+        const seq2 = new this(schema2);
         if (obj && Symbol.iterator in Object(obj)) {
           let i = 0;
           for (let it of obj) {
@@ -2312,7 +2312,7 @@ var require_seq = __commonJS({
           onError("Expected a sequence for this tag");
         return seq3;
       },
-      createNode: (schema, obj, ctx) => YAMLSeq.YAMLSeq.from(schema, obj, ctx)
+      createNode: (schema2, obj, ctx) => YAMLSeq.YAMLSeq.from(schema2, obj, ctx)
     };
     exports.seq = seq2;
   }
@@ -2508,7 +2508,7 @@ var require_schema = __commonJS({
     var bool = require_bool();
     var float = require_float();
     var int2 = require_int();
-    var schema = [
+    var schema2 = [
       map2.map,
       seq2.seq,
       string4.string,
@@ -2521,7 +2521,7 @@ var require_schema = __commonJS({
       float.floatExp,
       float.float
     ];
-    exports.schema = schema;
+    exports.schema = schema2;
   }
 });
 
@@ -2587,8 +2587,8 @@ var require_schema2 = __commonJS({
         return str3;
       }
     };
-    var schema = [map2.map, seq2.seq].concat(jsonScalars, jsonError);
-    exports.schema = schema;
+    var schema2 = [map2.map, seq2.seq].concat(jsonScalars, jsonError);
+    exports.schema = schema2;
   }
 });
 
@@ -2692,9 +2692,9 @@ ${cn.comment}` : item.comment;
         onError("Expected a sequence for this tag");
       return seq2;
     }
-    function createPairs(schema, iterable, ctx) {
+    function createPairs(schema2, iterable, ctx) {
       const { replacer } = ctx;
-      const pairs2 = new YAMLSeq.YAMLSeq(schema);
+      const pairs2 = new YAMLSeq.YAMLSeq(schema2);
       pairs2.tag = "tag:yaml.org,2002:pairs";
       let i = 0;
       if (iterable && Symbol.iterator in Object(iterable))
@@ -2779,8 +2779,8 @@ var require_omap = __commonJS({
         }
         return map2;
       }
-      static from(schema, iterable, ctx) {
-        const pairs$1 = pairs.createPairs(schema, iterable, ctx);
+      static from(schema2, iterable, ctx) {
+        const pairs$1 = pairs.createPairs(schema2, iterable, ctx);
         const omap2 = new this();
         omap2.items = pairs$1.items;
         return omap2;
@@ -2807,7 +2807,7 @@ var require_omap = __commonJS({
         }
         return Object.assign(new YAMLOMap(), pairs$1);
       },
-      createNode: (schema, iterable, ctx) => YAMLOMap.from(schema, iterable, ctx)
+      createNode: (schema2, iterable, ctx) => YAMLOMap.from(schema2, iterable, ctx)
     };
     exports.YAMLOMap = YAMLOMap;
     exports.omap = omap;
@@ -2982,8 +2982,8 @@ var require_set = __commonJS({
     var Pair = require_Pair();
     var YAMLMap = require_YAMLMap();
     var YAMLSet = class _YAMLSet extends YAMLMap.YAMLMap {
-      constructor(schema) {
-        super(schema);
+      constructor(schema2) {
+        super(schema2);
         this.tag = _YAMLSet.tag;
       }
       add(key) {
@@ -3027,9 +3027,9 @@ var require_set = __commonJS({
         else
           throw new Error("Set items must all have null values");
       }
-      static from(schema, iterable, ctx) {
+      static from(schema2, iterable, ctx) {
         const { replacer } = ctx;
-        const set3 = new this(schema);
+        const set3 = new this(schema2);
         if (iterable && Symbol.iterator in Object(iterable))
           for (let value of iterable) {
             if (typeof replacer === "function")
@@ -3046,7 +3046,7 @@ var require_set = __commonJS({
       nodeClass: YAMLSet,
       default: false,
       tag: "tag:yaml.org,2002:set",
-      createNode: (schema, iterable, ctx) => YAMLSet.from(schema, iterable, ctx),
+      createNode: (schema2, iterable, ctx) => YAMLSet.from(schema2, iterable, ctx),
       resolve(map2, onError) {
         if (identity.isMap(map2)) {
           if (map2.hasAllNullValues(true))
@@ -3168,7 +3168,7 @@ var require_schema3 = __commonJS({
     var pairs = require_pairs();
     var set2 = require_set();
     var timestamp = require_timestamp();
-    var schema = [
+    var schema2 = [
       map2.map,
       seq2.seq,
       string4.string,
@@ -3191,7 +3191,7 @@ var require_schema3 = __commonJS({
       timestamp.floatTime,
       timestamp.timestamp
     ];
-    exports.schema = schema;
+    exports.schema = schema2;
   }
 });
 
@@ -3206,7 +3206,7 @@ var require_tags = __commonJS({
     var bool = require_bool();
     var float = require_float();
     var int2 = require_int();
-    var schema = require_schema();
+    var schema2 = require_schema();
     var schema$1 = require_schema2();
     var binary = require_binary();
     var merge2 = require_merge();
@@ -3216,7 +3216,7 @@ var require_tags = __commonJS({
     var set2 = require_set();
     var timestamp = require_timestamp();
     var schemas = /* @__PURE__ */ new Map([
-      ["core", schema.schema],
+      ["core", schema2.schema],
       ["failsafe", [map2.map, seq2.seq, string4.string]],
       ["json", schema$1.schema],
       ["yaml11", schema$2.schema],
@@ -3300,9 +3300,9 @@ var require_Schema = __commonJS({
     var tags = require_tags();
     var sortMapEntriesByKey = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
     var Schema = class _Schema {
-      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
+      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema: schema2, sortMapEntries, toStringDefaults }) {
         this.compat = Array.isArray(compat) ? tags.getTags(compat, "compat") : compat ? tags.getTags(null, compat) : null;
-        this.name = typeof schema === "string" && schema || "core";
+        this.name = typeof schema2 === "string" && schema2 || "core";
         this.knownTags = resolveKnownTags ? tags.coreKnownTags : {};
         this.tags = tags.getTags(customTags, this.name, merge2);
         this.toStringOptions = toStringDefaults ?? null;
@@ -4891,11 +4891,11 @@ var require_compose_scalar = __commonJS({
         scalar.comment = comment;
       return scalar;
     }
-    function findScalarTagByName(schema, value, tagName, tagToken, onError) {
+    function findScalarTagByName(schema2, value, tagName, tagToken, onError) {
       if (tagName === "!")
-        return schema[identity.SCALAR];
+        return schema2[identity.SCALAR];
       const matchWithTest = [];
-      for (const tag of schema.tags) {
+      for (const tag of schema2.tags) {
         if (!tag.collection && tag.tag === tagName) {
           if (tag.default && tag.test)
             matchWithTest.push(tag);
@@ -4906,18 +4906,18 @@ var require_compose_scalar = __commonJS({
       for (const tag of matchWithTest)
         if (tag.test?.test(value))
           return tag;
-      const kt = schema.knownTags[tagName];
+      const kt = schema2.knownTags[tagName];
       if (kt && !kt.collection) {
-        schema.tags.push(Object.assign({}, kt, { default: false, test: void 0 }));
+        schema2.tags.push(Object.assign({}, kt, { default: false, test: void 0 }));
         return kt;
       }
       onError(tagToken, "TAG_RESOLVE_FAILED", `Unresolved tag: ${tagName}`, tagName !== "tag:yaml.org,2002:str");
-      return schema[identity.SCALAR];
+      return schema2[identity.SCALAR];
     }
-    function findScalarTagByTest({ atKey, directives, schema }, value, token2, onError) {
-      const tag = schema.tags.find((tag2) => (tag2.default === true || atKey && tag2.default === "key") && tag2.test?.test(value)) || schema[identity.SCALAR];
-      if (schema.compat) {
-        const compat = schema.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema[identity.SCALAR];
+    function findScalarTagByTest({ atKey, directives, schema: schema2 }, value, token2, onError) {
+      const tag = schema2.tags.find((tag2) => (tag2.default === true || atKey && tag2.default === "key") && tag2.test?.test(value)) || schema2[identity.SCALAR];
+      if (schema2.compat) {
+        const compat = schema2.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema2[identity.SCALAR];
         if (tag.tag !== compat.tag) {
           const ts = directives.tagString(tag.tag);
           const cs = directives.tagString(compat.tag);
@@ -8405,52 +8405,52 @@ var require_util = __commonJS({
       return hash3;
     }
     exports.toHash = toHash;
-    function alwaysValidSchema(it, schema) {
-      if (typeof schema == "boolean")
-        return schema;
-      if (Object.keys(schema).length === 0)
+    function alwaysValidSchema(it, schema2) {
+      if (typeof schema2 == "boolean")
+        return schema2;
+      if (Object.keys(schema2).length === 0)
         return true;
-      checkUnknownRules(it, schema);
-      return !schemaHasRules(schema, it.self.RULES.all);
+      checkUnknownRules(it, schema2);
+      return !schemaHasRules(schema2, it.self.RULES.all);
     }
     exports.alwaysValidSchema = alwaysValidSchema;
-    function checkUnknownRules(it, schema = it.schema) {
+    function checkUnknownRules(it, schema2 = it.schema) {
       const { opts, self } = it;
       if (!opts.strictSchema)
         return;
-      if (typeof schema === "boolean")
+      if (typeof schema2 === "boolean")
         return;
       const rules = self.RULES.keywords;
-      for (const key in schema) {
+      for (const key in schema2) {
         if (!rules[key])
           checkStrictMode(it, `unknown keyword: "${key}"`);
       }
     }
     exports.checkUnknownRules = checkUnknownRules;
-    function schemaHasRules(schema, rules) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaHasRules(schema2, rules) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (rules[key])
           return true;
       return false;
     }
     exports.schemaHasRules = schemaHasRules;
-    function schemaHasRulesButRef(schema, RULES) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaHasRulesButRef(schema2, RULES) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (key !== "$ref" && RULES.all[key])
           return true;
       return false;
     }
     exports.schemaHasRulesButRef = schemaHasRulesButRef;
-    function schemaRefOrVal({ topSchemaRef, schemaPath }, schema, keyword, $data) {
+    function schemaRefOrVal({ topSchemaRef, schemaPath }, schema2, keyword, $data) {
       if (!$data) {
-        if (typeof schema == "number" || typeof schema == "boolean")
-          return schema;
-        if (typeof schema == "string")
-          return (0, codegen_1._)`${schema}`;
+        if (typeof schema2 == "number" || typeof schema2 == "boolean")
+          return schema2;
+        if (typeof schema2 == "string")
+          return (0, codegen_1._)`${schema2}`;
       }
       return (0, codegen_1._)`${topSchemaRef}${schemaPath}${(0, codegen_1.getProperty)(keyword)}`;
     }
@@ -8731,10 +8731,10 @@ var require_boolSchema = __commonJS({
       message: "boolean schema is false"
     };
     function topBoolOrEmptySchema(it) {
-      const { gen, schema, validateName } = it;
-      if (schema === false) {
+      const { gen, schema: schema2, validateName } = it;
+      if (schema2 === false) {
         falseSchemaError(it, false);
-      } else if (typeof schema == "object" && schema.$async === true) {
+      } else if (typeof schema2 == "object" && schema2.$async === true) {
         gen.return(names_1.default.data);
       } else {
         gen.assign((0, codegen_1._)`${validateName}.errors`, null);
@@ -8743,8 +8743,8 @@ var require_boolSchema = __commonJS({
     }
     exports.topBoolOrEmptySchema = topBoolOrEmptySchema;
     function boolOrEmptySchema(it, valid) {
-      const { gen, schema } = it;
-      if (schema === false) {
+      const { gen, schema: schema2 } = it;
+      if (schema2 === false) {
         gen.var(valid, false);
         falseSchemaError(it);
       } else {
@@ -8806,18 +8806,18 @@ var require_applicability = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = void 0;
-    function schemaHasRulesForType({ schema, self }, type) {
+    function schemaHasRulesForType({ schema: schema2, self }, type) {
       const group = self.RULES.types[type];
-      return group && group !== true && shouldUseGroup(schema, group);
+      return group && group !== true && shouldUseGroup(schema2, group);
     }
     exports.schemaHasRulesForType = schemaHasRulesForType;
-    function shouldUseGroup(schema, group) {
-      return group.rules.some((rule) => shouldUseRule(schema, rule));
+    function shouldUseGroup(schema2, group) {
+      return group.rules.some((rule) => shouldUseRule(schema2, rule));
     }
     exports.shouldUseGroup = shouldUseGroup;
-    function shouldUseRule(schema, rule) {
+    function shouldUseRule(schema2, rule) {
       var _a3;
-      return schema[rule.keyword] !== void 0 || ((_a3 = rule.definition.implements) === null || _a3 === void 0 ? void 0 : _a3.some((kwd) => schema[kwd] !== void 0));
+      return schema2[rule.keyword] !== void 0 || ((_a3 = rule.definition.implements) === null || _a3 === void 0 ? void 0 : _a3.some((kwd) => schema2[kwd] !== void 0));
     }
     exports.shouldUseRule = shouldUseRule;
   }
@@ -8839,17 +8839,17 @@ var require_dataType = __commonJS({
       DataType2[DataType2["Correct"] = 0] = "Correct";
       DataType2[DataType2["Wrong"] = 1] = "Wrong";
     })(DataType || (exports.DataType = DataType = {}));
-    function getSchemaTypes(schema) {
-      const types = getJSONTypes(schema.type);
+    function getSchemaTypes(schema2) {
+      const types = getJSONTypes(schema2.type);
       const hasNull = types.includes("null");
       if (hasNull) {
-        if (schema.nullable === false)
+        if (schema2.nullable === false)
           throw new Error("type: null contradicts nullable: false");
       } else {
-        if (!types.length && schema.nullable !== void 0) {
+        if (!types.length && schema2.nullable !== void 0) {
           throw new Error('"nullable" cannot be used without "type"');
         }
-        if (schema.nullable === true)
+        if (schema2.nullable === true)
           types.push("null");
       }
       return types;
@@ -8981,8 +8981,8 @@ var require_dataType = __commonJS({
     }
     exports.checkDataTypes = checkDataTypes;
     var typeError = {
-      message: ({ schema }) => `must be ${schema}`,
-      params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1._)`{type: ${schema}}` : (0, codegen_1._)`{type: ${schemaValue}}`
+      message: ({ schema: schema2 }) => `must be ${schema2}`,
+      params: ({ schema: schema2, schemaValue }) => typeof schema2 == "string" ? (0, codegen_1._)`{type: ${schema2}}` : (0, codegen_1._)`{type: ${schemaValue}}`
     };
     function reportTypeError(it) {
       const cxt = getTypeErrorContext(it);
@@ -8990,16 +8990,16 @@ var require_dataType = __commonJS({
     }
     exports.reportTypeError = reportTypeError;
     function getTypeErrorContext(it) {
-      const { gen, data, schema } = it;
-      const schemaCode = (0, util_1.schemaRefOrVal)(it, schema, "type");
+      const { gen, data, schema: schema2 } = it;
+      const schemaCode = (0, util_1.schemaRefOrVal)(it, schema2, "type");
       return {
         gen,
         keyword: "type",
         data,
-        schema: schema.type,
+        schema: schema2.type,
         schemaCode,
         schemaValue: schemaCode,
-        parentSchema: schema,
+        parentSchema: schema2,
         params: {},
         it
       };
@@ -9152,15 +9152,15 @@ var require_code2 = __commonJS({
     }
     exports.validateArray = validateArray;
     function validateUnion(cxt) {
-      const { gen, schema, keyword, it } = cxt;
-      if (!Array.isArray(schema))
+      const { gen, schema: schema2, keyword, it } = cxt;
+      if (!Array.isArray(schema2))
         throw new Error("ajv implementation error");
-      const alwaysValid = schema.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
+      const alwaysValid = schema2.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
       if (alwaysValid && !it.opts.unevaluated)
         return;
       const valid = gen.let("valid", false);
       const schValid = gen.name("_valid");
-      gen.block(() => schema.forEach((_sch, i) => {
+      gen.block(() => schema2.forEach((_sch, i) => {
         const schCxt = cxt.subschema({
           keyword,
           schemaProp: i,
@@ -9188,8 +9188,8 @@ var require_keyword = __commonJS({
     var code_1 = require_code2();
     var errors_1 = require_errors2();
     function macroKeywordCode(cxt, def) {
-      const { gen, keyword, schema, parentSchema, it } = cxt;
-      const macroSchema = def.macro.call(it.self, schema, parentSchema, it);
+      const { gen, keyword, schema: schema2, parentSchema, it } = cxt;
+      const macroSchema = def.macro.call(it.self, schema2, parentSchema, it);
       const schemaRef = useKeyword(gen, keyword, macroSchema);
       if (it.opts.validateSchema !== false)
         it.self.validateSchema(macroSchema, true);
@@ -9206,9 +9206,9 @@ var require_keyword = __commonJS({
     exports.macroKeywordCode = macroKeywordCode;
     function funcKeywordCode(cxt, def) {
       var _a3;
-      const { gen, keyword, schema, parentSchema, $data, it } = cxt;
+      const { gen, keyword, schema: schema2, parentSchema, $data, it } = cxt;
       checkAsyncKeyword(it, def);
-      const validate2 = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
+      const validate2 = !$data && def.compile ? def.compile.call(it.self, schema2, parentSchema, it) : def.validate;
       const validateRef = useKeyword(gen, keyword, validate2);
       const valid = gen.let("valid");
       cxt.block$data(valid, validateKeyword);
@@ -9268,20 +9268,20 @@ var require_keyword = __commonJS({
         throw new Error(`keyword "${keyword}" failed to compile`);
       return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1.stringify)(result) });
     }
-    function validSchemaType(schema, schemaType, allowUndefined = false) {
-      return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
+    function validSchemaType(schema2, schemaType, allowUndefined = false) {
+      return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema2) : st === "object" ? schema2 && typeof schema2 == "object" && !Array.isArray(schema2) : typeof schema2 == st || allowUndefined && typeof schema2 == "undefined");
     }
     exports.validSchemaType = validSchemaType;
-    function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def, keyword) {
+    function validateKeywordUsage({ schema: schema2, opts, self, errSchemaPath }, def, keyword) {
       if (Array.isArray(def.keyword) ? !def.keyword.includes(keyword) : def.keyword !== keyword) {
         throw new Error("ajv implementation error");
       }
       const deps = def.dependencies;
-      if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
+      if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema2, kwd))) {
         throw new Error(`parent schema must have dependencies of ${keyword}: ${deps.join(",")}`);
       }
       if (def.validateSchema) {
-        const valid = def.validateSchema(schema[keyword]);
+        const valid = def.validateSchema(schema2[keyword]);
         if (!valid) {
           const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def.validateSchema.errors);
           if (opts.validateSchema === "log")
@@ -9303,8 +9303,8 @@ var require_subschema = __commonJS({
     exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = void 0;
     var codegen_1 = require_codegen();
     var util_1 = require_util();
-    function getSubschema(it, { keyword, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
-      if (keyword !== void 0 && schema !== void 0) {
+    function getSubschema(it, { keyword, schemaProp, schema: schema2, schemaPath, errSchemaPath, topSchemaRef }) {
+      if (keyword !== void 0 && schema2 !== void 0) {
         throw new Error('both "keyword" and "schema" passed, only one allowed');
       }
       if (keyword !== void 0) {
@@ -9319,12 +9319,12 @@ var require_subschema = __commonJS({
           errSchemaPath: `${it.errSchemaPath}/${keyword}/${(0, util_1.escapeFragment)(schemaProp)}`
         };
       }
-      if (schema !== void 0) {
+      if (schema2 !== void 0) {
         if (schemaPath === void 0 || errSchemaPath === void 0 || topSchemaRef === void 0) {
           throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
         }
         return {
-          schema,
+          schema: schema2,
           schemaPath,
           topSchemaRef,
           errSchemaPath
@@ -9417,7 +9417,7 @@ var require_fast_deep_equal = __commonJS({
 var require_json_schema_traverse = __commonJS({
   "node_modules/json-schema-traverse/index.js"(exports, module) {
     "use strict";
-    var traverse = module.exports = function(schema, opts, cb) {
+    var traverse = module.exports = function(schema2, opts, cb) {
       if (typeof opts == "function") {
         cb = opts;
         opts = {};
@@ -9427,7 +9427,7 @@ var require_json_schema_traverse = __commonJS({
       };
       var post2 = cb.post || function() {
       };
-      _traverse(opts, pre, post2, schema, "", schema);
+      _traverse(opts, pre, post2, schema2, "", schema2);
     };
     traverse.keywords = {
       additionalItems: true,
@@ -9473,26 +9473,26 @@ var require_json_schema_traverse = __commonJS({
       maxProperties: true,
       minProperties: true
     };
-    function _traverse(opts, pre, post2, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
-      if (schema && typeof schema == "object" && !Array.isArray(schema)) {
-        pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
-        for (var key in schema) {
-          var sch = schema[key];
+    function _traverse(opts, pre, post2, schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
+      if (schema2 && typeof schema2 == "object" && !Array.isArray(schema2)) {
+        pre(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        for (var key in schema2) {
+          var sch = schema2[key];
           if (Array.isArray(sch)) {
             if (key in traverse.arrayKeywords) {
               for (var i = 0; i < sch.length; i++)
-                _traverse(opts, pre, post2, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
+                _traverse(opts, pre, post2, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema2, i);
             }
           } else if (key in traverse.propsKeywords) {
             if (sch && typeof sch == "object") {
               for (var prop in sch)
-                _traverse(opts, pre, post2, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
+                _traverse(opts, pre, post2, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema2, prop);
             }
           } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
-            _traverse(opts, pre, post2, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
+            _traverse(opts, pre, post2, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema2);
           }
         }
-        post2(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        post2(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
       }
     }
     function escapeJsonPtr(str3) {
@@ -9528,14 +9528,14 @@ var require_resolve = __commonJS({
       "enum",
       "const"
     ]);
-    function inlineRef(schema, limit = true) {
-      if (typeof schema == "boolean")
+    function inlineRef(schema2, limit = true) {
+      if (typeof schema2 == "boolean")
         return true;
       if (limit === true)
-        return !hasRef(schema);
+        return !hasRef(schema2);
       if (!limit)
         return false;
-      return countKeys(schema) <= limit;
+      return countKeys(schema2) <= limit;
     }
     exports.inlineRef = inlineRef;
     var REF_KEYWORDS = /* @__PURE__ */ new Set([
@@ -9545,11 +9545,11 @@ var require_resolve = __commonJS({
       "$dynamicRef",
       "$dynamicAnchor"
     ]);
-    function hasRef(schema) {
-      for (const key in schema) {
+    function hasRef(schema2) {
+      for (const key in schema2) {
         if (REF_KEYWORDS.has(key))
           return true;
-        const sch = schema[key];
+        const sch = schema2[key];
         if (Array.isArray(sch) && sch.some(hasRef))
           return true;
         if (typeof sch == "object" && hasRef(sch))
@@ -9557,16 +9557,16 @@ var require_resolve = __commonJS({
       }
       return false;
     }
-    function countKeys(schema) {
+    function countKeys(schema2) {
       let count = 0;
-      for (const key in schema) {
+      for (const key in schema2) {
         if (key === "$ref")
           return Infinity;
         count++;
         if (SIMPLE_INLINED.has(key))
           continue;
-        if (typeof schema[key] == "object") {
-          (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
+        if (typeof schema2[key] == "object") {
+          (0, util_1.eachItem)(schema2[key], (sch) => count += countKeys(sch));
         }
         if (count === Infinity)
           return Infinity;
@@ -9596,16 +9596,16 @@ var require_resolve = __commonJS({
     }
     exports.resolveUrl = resolveUrl;
     var ANCHOR = /^[a-z_][-a-z0-9._]*$/i;
-    function getSchemaRefs(schema, baseId) {
-      if (typeof schema == "boolean")
+    function getSchemaRefs(schema2, baseId) {
+      if (typeof schema2 == "boolean")
         return {};
       const { schemaId, uriResolver } = this.opts;
-      const schId = normalizeId(schema[schemaId] || baseId);
+      const schId = normalizeId(schema2[schemaId] || baseId);
       const baseIds = { "": schId };
       const pathPrefix = getFullPath(uriResolver, schId, false);
       const localRefs = {};
       const schemaRefs = /* @__PURE__ */ new Set();
-      traverse(schema, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
+      traverse(schema2, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
         if (parentJsonPtr === void 0)
           return;
         const fullPath = pathPrefix + jsonPtr;
@@ -9686,15 +9686,15 @@ var require_validate = __commonJS({
       validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
     }
     exports.validateFunctionCode = validateFunctionCode;
-    function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
+    function validateFunction({ gen, validateName, schema: schema2, schemaEnv, opts }, body) {
       if (opts.code.es5) {
         gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${names_1.default.valCxt}`, schemaEnv.$async, () => {
-          gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
+          gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema2, opts)}`);
           destructureValCxtES5(gen, opts);
           gen.code(body);
         });
       } else {
-        gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
+        gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema2, opts)).code(body));
       }
     }
     function destructureValCxt(opts) {
@@ -9718,9 +9718,9 @@ var require_validate = __commonJS({
       });
     }
     function topSchemaObjCode(it) {
-      const { schema, opts, gen } = it;
+      const { schema: schema2, opts, gen } = it;
       validateFunction(it, () => {
-        if (opts.$comment && schema.$comment)
+        if (opts.$comment && schema2.$comment)
           commentKeyword(it);
         checkNoDefault(it);
         gen.let(names_1.default.vErrors, null);
@@ -9738,8 +9738,8 @@ var require_validate = __commonJS({
       gen.if((0, codegen_1._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_1._)`${it.evaluated}.props`, (0, codegen_1._)`undefined`));
       gen.if((0, codegen_1._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_1._)`${it.evaluated}.items`, (0, codegen_1._)`undefined`));
     }
-    function funcSourceUrl(schema, opts) {
-      const schId = typeof schema == "object" && schema[opts.schemaId];
+    function funcSourceUrl(schema2, opts) {
+      const schId = typeof schema2 == "object" && schema2[opts.schemaId];
       return schId && (opts.code.source || opts.code.process) ? (0, codegen_1._)`/*# sourceURL=${schId} */` : codegen_1.nil;
     }
     function subschemaCode(it, valid) {
@@ -9752,10 +9752,10 @@ var require_validate = __commonJS({
       }
       (0, boolSchema_1.boolOrEmptySchema)(it, valid);
     }
-    function schemaCxtHasRules({ schema, self }) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaCxtHasRules({ schema: schema2, self }) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (self.RULES.all[key])
           return true;
       return false;
@@ -9764,8 +9764,8 @@ var require_validate = __commonJS({
       return typeof it.schema != "boolean";
     }
     function subSchemaObjCode(it, valid) {
-      const { schema, gen, opts } = it;
-      if (opts.$comment && schema.$comment)
+      const { schema: schema2, gen, opts } = it;
+      if (opts.$comment && schema2.$comment)
         commentKeyword(it);
       updateContext(it);
       checkAsyncSchema(it);
@@ -9785,14 +9785,14 @@ var require_validate = __commonJS({
       schemaKeywords(it, types, !checkedTypes, errsCount);
     }
     function checkRefsAndKeywords(it) {
-      const { schema, errSchemaPath, opts, self } = it;
-      if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self.RULES)) {
+      const { schema: schema2, errSchemaPath, opts, self } = it;
+      if (schema2.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema2, self.RULES)) {
         self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
       }
     }
     function checkNoDefault(it) {
-      const { schema, opts } = it;
-      if (schema.default !== void 0 && opts.useDefaults && opts.strictSchema) {
+      const { schema: schema2, opts } = it;
+      if (schema2.default !== void 0 && opts.useDefaults && opts.strictSchema) {
         (0, util_1.checkStrictMode)(it, "default is ignored in the schema root");
       }
     }
@@ -9805,8 +9805,8 @@ var require_validate = __commonJS({
       if (it.schema.$async && !it.schemaEnv.$async)
         throw new Error("async schema in sync schema");
     }
-    function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
-      const msg = schema.$comment;
+    function commentKeyword({ gen, schemaEnv, schema: schema2, errSchemaPath, opts }) {
+      const msg = schema2.$comment;
       if (opts.$comment === true) {
         gen.code((0, codegen_1._)`${names_1.default.self}.logger.log(${msg})`);
       } else if (typeof opts.$comment == "function") {
@@ -9833,9 +9833,9 @@ var require_validate = __commonJS({
         gen.assign((0, codegen_1._)`${evaluated}.items`, items);
     }
     function schemaKeywords(it, types, typeErrors, errsCount) {
-      const { gen, schema, data, allErrors, opts, self } = it;
+      const { gen, schema: schema2, data, allErrors, opts, self } = it;
       const { RULES } = self;
-      if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema, RULES))) {
+      if (schema2.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema2, RULES))) {
         gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
         return;
       }
@@ -9847,7 +9847,7 @@ var require_validate = __commonJS({
         groupKeywords(RULES.post);
       });
       function groupKeywords(group) {
-        if (!(0, applicability_1.shouldUseGroup)(schema, group))
+        if (!(0, applicability_1.shouldUseGroup)(schema2, group))
           return;
         if (group.type) {
           gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
@@ -9865,12 +9865,12 @@ var require_validate = __commonJS({
       }
     }
     function iterateKeywords(it, group) {
-      const { gen, schema, opts: { useDefaults } } = it;
+      const { gen, schema: schema2, opts: { useDefaults } } = it;
       if (useDefaults)
         (0, defaults_1.assignDefaults)(it, group.type);
       gen.block(() => {
         for (const rule of group.rules) {
-          if ((0, applicability_1.shouldUseRule)(schema, rule)) {
+          if ((0, applicability_1.shouldUseRule)(schema2, rule)) {
             keywordCode(it, rule.keyword, rule.definition, group.type);
           }
         }
@@ -10215,17 +10215,17 @@ var require_compile = __commonJS({
         var _a3;
         this.refs = {};
         this.dynamicAnchors = {};
-        let schema;
+        let schema2;
         if (typeof env.schema == "object")
-          schema = env.schema;
+          schema2 = env.schema;
         this.schema = env.schema;
         this.schemaId = env.schemaId;
         this.root = env.root || this;
-        this.baseId = (_a3 = env.baseId) !== null && _a3 !== void 0 ? _a3 : (0, resolve_1.normalizeId)(schema === null || schema === void 0 ? void 0 : schema[env.schemaId || "$id"]);
+        this.baseId = (_a3 = env.baseId) !== null && _a3 !== void 0 ? _a3 : (0, resolve_1.normalizeId)(schema2 === null || schema2 === void 0 ? void 0 : schema2[env.schemaId || "$id"]);
         this.schemaPath = env.schemaPath;
         this.localRefs = env.localRefs;
         this.meta = env.meta;
-        this.$async = schema === null || schema === void 0 ? void 0 : schema.$async;
+        this.$async = schema2 === null || schema2 === void 0 ? void 0 : schema2.$async;
         this.refs = {};
       }
     };
@@ -10324,10 +10324,10 @@ var require_compile = __commonJS({
         return schOrFunc;
       let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
-        const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
+        const schema2 = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
-        if (schema)
-          _sch = new SchemaEnv({ schema, schemaId, root, baseId });
+        if (schema2)
+          _sch = new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       }
       if (_sch === void 0)
         return;
@@ -10375,12 +10375,12 @@ var require_compile = __commonJS({
       if (!schOrRef.validate)
         compileSchema.call(this, schOrRef);
       if (id === (0, resolve_1.normalizeId)(ref)) {
-        const { schema } = schOrRef;
+        const { schema: schema2 } = schOrRef;
         const { schemaId } = this.opts;
-        const schId = schema[schemaId];
+        const schId = schema2[schemaId];
         if (schId)
           baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
-        return new SchemaEnv({ schema, schemaId, root, baseId });
+        return new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       }
       return getJsonPointer.call(this, p, schOrRef);
     }
@@ -10392,29 +10392,29 @@ var require_compile = __commonJS({
       "dependencies",
       "definitions"
     ]);
-    function getJsonPointer(parsedRef, { baseId, schema, root }) {
+    function getJsonPointer(parsedRef, { baseId, schema: schema2, root }) {
       var _a3;
       if (((_a3 = parsedRef.fragment) === null || _a3 === void 0 ? void 0 : _a3[0]) !== "/")
         return;
       for (const part of parsedRef.fragment.slice(1).split("/")) {
-        if (typeof schema === "boolean")
+        if (typeof schema2 === "boolean")
           return;
-        const partSchema = schema[(0, util_1.unescapeFragment)(part)];
+        const partSchema = schema2[(0, util_1.unescapeFragment)(part)];
         if (partSchema === void 0)
           return;
-        schema = partSchema;
-        const schId = typeof schema === "object" && schema[this.opts.schemaId];
+        schema2 = partSchema;
+        const schId = typeof schema2 === "object" && schema2[this.opts.schemaId];
         if (!PREVENT_SCOPE_CHANGE.has(part) && schId) {
           baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
         }
       }
       let env;
-      if (typeof schema != "boolean" && schema.$ref && !(0, util_1.schemaHasRulesButRef)(schema, this.RULES)) {
-        const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema.$ref);
+      if (typeof schema2 != "boolean" && schema2.$ref && !(0, util_1.schemaHasRulesButRef)(schema2, this.RULES)) {
+        const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema2.$ref);
         env = resolveSchema.call(this, root, $ref);
       }
       const { schemaId } = this.opts;
-      env = env || new SchemaEnv({ schema, schemaId, root, baseId });
+      env = env || new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       if (env.schema !== env.root.schema)
         return env;
       return void 0;
@@ -11740,16 +11740,16 @@ var require_core = __commonJS({
           this.errors = v.errors;
         return valid;
       }
-      compile(schema, _meta) {
-        const sch = this._addSchema(schema, _meta);
+      compile(schema2, _meta) {
+        const sch = this._addSchema(schema2, _meta);
         return sch.validate || this._compileSchemaEnv(sch);
       }
-      compileAsync(schema, meta3) {
+      compileAsync(schema2, meta3) {
         if (typeof this.opts.loadSchema != "function") {
           throw new Error("options.loadSchema should be a function");
         }
         const { loadSchema } = this.opts;
-        return runCompileAsync.call(this, schema, meta3);
+        return runCompileAsync.call(this, schema2, meta3);
         async function runCompileAsync(_schema, _meta) {
           await loadMetaSchema.call(this, _schema.$schema);
           const sch = this._addSchema(_schema, _meta);
@@ -11795,37 +11795,37 @@ var require_core = __commonJS({
         }
       }
       // Adds schema to the instance
-      addSchema(schema, key, _meta, _validateSchema = this.opts.validateSchema) {
-        if (Array.isArray(schema)) {
-          for (const sch of schema)
+      addSchema(schema2, key, _meta, _validateSchema = this.opts.validateSchema) {
+        if (Array.isArray(schema2)) {
+          for (const sch of schema2)
             this.addSchema(sch, void 0, _meta, _validateSchema);
           return this;
         }
         let id;
-        if (typeof schema === "object") {
+        if (typeof schema2 === "object") {
           const { schemaId } = this.opts;
-          id = schema[schemaId];
+          id = schema2[schemaId];
           if (id !== void 0 && typeof id != "string") {
             throw new Error(`schema ${schemaId} must be string`);
           }
         }
         key = (0, resolve_1.normalizeId)(key || id);
         this._checkUnique(key);
-        this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
+        this.schemas[key] = this._addSchema(schema2, _meta, key, _validateSchema, true);
         return this;
       }
       // Add schema that will be used to validate other schemas
       // options in META_IGNORE_OPTIONS are alway set to false
-      addMetaSchema(schema, key, _validateSchema = this.opts.validateSchema) {
-        this.addSchema(schema, key, true, _validateSchema);
+      addMetaSchema(schema2, key, _validateSchema = this.opts.validateSchema) {
+        this.addSchema(schema2, key, true, _validateSchema);
         return this;
       }
       //  Validate schema against its meta-schema
-      validateSchema(schema, throwOrLogError) {
-        if (typeof schema == "boolean")
+      validateSchema(schema2, throwOrLogError) {
+        if (typeof schema2 == "boolean")
           return true;
         let $schema;
-        $schema = schema.$schema;
+        $schema = schema2.$schema;
         if ($schema !== void 0 && typeof $schema != "string") {
           throw new Error("$schema must be a string");
         }
@@ -11835,7 +11835,7 @@ var require_core = __commonJS({
           this.errors = null;
           return true;
         }
-        const valid = this.validate($schema, schema);
+        const valid = this.validate($schema, schema2);
         if (!valid && throwOrLogError) {
           const message = "schema is invalid: " + this.errorsText();
           if (this.opts.validateSchema === "log")
@@ -11978,9 +11978,9 @@ var require_core = __commonJS({
             if (typeof rule != "object")
               continue;
             const { $data } = rule.definition;
-            const schema = keywords[key];
-            if ($data && schema)
-              keywords[key] = schemaOrData(schema);
+            const schema2 = keywords[key];
+            if ($data && schema2)
+              keywords[key] = schemaOrData(schema2);
           }
         }
         return metaSchema;
@@ -11998,23 +11998,23 @@ var require_core = __commonJS({
           }
         }
       }
-      _addSchema(schema, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+      _addSchema(schema2, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
         let id;
         const { schemaId } = this.opts;
-        if (typeof schema == "object") {
-          id = schema[schemaId];
+        if (typeof schema2 == "object") {
+          id = schema2[schemaId];
         } else {
           if (this.opts.jtd)
             throw new Error("schema must be object");
-          else if (typeof schema != "boolean")
+          else if (typeof schema2 != "boolean")
             throw new Error("schema must be object or boolean");
         }
-        let sch = this._cache.get(schema);
+        let sch = this._cache.get(schema2);
         if (sch !== void 0)
           return sch;
         baseId = (0, resolve_1.normalizeId)(id || baseId);
-        const localRefs = resolve_1.getSchemaRefs.call(this, schema, baseId);
-        sch = new compile_1.SchemaEnv({ schema, schemaId, meta: meta3, baseId, localRefs });
+        const localRefs = resolve_1.getSchemaRefs.call(this, schema2, baseId);
+        sch = new compile_1.SchemaEnv({ schema: schema2, schemaId, meta: meta3, baseId, localRefs });
         this._cache.set(sch.schema, sch);
         if (addSchema && !baseId.startsWith("#")) {
           if (baseId)
@@ -12022,7 +12022,7 @@ var require_core = __commonJS({
           this.refs[baseId] = sch;
         }
         if (validateSchema)
-          this.validateSchema(schema, true);
+          this.validateSchema(schema2, true);
         return sch;
       }
       _checkUnique(id) {
@@ -12176,8 +12176,8 @@ var require_core = __commonJS({
     var $dataRef = {
       $ref: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#"
     };
-    function schemaOrData(schema) {
-      return { anyOf: [schema, $dataRef] };
+    function schemaOrData(schema2) {
+      return { anyOf: [schema2, $dataRef] };
     }
   }
 });
@@ -12477,7 +12477,7 @@ var require_pattern = __commonJS({
       $data: true,
       error: error62,
       code(cxt) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
         const u = it.opts.unicodeRegExp ? "u" : "";
         if ($data) {
           const { regExp } = it.opts.code;
@@ -12486,7 +12486,7 @@ var require_pattern = __commonJS({
           gen.try(() => gen.assign(valid, (0, codegen_1._)`${regExpCode}(${schemaCode}, ${u}).test(${data})`), () => gen.assign(valid, false));
           cxt.fail$data((0, codegen_1._)`!${valid}`);
         } else {
-          const regExp = (0, code_1.usePattern)(cxt, schema);
+          const regExp = (0, code_1.usePattern)(cxt, schema2);
           cxt.fail$data((0, codegen_1._)`!${regExp}.test(${data})`);
         }
       }
@@ -12543,11 +12543,11 @@ var require_required = __commonJS({
       $data: true,
       error: error62,
       code(cxt) {
-        const { gen, schema, schemaCode, data, $data, it } = cxt;
+        const { gen, schema: schema2, schemaCode, data, $data, it } = cxt;
         const { opts } = it;
-        if (!$data && schema.length === 0)
+        if (!$data && schema2.length === 0)
           return;
-        const useLoop = schema.length >= opts.loopRequired;
+        const useLoop = schema2.length >= opts.loopRequired;
         if (it.allErrors)
           allErrorsMode();
         else
@@ -12555,7 +12555,7 @@ var require_required = __commonJS({
         if (opts.strictRequired) {
           const props = cxt.parentSchema.properties;
           const { definedProperties } = cxt.it;
-          for (const requiredKey of schema) {
+          for (const requiredKey of schema2) {
             if ((props === null || props === void 0 ? void 0 : props[requiredKey]) === void 0 && !definedProperties.has(requiredKey)) {
               const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
               const msg = `required property "${requiredKey}" is not defined at "${schemaPath}" (strictRequired)`;
@@ -12567,7 +12567,7 @@ var require_required = __commonJS({
           if (useLoop || $data) {
             cxt.block$data(codegen_1.nil, loopAllRequired);
           } else {
-            for (const prop of schema) {
+            for (const prop of schema2) {
               (0, code_1.checkReportMissingProp)(cxt, prop);
             }
           }
@@ -12579,7 +12579,7 @@ var require_required = __commonJS({
             cxt.block$data(valid, () => loopUntilMissing(missing, valid));
             cxt.ok(valid);
           } else {
-            gen.if((0, code_1.checkMissingProp)(cxt, schema, missing));
+            gen.if((0, code_1.checkMissingProp)(cxt, schema2, missing));
             (0, code_1.reportMissingProp)(cxt, missing);
             gen.else();
           }
@@ -12666,8 +12666,8 @@ var require_uniqueItems = __commonJS({
       $data: true,
       error: error62,
       code(cxt) {
-        const { gen, data, $data, schema, parentSchema, schemaCode, it } = cxt;
-        if (!$data && !schema)
+        const { gen, data, $data, schema: schema2, parentSchema, schemaCode, it } = cxt;
+        if (!$data && !schema2)
           return;
         const valid = gen.let("valid");
         const itemTypes = parentSchema.items ? (0, dataType_1.getSchemaTypes)(parentSchema.items) : [];
@@ -12730,11 +12730,11 @@ var require_const = __commonJS({
       $data: true,
       error: error62,
       code(cxt) {
-        const { gen, data, $data, schemaCode, schema } = cxt;
-        if ($data || schema && typeof schema == "object") {
+        const { gen, data, $data, schemaCode, schema: schema2 } = cxt;
+        if ($data || schema2 && typeof schema2 == "object") {
           cxt.fail$data((0, codegen_1._)`!${(0, util_1.useFunc)(gen, equal_1.default)}(${data}, ${schemaCode})`);
         } else {
-          cxt.fail((0, codegen_1._)`${schema} !== ${data}`);
+          cxt.fail((0, codegen_1._)`${schema2} !== ${data}`);
         }
       }
     };
@@ -12760,10 +12760,10 @@ var require_enum = __commonJS({
       $data: true,
       error: error62,
       code(cxt) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
-        if (!$data && schema.length === 0)
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+        if (!$data && schema2.length === 0)
           throw new Error("enum must have non-empty array");
-        const useLoop = schema.length >= it.opts.loopEnum;
+        const useLoop = schema2.length >= it.opts.loopEnum;
         let eql;
         const getEql = () => eql !== null && eql !== void 0 ? eql : eql = (0, util_1.useFunc)(gen, equal_1.default);
         let valid;
@@ -12771,10 +12771,10 @@ var require_enum = __commonJS({
           valid = gen.let("valid");
           cxt.block$data(valid, loopEnum);
         } else {
-          if (!Array.isArray(schema))
+          if (!Array.isArray(schema2))
             throw new Error("ajv implementation error");
           const vSchema = gen.const("vSchema", schemaCode);
-          valid = (0, codegen_1.or)(...schema.map((_x, i) => equalCode(vSchema, i)));
+          valid = (0, codegen_1.or)(...schema2.map((_x, i) => equalCode(vSchema, i)));
         }
         cxt.pass(valid);
         function loopEnum() {
@@ -12782,7 +12782,7 @@ var require_enum = __commonJS({
           gen.forOf("v", schemaCode, (v) => gen.if((0, codegen_1._)`${getEql()}(${data}, ${v})`, () => gen.assign(valid, true).break()));
         }
         function equalCode(vSchema, i) {
-          const sch = schema[i];
+          const sch = schema2[i];
           return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i}])` : (0, codegen_1._)`${data} === ${sch}`;
         }
       }
@@ -12858,13 +12858,13 @@ var require_additionalItems = __commonJS({
       }
     };
     function validateAdditionalItems(cxt, items) {
-      const { gen, schema, data, keyword, it } = cxt;
+      const { gen, schema: schema2, data, keyword, it } = cxt;
       it.items = true;
       const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-      if (schema === false) {
+      if (schema2 === false) {
         cxt.setParams({ len: items.length });
         cxt.pass((0, codegen_1._)`${len} <= ${items.length}`);
-      } else if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
+      } else if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
         const valid = gen.var("valid", (0, codegen_1._)`${len} <= ${items.length}`);
         gen.if((0, codegen_1.not)(valid), () => validateItems(valid));
         cxt.ok(valid);
@@ -12897,11 +12897,11 @@ var require_items = __commonJS({
       schemaType: ["object", "array", "boolean"],
       before: "uniqueItems",
       code(cxt) {
-        const { schema, it } = cxt;
-        if (Array.isArray(schema))
-          return validateTuple(cxt, "additionalItems", schema);
+        const { schema: schema2, it } = cxt;
+        if (Array.isArray(schema2))
+          return validateTuple(cxt, "additionalItems", schema2);
         it.items = true;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         cxt.ok((0, code_1.validateArray)(cxt));
       }
@@ -12976,10 +12976,10 @@ var require_items2020 = __commonJS({
       before: "uniqueItems",
       error: error62,
       code(cxt) {
-        const { schema, parentSchema, it } = cxt;
+        const { schema: schema2, parentSchema, it } = cxt;
         const { prefixItems } = parentSchema;
         it.items = true;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         if (prefixItems)
           (0, additionalItems_1.validateAdditionalItems)(cxt, prefixItems);
@@ -13010,7 +13010,7 @@ var require_contains = __commonJS({
       trackErrors: true,
       error: error62,
       code(cxt) {
-        const { gen, schema, parentSchema, data, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, it } = cxt;
         let min;
         let max;
         const { minContains, maxContains } = parentSchema;
@@ -13031,7 +13031,7 @@ var require_contains = __commonJS({
           cxt.fail();
           return;
         }
-        if ((0, util_1.alwaysValidSchema)(it, schema)) {
+        if ((0, util_1.alwaysValidSchema)(it, schema2)) {
           let cond = (0, codegen_1._)`${len} >= ${min}`;
           if (max !== void 0)
             cond = (0, codegen_1._)`${cond} && ${len} <= ${max}`;
@@ -13116,14 +13116,14 @@ var require_dependencies = __commonJS({
         validateSchemaDeps(cxt, schDeps);
       }
     };
-    function splitDependencies({ schema }) {
+    function splitDependencies({ schema: schema2 }) {
       const propertyDeps = {};
       const schemaDeps = {};
-      for (const key in schema) {
+      for (const key in schema2) {
         if (key === "__proto__")
           continue;
-        const deps = Array.isArray(schema[key]) ? propertyDeps : schemaDeps;
-        deps[key] = schema[key];
+        const deps = Array.isArray(schema2[key]) ? propertyDeps : schemaDeps;
+        deps[key] = schema2[key];
       }
       return [propertyDeps, schemaDeps];
     }
@@ -13196,8 +13196,8 @@ var require_propertyNames = __commonJS({
       schemaType: ["object", "boolean"],
       error: error62,
       code(cxt) {
-        const { gen, schema, data, it } = cxt;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        const { gen, schema: schema2, data, it } = cxt;
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         const valid = gen.name("valid");
         gen.forIn("key", data, (key) => {
@@ -13243,12 +13243,12 @@ var require_additionalProperties = __commonJS({
       trackErrors: true,
       error: error62,
       code(cxt) {
-        const { gen, schema, parentSchema, data, errsCount, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, errsCount, it } = cxt;
         if (!errsCount)
           throw new Error("ajv implementation error");
         const { allErrors, opts } = it;
         it.props = true;
-        if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema))
+        if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema2))
           return;
         const props = (0, code_1.allSchemaProperties)(parentSchema.properties);
         const patProps = (0, code_1.allSchemaProperties)(parentSchema.patternProperties);
@@ -13281,18 +13281,18 @@ var require_additionalProperties = __commonJS({
           gen.code((0, codegen_1._)`delete ${data}[${key}]`);
         }
         function additionalPropertyCode(key) {
-          if (opts.removeAdditional === "all" || opts.removeAdditional && schema === false) {
+          if (opts.removeAdditional === "all" || opts.removeAdditional && schema2 === false) {
             deleteAdditional(key);
             return;
           }
-          if (schema === false) {
+          if (schema2 === false) {
             cxt.setParams({ additionalProperty: key });
             cxt.error();
             if (!allErrors)
               gen.break();
             return;
           }
-          if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
+          if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
             const valid = gen.name("valid");
             if (opts.removeAdditional === "failing") {
               applyAdditionalSchema(key, valid, false);
@@ -13342,18 +13342,18 @@ var require_properties = __commonJS({
       type: "object",
       schemaType: "object",
       code(cxt) {
-        const { gen, schema, parentSchema, data, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, it } = cxt;
         if (it.opts.removeAdditional === "all" && parentSchema.additionalProperties === void 0) {
           additionalProperties_1.default.code(new validate_1.KeywordCxt(it, additionalProperties_1.default, "additionalProperties"));
         }
-        const allProps = (0, code_1.allSchemaProperties)(schema);
+        const allProps = (0, code_1.allSchemaProperties)(schema2);
         for (const prop of allProps) {
           it.definedProperties.add(prop);
         }
         if (it.opts.unevaluated && allProps.length && it.props !== true) {
           it.props = util_1.mergeEvaluated.props(gen, (0, util_1.toHash)(allProps), it.props);
         }
-        const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema[p]));
+        const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema2[p]));
         if (properties.length === 0)
           return;
         const valid = gen.name("valid");
@@ -13371,7 +13371,7 @@ var require_properties = __commonJS({
           cxt.ok(valid);
         }
         function hasDefault(prop) {
-          return it.opts.useDefaults && !it.compositeRule && schema[prop].default !== void 0;
+          return it.opts.useDefaults && !it.compositeRule && schema2[prop].default !== void 0;
         }
         function applyPropertySchema(prop) {
           cxt.subschema({
@@ -13400,10 +13400,10 @@ var require_patternProperties = __commonJS({
       type: "object",
       schemaType: "object",
       code(cxt) {
-        const { gen, schema, data, parentSchema, it } = cxt;
+        const { gen, schema: schema2, data, parentSchema, it } = cxt;
         const { opts } = it;
-        const patterns = (0, code_1.allSchemaProperties)(schema);
-        const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema[p]));
+        const patterns = (0, code_1.allSchemaProperties)(schema2);
+        const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema2[p]));
         if (patterns.length === 0 || alwaysValidPatterns.length === patterns.length && (!it.opts.unevaluated || it.props === true)) {
           return;
         }
@@ -13471,8 +13471,8 @@ var require_not = __commonJS({
       schemaType: ["object", "boolean"],
       trackErrors: true,
       code(cxt) {
-        const { gen, schema, it } = cxt;
-        if ((0, util_1.alwaysValidSchema)(it, schema)) {
+        const { gen, schema: schema2, it } = cxt;
+        if ((0, util_1.alwaysValidSchema)(it, schema2)) {
           cxt.fail();
           return;
         }
@@ -13525,12 +13525,12 @@ var require_oneOf = __commonJS({
       trackErrors: true,
       error: error62,
       code(cxt) {
-        const { gen, schema, parentSchema, it } = cxt;
-        if (!Array.isArray(schema))
+        const { gen, schema: schema2, parentSchema, it } = cxt;
+        if (!Array.isArray(schema2))
           throw new Error("ajv implementation error");
         if (it.opts.discriminator && parentSchema.discriminator)
           return;
-        const schArr = schema;
+        const schArr = schema2;
         const valid = gen.let("valid", false);
         const passing = gen.let("passing", null);
         const schValid = gen.name("_valid");
@@ -13576,11 +13576,11 @@ var require_allOf = __commonJS({
       keyword: "allOf",
       schemaType: "array",
       code(cxt) {
-        const { gen, schema, it } = cxt;
-        if (!Array.isArray(schema))
+        const { gen, schema: schema2, it } = cxt;
+        if (!Array.isArray(schema2))
           throw new Error("ajv implementation error");
         const valid = gen.name("valid");
-        schema.forEach((sch, i) => {
+        schema2.forEach((sch, i) => {
           if ((0, util_1.alwaysValidSchema)(it, sch))
             return;
           const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i }, valid);
@@ -13655,8 +13655,8 @@ var require_if = __commonJS({
       }
     };
     function hasSchema(it, keyword) {
-      const schema = it.schema[keyword];
-      return schema !== void 0 && !(0, util_1.alwaysValidSchema)(it, schema);
+      const schema2 = it.schema[keyword];
+      return schema2 !== void 0 && !(0, util_1.alwaysValidSchema)(it, schema2);
     }
     exports.default = def;
   }
@@ -13745,7 +13745,7 @@ var require_format = __commonJS({
       $data: true,
       error: error62,
       code(cxt, ruleType) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
         const { opts, errSchemaPath, schemaEnv, self } = it;
         if (!opts.validateFormats)
           return;
@@ -13775,7 +13775,7 @@ var require_format = __commonJS({
           }
         }
         function validateFormat() {
-          const formatDef = self.formats[schema];
+          const formatDef = self.formats[schema2];
           if (!formatDef) {
             unknownFormat();
             return;
@@ -13792,12 +13792,12 @@ var require_format = __commonJS({
             }
             throw new Error(unknownMsg());
             function unknownMsg() {
-              return `unknown format "${schema}" ignored in schema at path "${errSchemaPath}"`;
+              return `unknown format "${schema2}" ignored in schema at path "${errSchemaPath}"`;
             }
           }
           function getFormat(fmtDef) {
-            const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema)}` : void 0;
-            const fmt = gen.scopeValue("formats", { key: schema, ref: fmtDef, code });
+            const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema2)}` : void 0;
+            const fmt = gen.scopeValue("formats", { key: schema2, ref: fmtDef, code });
             if (typeof fmtDef == "object" && !(fmtDef instanceof RegExp)) {
               return [fmtDef.type || "string", fmtDef.validate, (0, codegen_1._)`${fmt}.validate`];
             }
@@ -13908,15 +13908,15 @@ var require_discriminator = __commonJS({
       schemaType: "object",
       error: error62,
       code(cxt) {
-        const { gen, data, schema, parentSchema, it } = cxt;
+        const { gen, data, schema: schema2, parentSchema, it } = cxt;
         const { oneOf } = parentSchema;
         if (!it.opts.discriminator) {
           throw new Error("discriminator: requires discriminator option");
         }
-        const tagName = schema.propertyName;
+        const tagName = schema2.propertyName;
         if (typeof tagName != "string")
           throw new Error("discriminator: requires propertyName");
-        if (schema.mapping)
+        if (schema2.mapping)
           throw new Error("discriminator: mapping is not supported");
         if (!oneOf)
           throw new Error("discriminator: requires oneOf keyword");
@@ -19042,7 +19042,7 @@ function assertNotEqual(val) {
   return val;
 }
 function toZod() {
-  return (schema) => schema;
+  return (schema2) => schema2;
 }
 function assertIs(_arg) {
 }
@@ -19135,8 +19135,8 @@ function rawShape(def) {
   const desc = Object.getOwnPropertyDescriptor(def, "shape");
   return desc?.get ? desc.get.raw : desc?.value;
 }
-function sourceShape(schema) {
-  return rawShape(schema._zod.def) ?? schema._zod.def.shape;
+function sourceShape(schema2) {
+  return rawShape(schema2._zod.def) ?? schema2._zod.def.shape;
 }
 function deferProp(target, key, getter) {
   Object.defineProperty(target, key, {
@@ -19189,8 +19189,8 @@ function mergeDefs(...defs) {
   }
   return Object.defineProperties({}, mergedDescriptors);
 }
-function cloneDef(schema) {
-  return mergeDefs(schema._zod.def);
+function cloneDef(schema2) {
+  return mergeDefs(schema2._zod.def);
 }
 function getElementAtPath(obj, path15) {
   if (!path15)
@@ -19412,19 +19412,19 @@ var BIGINT_FORMAT_RANGES = {
   int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
   uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
-function pick(schema, mask2) {
-  const currDef = schema._zod.def;
+function pick(schema2, mask2) {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(".pick() cannot be used on object schemas containing refinements");
   }
   const newShape = {};
-  mirrorShape(newShape, schema, maskedKeys(schema, mask2));
-  return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
+  mirrorShape(newShape, schema2, maskedKeys(schema2, mask2));
+  return clone(schema2, mergeDefs(currDef, { shape: newShape, checks: [] }));
 }
-function maskedKeys(schema, mask2) {
-  const raw = sourceShape(schema);
+function maskedKeys(schema2, mask2) {
+  const raw = sourceShape(schema2);
   const keys = [];
   for (const key of Reflect.ownKeys(mask2)) {
     if (!Object.getOwnPropertyDescriptor(raw, key)?.enumerable) {
@@ -19435,45 +19435,45 @@ function maskedKeys(schema, mask2) {
   }
   return keys;
 }
-function omit(schema, mask2) {
-  const currDef = schema._zod.def;
+function omit(schema2, mask2) {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(".omit() cannot be used on object schemas containing refinements");
   }
-  const omitted = new Set(maskedKeys(schema, mask2));
+  const omitted = new Set(maskedKeys(schema2, mask2));
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key) => !omitted.has(key)));
-  return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
+  mirrorShape(newShape, schema2, Reflect.ownKeys(sourceShape(schema2)).filter((key) => !omitted.has(key)));
+  return clone(schema2, mergeDefs(currDef, { shape: newShape, checks: [] }));
 }
-function extend(schema, shape) {
+function extend(schema2, shape) {
   if (!isPlainObject(shape)) {
     throw new Error("Invalid input to extend: expected a plain object");
   }
-  const checks = schema._zod.def.checks;
+  const checks = schema2._zod.def.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
-    const existingShape = sourceShape(schema);
+    const existingShape = sourceShape(schema2);
     for (const key of Reflect.ownKeys(shape)) {
       if (Object.getOwnPropertyDescriptor(existingShape, key) !== void 0) {
         throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
       }
     }
   }
-  return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
+  return clone(schema2, mergeDefs(schema2._zod.def, { shape: extended(schema2, shape) }));
 }
-function extended(schema, shape) {
+function extended(schema2, shape) {
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)));
+  mirrorShape(newShape, schema2, Reflect.ownKeys(sourceShape(schema2)));
   mirrorProps(newShape, shape);
   return newShape;
 }
-function safeExtend(schema, shape) {
+function safeExtend(schema2, shape) {
   if (!isPlainObject(shape)) {
     throw new Error("Invalid input to safeExtend: expected a plain object");
   }
-  return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
+  return clone(schema2, mergeDefs(schema2._zod.def, { shape: extended(schema2, shape) }));
 }
 function merge(a, b) {
   if (!b?._zod?.def) {
@@ -19494,26 +19494,26 @@ function merge(a, b) {
   });
   return clone(a, def);
 }
-function partial(Class2, schema, mask2, name = "partial") {
-  const currDef = schema._zod.def;
+function partial(Class2, schema2, mask2, name = "partial") {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(`.${name}() cannot be used on object schemas containing refinements`);
   }
-  const selected = mask2 ? new Set(maskedKeys(schema, mask2)) : void 0;
+  const selected = mask2 ? new Set(maskedKeys(schema2, mask2)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key) => selected && !selected.has(key) ? value : new Class2({ type: "optional", innerType: value })));
-  return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
+  mirrorShape(newShape, schema2, Reflect.ownKeys(sourceShape(schema2)), Class2 && ((value, key) => selected && !selected.has(key) ? value : new Class2({ type: "optional", innerType: value })));
+  return clone(schema2, mergeDefs(schema2._zod.def, { shape: newShape, checks: [] }));
 }
-function required(Class2, schema, mask2) {
-  const selected = mask2 ? new Set(maskedKeys(schema, mask2)) : void 0;
+function required(Class2, schema2, mask2) {
+  const selected = mask2 ? new Set(maskedKeys(schema2, mask2)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key) => (
+  mirrorShape(newShape, schema2, Reflect.ownKeys(sourceShape(schema2)), (value, key) => (
     // overwrite with non-optional
     selected && !selected.has(key) ? value : new Class2({ type: "nonoptional", innerType: value })
   ));
-  return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
+  return clone(schema2, mergeDefs(schema2._zod.def, { shape: newShape }));
 }
 function aborted(x, startIndex = 0) {
   if (x.aborted === true)
@@ -20118,9 +20118,9 @@ function finalizeParams(callee, params) {
   return { callee: params?.callee ?? callee, Err: params?.Err };
 }
 var _parse = (_Err) => {
-  const fn = (schema, value, _ctx, _params) => {
+  const fn = (schema2, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-    const result = schema._zod.run({ value, issues: [] }, ctx);
+    const result = schema2._zod.run({ value, issues: [] }, ctx);
     if (result instanceof Promise) {
       throw new $ZodAsyncError();
     }
@@ -20135,9 +20135,9 @@ var _parse = (_Err) => {
 };
 var parse = /* @__PURE__ */ _parse($ZodRealError);
 var _parseAsync = (_Err) => {
-  const fn = async (schema, value, _ctx, params) => {
+  const fn = async (schema2, value, _ctx, params) => {
     const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-    let result = schema._zod.run({ value, issues: [] }, ctx);
+    let result = schema2._zod.run({ value, issues: [] }, ctx);
     if (result instanceof Promise)
       result = await result;
     if (result.issues.length) {
@@ -20150,9 +20150,9 @@ var _parseAsync = (_Err) => {
   return fn;
 };
 var parseAsync = /* @__PURE__ */ _parseAsync($ZodRealError);
-var _safeParse = (_Err) => (schema, value, _ctx) => {
+var _safeParse = (_Err) => (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-  const result = schema._zod.run({ value, issues: [] }, ctx);
+  const result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
@@ -20178,9 +20178,9 @@ function failure(Err, issues, ctx) {
     }
   };
 }
-var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeParseAsync = (_Err) => async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
@@ -20188,88 +20188,88 @@ var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
 var safeParseAsync = /* @__PURE__ */ _safeParseAsync($ZodRealError);
 var COMPILE_INVALID = /* @__PURE__ */ Symbol.for("zod.compile.invalid");
 var COMPILE_FALLBACK = /* @__PURE__ */ Symbol.for("zod.compile.fallback");
-var validate = ((schema, value, _ctx) => {
-  const validator = schema._zod.bag.validator;
+var validate = ((schema2, value, _ctx) => {
+  const validator = schema2._zod.bag.validator;
   if (validator !== void 0) {
     if (validator(value) !== COMPILE_INVALID)
       return true;
     if (validator.definite === true && _ctx === void 0)
       return false;
   }
-  return validateFallback(schema, value, _ctx);
+  return validateFallback(schema2, value, _ctx);
 });
-function validateFallback(schema, value, _ctx) {
+function validateFallback(schema2, value, _ctx) {
   const ctx = _ctx ? { ..._ctx, async: false, abortEarly: true } : { async: false, abortEarly: true };
-  const fallbackRun = schema._zod.bag.fallbackRun;
+  const fallbackRun = schema2._zod.bag.fallbackRun;
   let result;
   if (fallbackRun) {
     ctx[COMPILE_FALLBACK] = true;
     result = fallbackRun({ value, issues: [] }, ctx);
   } else {
-    result = schema._zod.run({ value, issues: [] }, ctx);
+    result = schema2._zod.run({ value, issues: [] }, ctx);
   }
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
   return result.issues.length === 0;
 }
-var validateAsync = async (schema, value, _ctx) => {
+var validateAsync = async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: true, abortEarly: true } : { async: true, abortEarly: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   return result.issues.length === 0;
 };
 var _encode = (_Err) => {
   const parse3 = _parse(_Err);
-  const fn = (schema, value, _ctx, _params) => {
+  const fn = (schema2, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return parse3(schema, value, ctx, finalizeParams(fn, _params));
+    return parse3(schema2, value, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => {
   const parse3 = _parse(_Err);
-  const fn = (schema, value, _ctx, _params) => {
-    return parse3(schema, value, _ctx, finalizeParams(fn, _params));
+  const fn = (schema2, value, _ctx, _params) => {
+    return parse3(schema2, value, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var decode2 = /* @__PURE__ */ _decode($ZodRealError);
 var _encodeAsync = (_Err) => {
   const parseAsync3 = _parseAsync(_Err);
-  const fn = async (schema, value, _ctx, _params) => {
+  const fn = async (schema2, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return await parseAsync3(schema, value, ctx, finalizeParams(fn, _params));
+    return await parseAsync3(schema2, value, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var encodeAsync = /* @__PURE__ */ _encodeAsync($ZodRealError);
 var _decodeAsync = (_Err) => {
   const parseAsync3 = _parseAsync(_Err);
-  const fn = async (schema, value, _ctx, _params) => {
-    return await parseAsync3(schema, value, _ctx, finalizeParams(fn, _params));
+  const fn = async (schema2, value, _ctx, _params) => {
+    return await parseAsync3(schema2, value, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var decodeAsync = /* @__PURE__ */ _decodeAsync($ZodRealError);
-var _safeEncode = (_Err) => (schema, value, _ctx) => {
+var _safeEncode = (_Err) => (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParse(_Err)(schema, value, ctx);
+  return _safeParse(_Err)(schema2, value, ctx);
 };
 var safeEncode = /* @__PURE__ */ _safeEncode($ZodRealError);
-var _safeDecode = (_Err) => (schema, value, _ctx) => {
-  return _safeParse(_Err)(schema, value, _ctx);
+var _safeDecode = (_Err) => (schema2, value, _ctx) => {
+  return _safeParse(_Err)(schema2, value, _ctx);
 };
 var safeDecode = /* @__PURE__ */ _safeDecode($ZodRealError);
-var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeEncodeAsync = (_Err) => async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParseAsync(_Err)(schema, value, ctx);
+  return _safeParseAsync(_Err)(schema2, value, ctx);
 };
 var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync($ZodRealError);
-var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
-  return _safeParseAsync(_Err)(schema, value, _ctx);
+var _safeDecodeAsync = (_Err) => async (schema2, value, _ctx) => {
+  return _safeParseAsync(_Err)(schema2, value, _ctx);
 };
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 
@@ -20885,8 +20885,8 @@ var $ZodCheckProperties = /* @__PURE__ */ $constructor("$ZodCheckProperties", (i
     entries ?? (entries = Reflect.ownKeys(def.shape).map((key) => [key, def.shape[key]]));
     const input2 = payload.value;
     let proms;
-    for (const [key, schema] of entries) {
-      const result = schema._zod.run({ value: input2[key], issues: [] }, {});
+    for (const [key, schema2] of entries) {
+      const result = schema2._zod.run({ value: input2[key], issues: [] }, {});
       if (result instanceof Promise) {
         proms ?? (proms = []);
         proms.push(result.then((result2) => handleCheckPropertyResult(result2, payload, key)));
@@ -21980,10 +21980,10 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
       const id = ids[key];
       const k = typeof key === "symbol" ? `syms[${syms.indexOf(key)}]` : esc(key);
       const isPresent = `${k} in input`;
-      const schema = shape[key];
-      const optin = schema?._zod?.optin;
+      const schema2 = shape[key];
+      const optin = schema2?._zod?.optin;
       const isOptionalIn = optin !== void 0;
-      const isOptionalOut = schema?._zod?.optout === "optional";
+      const isOptionalOut = schema2?._zod?.optout === "optional";
       doc.write(`const ${id} = ${parseStr(k)};`);
       if (isOptionalIn && isOptionalOut) {
         const assign = optin === "optional" ? `${id}_present` : `${id}.value !== undefined || ${id}_present`;
@@ -23162,8 +23162,8 @@ function handleReadonlyResult(payload) {
     payload.value = Object.freeze(payload.value);
   return payload;
 }
-function leafPattern(schema) {
-  const def = schema._zod.def;
+function leafPattern(schema2) {
+  const def = schema2._zod.def;
   let pattern = def.pattern;
   let isInt = !!def.format?.includes("int");
   let minimum;
@@ -23186,13 +23186,13 @@ function leafPattern(schema) {
     return "(?!)";
   if (minimum !== void 0 || maximum !== void 0)
     return string({ minimum, maximum }).source;
-  const own2 = schema._zod.pattern;
+  const own2 = schema2._zod.pattern;
   return (isInt && own2 === number ? integer : own2)?.source;
 }
-function partPattern(schema) {
-  const def = schema._zod.def;
-  const own2 = schema._zod.pattern?.source;
-  const inner = def.innerType ?? schema._zod.innerType;
+function partPattern(schema2) {
+  const def = schema2._zod.def;
+  const own2 = schema2._zod.pattern?.source;
+  const inner = def.innerType ?? schema2._zod.innerType;
   if (inner) {
     const before = inner._zod.pattern?.source;
     const after = partPattern(inner);
@@ -23206,7 +23206,7 @@ function partPattern(schema) {
     if (sources2.every(Boolean))
       return `^(${sources2.map((s) => cleanRegex(s)).join("|")})$`;
   }
-  return leafPattern(schema);
+  return leafPattern(schema2);
 }
 var $ZodTemplateLiteral = /* @__PURE__ */ $constructor("$ZodTemplateLiteral", (inst, def) => {
   $ZodType.init(inst, def);
@@ -31236,11 +31236,11 @@ var $ZodRegistry = class {
     this._map = /* @__PURE__ */ new WeakMap();
     this._idmap = /* @__PURE__ */ new Map();
   }
-  add(schema, ..._meta) {
+  add(schema2, ..._meta) {
     const meta3 = _meta[0];
-    this._map.set(schema, meta3);
+    this._map.set(schema2, meta3);
     if (meta3 && typeof meta3 === "object" && "id" in meta3) {
-      this._idmap.set(meta3.id, schema);
+      this._idmap.set(meta3.id, schema2);
     }
     return this;
   }
@@ -31249,26 +31249,26 @@ var $ZodRegistry = class {
     this._idmap = /* @__PURE__ */ new Map();
     return this;
   }
-  remove(schema) {
-    const meta3 = this._map.get(schema);
+  remove(schema2) {
+    const meta3 = this._map.get(schema2);
     if (meta3 && typeof meta3 === "object" && "id" in meta3) {
       this._idmap.delete(meta3.id);
     }
-    this._map.delete(schema);
+    this._map.delete(schema2);
     return this;
   }
-  get(schema) {
-    const p = schema._zod.parent;
+  get(schema2) {
+    const p = schema2._zod.parent;
     if (p) {
       const pm = { ...this.get(p) ?? {} };
       delete pm.id;
-      const f = { ...pm, ...this._map.get(schema) };
+      const f = { ...pm, ...this._map.get(schema2) };
       return Object.keys(f).length ? f : void 0;
     }
-    return this._map.get(schema);
+    return this._map.get(schema2);
   }
-  has(schema) {
-    return this._map.has(schema);
+  has(schema2) {
+    return this._map.has(schema2);
   }
 };
 function registry() {
@@ -31293,31 +31293,31 @@ var ZodCompileUnsupportedError = class extends Error {
     this.islandable = islandable;
   }
 };
-function compileValidator(schema, parser) {
+function compileValidator(schema2, parser) {
   try {
-    return compileFn(schema, { assertOnly: true });
+    return compileFn(schema2, { assertOnly: true });
   } catch {
     return parser;
   }
 }
-function compile(schema, options) {
+function compile(schema2, options) {
   try {
-    const parser = compileFn(schema);
-    const clone2 = withParser(schema, parser);
-    clone2._zod.bag.validator = compileValidator(schema, parser);
+    const parser = compileFn(schema2);
+    const clone2 = withParser(schema2, parser);
+    clone2._zod.bag.validator = compileValidator(schema2, parser);
     return clone2;
   } catch (err) {
     if (options?.strict)
       throw err;
-    return schema;
+    return schema2;
   }
 }
-function withParser(schema, parser) {
-  if (isRecursiveSchema(schema)) {
+function withParser(schema2, parser) {
+  if (isRecursiveSchema(schema2)) {
     throw new ZodCompileUnsupportedError("a schema whose subtree contains a reference cycle");
   }
-  const clone2 = clone(schema);
-  const liveRun = schema._zod.run;
+  const clone2 = clone(schema2);
+  const liveRun = schema2._zod.run;
   const originalRun = liveRun.__originalRun ?? liveRun;
   const wrapped = (payload, ctx) => {
     if (ctx?.async || ctx?.direction === "backward" || ctx?.skipChecks || ctx?.[FALLBACK_FLAG]) {
@@ -31340,7 +31340,7 @@ function withParser(schema, parser) {
   clone2._zod.bag.validator = parser;
   clone2._zod.run = wrapped;
   if (!liveRun.__originalRun)
-    installCompiledUserMethods(clone2, schema, parser);
+    installCompiledUserMethods(clone2, schema2, parser);
   return clone2;
 }
 function installCompiledUserMethods(target, source, parser) {
@@ -31367,10 +31367,10 @@ function installCompiledUserMethods(target, source, parser) {
     };
   }
 }
-function compileFn(schema, options) {
+function compileFn(schema2, options) {
   let recursive2 = true;
   try {
-    recursive2 = isRecursiveSchema(schema);
+    recursive2 = isRecursiveSchema(schema2);
   } catch {
   }
   if (recursive2) {
@@ -31383,7 +31383,7 @@ function compileFn(schema, options) {
     definite: true
   };
   const doc = new Doc(["input"]);
-  const outputAccessor = generateCheck(doc, ctx, schema, "input", !options?.assertOnly);
+  const outputAccessor = generateCheck(doc, ctx, schema2, "input", !options?.assertOnly);
   doc.write(outputAccessor === null ? `return true;` : `return ${outputAccessor};`);
   const constantNames = ["INVALID", ...ctx.constants.keys()];
   const constantValues = [INVALID, ...ctx.constants.values()];
@@ -31423,20 +31423,20 @@ function addUserConstant(ctx, fn) {
 function newVar(ctx) {
   return `v${ctx.varCounter++}`;
 }
-function runtimeRun(schema, value) {
-  const result = schema._zod.run({ value, issues: [] }, {});
+function runtimeRun(schema2, value) {
+  const result = schema2._zod.run({ value, issues: [] }, {});
   if (result && typeof result.then === "function")
     return INVALID;
   const r = result;
   return r.issues.length === 0 ? r.value : INVALID;
 }
-function compileChild(doc, ctx, schema, accessor, needsValue = true) {
+function compileChild(doc, ctx, schema2, accessor, needsValue = true) {
   const contentLen = doc.content.length;
   const constantCount = ctx.constants.size;
   const constantCounter = ctx.constantCounter;
   const varCounter = ctx.varCounter;
   try {
-    return generateCheck(doc, ctx, schema, accessor, needsValue);
+    return generateCheck(doc, ctx, schema2, accessor, needsValue);
   } catch (err) {
     if (!(err instanceof ZodCompileUnsupportedError) || !err.islandable)
       throw err;
@@ -31448,12 +31448,12 @@ function compileChild(doc, ctx, schema, accessor, needsValue = true) {
     }
     ctx.constantCounter = constantCounter;
     ctx.varCounter = varCounter;
-    return emitRuntimeIsland(doc, ctx, schema, accessor);
+    return emitRuntimeIsland(doc, ctx, schema2, accessor);
   }
 }
-function emitRuntimeIsland(doc, ctx, schema, accessor) {
+function emitRuntimeIsland(doc, ctx, schema2, accessor) {
   ctx.definite = false;
-  const schemaConst = addConstant(ctx, schema);
+  const schemaConst = addConstant(ctx, schema2);
   const runConst = addConstant(ctx, runtimeRun);
   const outVar = newVar(ctx);
   doc.write(`const ${outVar} = ${runConst}(${schemaConst}, ${accessor});`);
@@ -31468,8 +31468,8 @@ var WHEN_DEFAULTED_CHECKS = /* @__PURE__ */ new Set([
   "min_length",
   "length_equals"
 ]);
-function generateChecks(doc, ctx, schema, accessor) {
-  const schemaChecks = schema._zod.def.checks;
+function generateChecks(doc, ctx, schema2, accessor) {
+  const schemaChecks = schema2._zod.def.checks;
   if (!schemaChecks || schemaChecks.length === 0)
     return accessor;
   let currentAccessor = accessor;
@@ -31844,8 +31844,8 @@ function generateStringFormatCheck(doc, ctx, def, accessor, needsValue = true) {
   }
   return accessor;
 }
-function generateCheck(doc, ctx, schema, accessor, needsValue = true) {
-  const def = schema._zod.def;
+function generateCheck(doc, ctx, schema2, accessor, needsValue = true) {
+  const def = schema2._zod.def;
   const type = def.type;
   if (def.coerce) {
     throw new ZodCompileUnsupportedError(`coercion (z.coerce.${type}())`);
@@ -31854,16 +31854,16 @@ function generateCheck(doc, ctx, schema, accessor, needsValue = true) {
   let typeAccessor;
   switch (type) {
     case "string":
-      typeAccessor = generateStringCheck(doc, ctx, schema, accessor, buildsValue);
+      typeAccessor = generateStringCheck(doc, ctx, schema2, accessor, buildsValue);
       break;
     case "number":
-      typeAccessor = generateNumberCheck(doc, schema, accessor);
+      typeAccessor = generateNumberCheck(doc, schema2, accessor);
       break;
     case "boolean":
       typeAccessor = generateBooleanCheck(doc, accessor);
       break;
     case "bigint":
-      typeAccessor = generateBigIntCheck(doc, schema, accessor);
+      typeAccessor = generateBigIntCheck(doc, schema2, accessor);
       break;
     case "symbol":
       typeAccessor = generateSymbolCheck(doc, accessor);
@@ -31892,79 +31892,79 @@ function generateCheck(doc, ctx, schema, accessor, needsValue = true) {
       typeAccessor = generateDateCheck(doc, accessor);
       break;
     case "object":
-      typeAccessor = generateObjectCheck(doc, ctx, schema, accessor, buildsValue);
+      typeAccessor = generateObjectCheck(doc, ctx, schema2, accessor, buildsValue);
       break;
     case "optional":
-      typeAccessor = generateOptionalCheck(doc, ctx, schema, accessor, buildsValue);
+      typeAccessor = generateOptionalCheck(doc, ctx, schema2, accessor, buildsValue);
       break;
     case "nullable":
-      typeAccessor = generateNullableCheck(doc, ctx, schema, accessor, buildsValue);
+      typeAccessor = generateNullableCheck(doc, ctx, schema2, accessor, buildsValue);
       break;
     case "array":
-      typeAccessor = generateArrayCheck(doc, ctx, schema, accessor, buildsValue);
+      typeAccessor = generateArrayCheck(doc, ctx, schema2, accessor, buildsValue);
       break;
     case "literal":
-      typeAccessor = generateLiteralCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateLiteralCheck(doc, ctx, schema2, accessor);
       break;
     case "enum":
-      typeAccessor = generateEnumCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateEnumCheck(doc, ctx, schema2, accessor);
       break;
     case "readonly": {
-      const innerOut = generateWrapperCheck(doc, ctx, schema, accessor);
+      const innerOut = generateWrapperCheck(doc, ctx, schema2, accessor);
       const frozenVar = newVar(ctx);
       doc.write(`const ${frozenVar} = Object.freeze(${innerOut});`);
       typeAccessor = frozenVar;
       break;
     }
     case "success":
-      generateWrapperCheck(doc, ctx, schema, accessor);
+      generateWrapperCheck(doc, ctx, schema2, accessor);
       typeAccessor = "true";
       break;
     case "default":
     case "prefault":
-      typeAccessor = generateDefaultCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateDefaultCheck(doc, ctx, schema2, accessor);
       break;
     case "nonoptional":
-      typeAccessor = generateNonOptionalCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateNonOptionalCheck(doc, ctx, schema2, accessor);
       break;
     case "tuple":
-      typeAccessor = generateTupleCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateTupleCheck(doc, ctx, schema2, accessor);
       break;
     case "union":
-      typeAccessor = generateUnionCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateUnionCheck(doc, ctx, schema2, accessor);
       break;
     case "intersection":
-      typeAccessor = generateIntersectionCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateIntersectionCheck(doc, ctx, schema2, accessor);
       break;
     case "record":
-      typeAccessor = generateRecordCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateRecordCheck(doc, ctx, schema2, accessor);
       break;
     case "map":
-      typeAccessor = generateMapCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateMapCheck(doc, ctx, schema2, accessor);
       break;
     case "set":
-      typeAccessor = generateSetCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateSetCheck(doc, ctx, schema2, accessor);
       break;
     case "file":
       typeAccessor = generateFileCheck(doc, accessor);
       break;
     case "template_literal":
-      typeAccessor = generateTemplateLiteralCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateTemplateLiteralCheck(doc, ctx, schema2, accessor);
       break;
     case "lazy":
-      typeAccessor = generateLazyCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateLazyCheck(doc, ctx, schema2, accessor);
       break;
     case "pipe":
-      typeAccessor = generatePipeCheck(doc, ctx, schema, accessor);
+      typeAccessor = generatePipeCheck(doc, ctx, schema2, accessor);
       break;
     case "custom":
-      typeAccessor = generateCustomCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateCustomCheck(doc, ctx, schema2, accessor);
       break;
     case "transform":
-      typeAccessor = generateTransformCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateTransformCheck(doc, ctx, schema2, accessor);
       break;
     case "catch":
-      typeAccessor = generateCatchCheck(doc, ctx, schema, accessor);
+      typeAccessor = generateCatchCheck(doc, ctx, schema2, accessor);
       break;
     default: {
       void type;
@@ -31973,18 +31973,18 @@ function generateCheck(doc, ctx, schema, accessor, needsValue = true) {
   }
   if (typeAccessor === null)
     return null;
-  return generateChecks(doc, ctx, schema, typeAccessor);
+  return generateChecks(doc, ctx, schema2, typeAccessor);
 }
-function generateStringCheck(doc, ctx, schema, accessor, needsValue = true) {
+function generateStringCheck(doc, ctx, schema2, accessor, needsValue = true) {
   doc.write(`if (typeof ${accessor} !== "string") return INVALID;`);
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   if (def.format === void 0)
     return accessor;
   return generateStringFormatCheck(doc, ctx, def, accessor, needsValue);
 }
-function generateNumberCheck(doc, schema, accessor) {
+function generateNumberCheck(doc, schema2, accessor) {
   doc.write(`if (typeof ${accessor} !== "number" || !Number.isFinite(${accessor})) return INVALID;`);
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   if (def.check === "number_format" && def.format) {
     generateNumberFormatCheck(doc, { format: def.format }, accessor);
   }
@@ -31994,9 +31994,9 @@ function generateBooleanCheck(doc, accessor) {
   doc.write(`if (typeof ${accessor} !== "boolean") return INVALID;`);
   return accessor;
 }
-function generateBigIntCheck(doc, schema, accessor) {
+function generateBigIntCheck(doc, schema2, accessor) {
   doc.write(`if (typeof ${accessor} !== "bigint") return INVALID;`);
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   if (def.format) {
     switch (def.format) {
       case "int64":
@@ -32033,8 +32033,8 @@ function generateDateCheck(doc, accessor) {
   doc.write(`if (!(${accessor} instanceof Date) || Number.isNaN(${accessor}.getTime())) return INVALID;`);
   return accessor;
 }
-function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
-  const def = schema._zod.def;
+function generateObjectCheck(doc, ctx, schema2, accessor, buildsValue = true) {
+  const def = schema2._zod.def;
   doc.write(`if (typeof ${accessor} !== "object" || ${accessor} === null || Array.isArray(${accessor})) return INVALID;`);
   const shape = def.shape;
   const keys = Object.keys(shape);
@@ -32152,9 +32152,9 @@ function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
   }
   return outputVar;
 }
-function generateOptionalCheck(doc, ctx, schema, accessor, buildsValue = true) {
-  const def = schema._zod.def;
-  if (isExactOptional(schema)) {
+function generateOptionalCheck(doc, ctx, schema2, accessor, buildsValue = true) {
+  const def = schema2._zod.def;
+  if (isExactOptional(schema2)) {
     return generateCheck(doc, ctx, def.innerType, accessor, buildsValue);
   }
   if (def.innerType._zod.optin === "defaulted") {
@@ -32191,16 +32191,16 @@ function generateOptionalCheck(doc, ctx, schema, accessor, buildsValue = true) {
   doc.write(`}`);
   return outputVar;
 }
-function isExactOptional(schema) {
-  return schema._zod.traits?.has("$ZodExactOptional") === true;
+function isExactOptional(schema2) {
+  return schema2._zod.traits?.has("$ZodExactOptional") === true;
 }
-function requiresPresenceCheck(schema) {
-  return schema._zod.optin === void 0 && fastPathAcceptsAbsence(schema);
+function requiresPresenceCheck(schema2) {
+  return schema2._zod.optin === void 0 && fastPathAcceptsAbsence(schema2);
 }
-function fastPathAcceptsAbsence(schema) {
-  if (schema._zod.def.coerce)
+function fastPathAcceptsAbsence(schema2) {
+  if (schema2._zod.def.coerce)
     return true;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   switch (def.type) {
     case "any":
     case "unknown":
@@ -32235,7 +32235,7 @@ function fastPathAcceptsAbsence(schema) {
     case "literal":
       return !!def.values?.includes(void 0);
     case "enum":
-      return !!schema._zod.values?.has(void 0);
+      return !!schema2._zod.values?.has(void 0);
     case "optional":
     case "nullable":
     case "readonly":
@@ -32255,14 +32255,14 @@ function fastPathAcceptsAbsence(schema) {
       return true;
   }
 }
-function dropsWhenAbsent(schema) {
-  return schema._zod.optin === "optional" && schema._zod.optout === "optional";
+function dropsWhenAbsent(schema2) {
+  return schema2._zod.optin === "optional" && schema2._zod.optout === "optional";
 }
-function mayOmitUndefined(schema) {
-  return (schema._zod.optin !== "defaulted" || schema._zod.optout === "optional") && mayOutputUndefined(schema);
+function mayOmitUndefined(schema2) {
+  return (schema2._zod.optin !== "defaulted" || schema2._zod.optout === "optional") && mayOutputUndefined(schema2);
 }
-function mayOutputUndefined(schema) {
-  const def = schema._zod.def;
+function mayOutputUndefined(schema2) {
+  const def = schema2._zod.def;
   switch (def.type) {
     case "string":
     case "number":
@@ -32286,7 +32286,7 @@ function mayOutputUndefined(schema) {
     case "literal":
       return !!def.values?.includes(void 0);
     case "enum":
-      return !!schema._zod.values?.has(void 0);
+      return !!schema2._zod.values?.has(void 0);
     case "optional":
       return true;
     case "nullable":
@@ -32303,8 +32303,8 @@ function mayOutputUndefined(schema) {
       return true;
   }
 }
-function generateNullableCheck(doc, ctx, schema, accessor, buildsValue = true) {
-  const def = schema._zod.def;
+function generateNullableCheck(doc, ctx, schema2, accessor, buildsValue = true) {
+  const def = schema2._zod.def;
   const outputVar = buildsValue ? newVar(ctx) : null;
   if (outputVar)
     doc.write(`let ${outputVar} = null;`);
@@ -32317,8 +32317,8 @@ function generateNullableCheck(doc, ctx, schema, accessor, buildsValue = true) {
   doc.write(`}`);
   return outputVar;
 }
-function generateArrayCheck(doc, ctx, schema, accessor, buildsValue = true) {
-  const def = schema._zod.def;
+function generateArrayCheck(doc, ctx, schema2, accessor, buildsValue = true) {
+  const def = schema2._zod.def;
   doc.write(`if (!Array.isArray(${accessor})) return INVALID;`);
   const outputVar = buildsValue ? newVar(ctx) : null;
   const iVar = newVar(ctx);
@@ -32335,8 +32335,8 @@ function generateArrayCheck(doc, ctx, schema, accessor, buildsValue = true) {
   doc.write(`}`);
   return outputVar;
 }
-function generateLiteralCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateLiteralCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const values = def.values;
   if (values.length !== 1) {
     const literalSet = addConstant(ctx, new Set(values));
@@ -32364,8 +32364,8 @@ function generateLiteralCheck(doc, ctx, schema, accessor) {
   }
   return accessor;
 }
-function generateEnumCheck(doc, ctx, schema, accessor) {
-  const values = schema._zod.values;
+function generateEnumCheck(doc, ctx, schema2, accessor) {
+  const values = schema2._zod.values;
   if (!values) {
     throw new ZodCompileUnsupportedError("enum schema without enumerated values");
   }
@@ -32373,15 +32373,15 @@ function generateEnumCheck(doc, ctx, schema, accessor) {
   doc.write(`if (!${enumSet}.has(${accessor})) return INVALID;`);
   return accessor;
 }
-function generateWrapperCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateWrapperCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   return generateCheck(doc, ctx, def.innerType, accessor);
 }
-function generateDefaultCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
-  const descriptor = Object.getOwnPropertyDescriptor(schema._zod.def, "defaultValue");
-  const defaultGetter = descriptor ? () => schema._zod.def.defaultValue : void 0;
-  if (schema._zod.def.type === "prefault") {
+function generateDefaultCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
+  const descriptor = Object.getOwnPropertyDescriptor(schema2._zod.def, "defaultValue");
+  const defaultGetter = descriptor ? () => schema2._zod.def.defaultValue : void 0;
+  if (schema2._zod.def.type === "prefault") {
     if (!defaultGetter) {
       return generateCheck(doc, ctx, def.innerType, accessor);
     }
@@ -32417,16 +32417,16 @@ function generateDefaultCheck(doc, ctx, schema, accessor) {
   }
   return outputVar;
 }
-function generateNonOptionalCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateNonOptionalCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const innerOutput = generateCheck(doc, ctx, def.innerType, accessor);
   const outputVar = newVar(ctx);
   doc.write(`const ${outputVar} = ${innerOutput};`);
   doc.write(`if (${outputVar} === undefined) return INVALID;`);
   return outputVar;
 }
-function generateTupleCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateTupleCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const items = def.items;
   const rest = def.rest;
   doc.write(`if (!Array.isArray(${accessor})) return INVALID;`);
@@ -32500,8 +32500,8 @@ function getTupleOptStart2(items, key) {
   }
   return 0;
 }
-function generateUnionCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateUnionCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const options = def.options;
   if (def.discriminator) {
     return generateDiscriminatedUnionCheck(doc, ctx, def, accessor);
@@ -32601,8 +32601,8 @@ function literalEquality(ctx, accessor, value) {
   }
   throw new ZodCompileUnsupportedError(`literal discriminator value ${String(value)}`);
 }
-function generateIntersectionCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateIntersectionCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   ctx.definite = false;
   const leftOutput = compileChild(doc, ctx, def.left, accessor);
   const rightOutput = compileChild(doc, ctx, def.right, accessor);
@@ -32612,8 +32612,8 @@ function generateIntersectionCheck(doc, ctx, schema, accessor) {
   doc.write(`if (!${mergedVar}.valid) return INVALID;`);
   return `${mergedVar}.data`;
 }
-function generateRecordCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateRecordCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const isPlainObjectConst = addConstant(ctx, isPlainObject);
   doc.write(`if (!${isPlainObjectConst}(${accessor})) return INVALID;`);
   const outputVar = newVar(ctx);
@@ -32716,8 +32716,8 @@ function literalPropertyKey(ctx, key) {
     return esc(key);
   return addConstant(ctx, key);
 }
-function generateMapCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateMapCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   doc.write(`if (!(${accessor} instanceof Map)) return INVALID;`);
   const outputVar = newVar(ctx);
   const kVar = newVar(ctx);
@@ -32732,8 +32732,8 @@ function generateMapCheck(doc, ctx, schema, accessor) {
   doc.write(`}`);
   return outputVar;
 }
-function generateSetCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateSetCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   doc.write(`if (!(${accessor} instanceof Set)) return INVALID;`);
   const outputVar = newVar(ctx);
   const valVar = newVar(ctx);
@@ -32750,9 +32750,9 @@ function generateFileCheck(doc, accessor) {
   doc.write(`if (!(${accessor} instanceof File)) return INVALID;`);
   return accessor;
 }
-function generateTemplateLiteralCheck(doc, ctx, schema, accessor) {
+function generateTemplateLiteralCheck(doc, ctx, schema2, accessor) {
   doc.write(`if (typeof ${accessor} !== "string") return INVALID;`);
-  const pattern = schema._zod.pattern;
+  const pattern = schema2._zod.pattern;
   if (pattern) {
     const patternConst = addConstant(ctx, pattern);
     doc.write(`${patternConst}.lastIndex = 0;`);
@@ -32760,8 +32760,8 @@ function generateTemplateLiteralCheck(doc, ctx, schema, accessor) {
   }
   return accessor;
 }
-function generateLazyCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateLazyCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const getterConst = addUserConstant(ctx, def.getter);
   const cacheConst = addConstant(ctx, { parser: null });
   doc.write(`if (!${cacheConst}.parser) {`);
@@ -32780,8 +32780,8 @@ function generateLazyCheck(doc, ctx, schema, accessor) {
   doc.write(`if (${outputVar} === INVALID) return INVALID;`);
   return outputVar;
 }
-function generatePipeCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generatePipeCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   const inputOutput = generateCheck(doc, ctx, def.in, accessor);
   if (def.transform) {
     if (isAsyncFunction(def.transform)) {
@@ -32807,8 +32807,8 @@ function generatePipeCheck(doc, ctx, schema, accessor) {
 function isAsyncFunction(fn) {
   return typeof fn === "function" && (fn.constructor.name === "AsyncFunction" || fn[Symbol.toStringTag] === "AsyncFunction");
 }
-function generateCustomCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateCustomCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   if (def.fn) {
     if (isAsyncFunction(def.fn)) {
       throw new ZodCompileAsyncError("z.compile: async custom predicates are not supported");
@@ -32833,8 +32833,8 @@ function runtimeCatch(innerSchema, catchValue, value) {
     return r.value;
   return catchValue();
 }
-function generateCatchCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateCatchCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   if (!def.catchValue[CONSTANT_CATCH]) {
     throw new ZodCompileUnsupportedError("catch with a callback (only a constant catch value compiles)", false);
   }
@@ -32856,8 +32856,8 @@ function generateCatchCheck(doc, ctx, schema, accessor) {
   doc.write(`}`);
   return outputVar;
 }
-function generateTransformCheck(doc, ctx, schema, accessor) {
-  const def = schema._zod.def;
+function generateTransformCheck(doc, ctx, schema2, accessor) {
+  const def = schema2._zod.def;
   if (def.transform) {
     if (isAsyncFunction(def.transform)) {
       throw new ZodCompileAsyncError("z.compile: async transforms are not supported");
@@ -33532,11 +33532,11 @@ function _endsWith(suffix, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _property(property, schema, params) {
+function _property(property, schema2, params) {
   return new $ZodCheckProperty({
     check: "property",
     property,
-    schema,
+    schema: schema2,
     ...normalizeParams(params)
   });
 }
@@ -33792,23 +33792,23 @@ function _promise(Class2, innerType) {
 function _custom(Class2, fn, _params) {
   const norm = normalizeParams(_params);
   norm.abort ?? (norm.abort = true);
-  const schema = new Class2({
+  const schema2 = new Class2({
     type: "custom",
     check: "custom",
     fn,
     ...norm
   });
-  return schema;
+  return schema2;
 }
 // @__NO_SIDE_EFFECTS__
 function _refine(Class2, fn, _params) {
-  const schema = new Class2({
+  const schema2 = new Class2({
     type: "custom",
     check: "custom",
     fn,
     ...normalizeParams(_params)
   });
-  return schema;
+  return schema2;
 }
 // @__NO_SIDE_EFFECTS__
 function _superRefine(fn, params) {
@@ -33974,8 +33974,8 @@ function initializeContext(params) {
     external: params?.external ?? void 0
   };
 }
-function handleUnrepresentable(schema, ctx, json2, params, message) {
-  const result = typeof ctx.unrepresentable === "function" ? ctx.unrepresentable({ zodSchema: schema, path: params.path, message }) : ctx.unrepresentable;
+function handleUnrepresentable(schema2, ctx, json2, params, message) {
+  const result = typeof ctx.unrepresentable === "function" ? ctx.unrepresentable({ zodSchema: schema2, path: params.path, message }) : ctx.unrepresentable;
   if (result === "any")
     return false;
   if (result === void 0 || result === "throw")
@@ -33983,42 +33983,42 @@ function handleUnrepresentable(schema, ctx, json2, params, message) {
   Object.assign(json2, result);
   return true;
 }
-function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
+function processSchema(schema2, ctx, _params = { path: [], schemaPath: [] }) {
   var _a3;
-  const def = schema._zod.def;
-  const seen = ctx.seen.get(schema);
+  const def = schema2._zod.def;
+  const seen = ctx.seen.get(schema2);
   if (seen) {
     seen.count++;
-    const isCycle = _params.schemaPath.includes(schema);
+    const isCycle = _params.schemaPath.includes(schema2);
     if (isCycle) {
       seen.cycle = _params.path;
     }
     return seen.schema;
   }
   const result = { schema: {}, count: 1, cycle: void 0, path: _params.path };
-  ctx.seen.set(schema, result);
+  ctx.seen.set(schema2, result);
   ctx.sharedDefsExtractedFor = void 0;
   ctx.sharedEmitDoneFor = void 0;
-  const overrideSchema = schema._zod.toJSONSchema?.();
+  const overrideSchema = schema2._zod.toJSONSchema?.();
   if (overrideSchema) {
     result.schema = overrideSchema;
   } else {
     const params = {
       ..._params,
-      schemaPath: [..._params.schemaPath, schema],
+      schemaPath: [..._params.schemaPath, schema2],
       path: _params.path
     };
-    if (schema._zod.processJSONSchema) {
-      schema._zod.processJSONSchema(ctx, result.schema, params);
+    if (schema2._zod.processJSONSchema) {
+      schema2._zod.processJSONSchema(ctx, result.schema, params);
     } else {
       const _json = result.schema;
       const processor = ctx.processors[def.type];
       if (!processor) {
         throw new Error(`[toJSONSchema]: Non-representable type encountered: ${def.type}`);
       }
-      processor(schema, ctx, _json, params);
+      processor(schema2, ctx, _json, params);
     }
-    const parent = schema._zod.parent;
+    const parent = schema2._zod.parent;
     if (parent) {
       if (!result.ref)
         result.ref = parent;
@@ -34026,24 +34026,24 @@ function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
       ctx.seen.get(parent).isParent = true;
     }
   }
-  const meta3 = ctx.metadataRegistry.get(schema);
+  const meta3 = ctx.metadataRegistry.get(schema2);
   if (meta3)
     assignProps(result.schema, meta3);
-  if (ctx.io === "input" && isTransforming(schema)) {
+  if (ctx.io === "input" && isTransforming(schema2)) {
     delete result.schema.examples;
     delete result.schema.default;
   }
   if (ctx.io === "input" && "_prefault" in result.schema)
     (_a3 = result.schema).default ?? (_a3.default = result.schema._prefault);
   delete result.schema._prefault;
-  const _result = ctx.seen.get(schema);
+  const _result = ctx.seen.get(schema2);
   return _result.schema;
 }
 function encodeJSONPointerSegment(segment) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
 }
-function extractDefs(ctx, schema) {
-  const root = ctx.seen.get(schema);
+function extractDefs(ctx, schema2) {
+  const root = ctx.seen.get(schema2);
   if (!root)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
@@ -34088,11 +34088,11 @@ function extractDefs(ctx, schema) {
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
-    const schema2 = seen.schema;
-    for (const key in schema2) {
-      delete schema2[key];
+    const schema3 = seen.schema;
+    for (const key in schema3) {
+      delete schema3[key];
     }
-    schema2.$ref = ref;
+    schema3.$ref = ref;
   };
   if (ctx.cycles === "throw") {
     for (const entry of ctx.seen.entries()) {
@@ -34106,13 +34106,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   }
   for (const entry of ctx.seen.entries()) {
     const seen = entry[1];
-    if (schema === entry[0]) {
+    if (schema2 === entry[0]) {
       extractToDef(entry);
       continue;
     }
     if (ctx.external) {
       const ext = ctx.external.registry.get(entry[0])?.id;
-      if (schema !== entry[0] && ext) {
+      if (schema2 !== entry[0] && ext) {
         extractToDef(entry);
         continue;
       }
@@ -34135,9 +34135,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   if (ctx.external)
     ctx.sharedDefsExtractedFor = ctx.external;
 }
-function compactTypeUnion(schema) {
-  const options = schema.anyOf;
-  if (!Array.isArray(options) || options.length === 0 || schema.type !== void 0)
+function compactTypeUnion(schema2) {
+  const options = schema2.anyOf;
+  if (!Array.isArray(options) || options.length === 0 || schema2.type !== void 0)
     return;
   const types = [];
   for (const option of options) {
@@ -34155,8 +34155,8 @@ function compactTypeUnion(schema) {
         types.push(member);
     }
   }
-  delete schema.anyOf;
-  schema.type = types.length === 1 ? types[0] : types;
+  delete schema2.anyOf;
+  schema2.type = types.length === 1 ? types[0] : types;
 }
 var FOLDABLE_KEYS = /* @__PURE__ */ new Set(["type", "properties", "required", "additionalProperties"]);
 var UNION_KEYS = ["oneOf", "anyOf"];
@@ -34243,16 +34243,16 @@ function foldIntersection(json2) {
   delete json2.allOf;
   assignProps(json2, folded);
 }
-function finalize(ctx, schema) {
-  const root = ctx.seen.get(schema);
+function finalize(ctx, schema2) {
+  const root = ctx.seen.get(schema2);
   if (!root)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   const flattenRef = (zodSchema) => {
     const seen = ctx.seen.get(zodSchema);
     if (seen.ref === null)
       return;
-    const schema2 = seen.def ?? seen.schema;
-    const _cached = { ...schema2 };
+    const schema3 = seen.def ?? seen.schema;
+    const _cached = { ...schema3 };
     const ref = seen.ref;
     seen.ref = null;
     if (ref) {
@@ -34260,28 +34260,28 @@ function finalize(ctx, schema) {
       const refSeen = ctx.seen.get(ref);
       const refSchema = refSeen.schema;
       if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
-        schema2.allOf = schema2.allOf ?? [];
-        schema2.allOf.push(refSchema);
+        schema3.allOf = schema3.allOf ?? [];
+        schema3.allOf.push(refSchema);
       } else {
-        assignProps(schema2, refSchema);
+        assignProps(schema3, refSchema);
       }
-      assignProps(schema2, _cached);
+      assignProps(schema3, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key in schema2) {
+        for (const key in schema3) {
           if (key === "$ref" || key === "allOf")
             continue;
           if (!(key in _cached)) {
-            delete schema2[key];
+            delete schema3[key];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key in schema2) {
+        for (const key in schema3) {
           if (key === "$ref" || key === "allOf")
             continue;
-          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
-            delete schema2[key];
+          if (key in refSeen.def && JSON.stringify(schema3[key]) === JSON.stringify(refSeen.def[key])) {
+            delete schema3[key];
           }
         }
       }
@@ -34291,13 +34291,13 @@ function finalize(ctx, schema) {
       flattenRef(parent);
       const parentSeen = ctx.seen.get(parent);
       if (parentSeen?.schema.$ref) {
-        schema2.$ref = parentSeen.schema.$ref;
+        schema3.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key in schema2) {
+          for (const key in schema3) {
             if (key === "$ref" || key === "allOf")
               continue;
-            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
-              delete schema2[key];
+            if (key in parentSeen.def && JSON.stringify(schema3[key]) === JSON.stringify(parentSeen.def[key])) {
+              delete schema3[key];
             }
           }
         }
@@ -34305,7 +34305,7 @@ function finalize(ctx, schema) {
     }
     ctx.override({
       zodSchema,
-      jsonSchema: schema2,
+      jsonSchema: schema3,
       path: seen.path ?? []
     });
   };
@@ -34351,13 +34351,13 @@ function finalize(ctx, schema) {
   } else {
   }
   if (ctx.external?.uri) {
-    const id = ctx.external.registry.get(schema)?.id;
+    const id = ctx.external.registry.get(schema2)?.id;
     if (!id)
       throw new Error("Schema is missing an `id` property");
     result.$id = ctx.external.uri(id);
   }
   assignProps(result, root.defId ? root.schema : root.def ?? root.schema);
-  const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
+  const rootMetaId = ctx.metadataRegistry.get(schema2)?.id;
   if (rootMetaId !== void 0 && result.id === rootMetaId)
     delete result.id;
   const defs = ctx.external?.defs ?? {};
@@ -34387,10 +34387,10 @@ function finalize(ctx, schema) {
     const finalized = JSON.parse(JSON.stringify(result));
     Object.defineProperty(finalized, "~standard", {
       value: {
-        ...schema["~standard"],
+        ...schema2["~standard"],
         jsonSchema: {
-          input: createStandardJSONSchemaMethod(schema, "input", ctx.processors),
-          output: createStandardJSONSchemaMethod(schema, "output", ctx.processors)
+          input: createStandardJSONSchemaMethod(schema2, "input", ctx.processors),
+          output: createStandardJSONSchemaMethod(schema2, "output", ctx.processors)
         }
       },
       enumerable: false,
@@ -34454,18 +34454,18 @@ function isTransforming(_schema, _ctx) {
   }
   return false;
 }
-var createToJSONSchemaMethod = (schema, processors = {}) => (params) => {
+var createToJSONSchemaMethod = (schema2, processors = {}) => (params) => {
   const ctx = initializeContext({ ...params, processors });
-  processSchema(schema, ctx);
-  extractDefs(ctx, schema);
-  return finalize(ctx, schema);
+  processSchema(schema2, ctx);
+  extractDefs(ctx, schema2);
+  return finalize(ctx, schema2);
 };
-var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) => {
+var createStandardJSONSchemaMethod = (schema2, io, processors = {}) => (params) => {
   const { libraryOptions, target } = params ?? {};
   const ctx = initializeContext({ ...libraryOptions ?? {}, target, io, processors });
-  processSchema(schema, ctx);
-  extractDefs(ctx, schema);
-  return finalize(ctx, schema);
+  processSchema(schema2, ctx);
+  extractDefs(ctx, schema2);
+  return finalize(ctx, schema2);
 };
 
 // node_modules/zod/v4/core/json-schema-processors.js
@@ -34529,13 +34529,13 @@ var contributors = {
   },
   mime_type: (agg, def) => intersectMime(agg, def.mime)
 };
-function aggregateChecks(schema) {
+function aggregateChecks(schema2) {
   const agg = {};
-  const def = schema._zod.def;
-  const list = schema._zod.traits.has("$ZodCheck") ? [schema, ...def.checks ?? []] : def.checks ?? [];
+  const def = schema2._zod.def;
+  const list = schema2._zod.traits.has("$ZodCheck") ? [schema2, ...def.checks ?? []] : def.checks ?? [];
   for (const ch of list)
     contributors[ch._zod.def.check]?.(agg, ch._zod.def);
-  const bag = schema._zod.bag;
+  const bag = schema2._zod.bag;
   if (bag.minimum !== void 0)
     narrowMin(agg, "minimum", bag.minimum);
   if (bag.exclusiveMinimum !== void 0)
@@ -34570,10 +34570,10 @@ var exactPatterns = /* @__PURE__ */ new Map([
   [base64urlCharset, base64url]
 ]);
 var exactPattern = (p) => exactPatterns.get(p) ?? p;
-var stringProcessor = (schema, ctx, _json, _params) => {
+var stringProcessor = (schema2, ctx, _json, _params) => {
   const json2 = _json;
   json2.type = "string";
-  const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
+  const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema2);
   if (typeof minimum === "number")
     json2.minLength = minimum;
   if (typeof maximum === "number")
@@ -34602,9 +34602,9 @@ var stringProcessor = (schema, ctx, _json, _params) => {
     }
   }
 };
-var numberProcessor = (schema, ctx, _json, params) => {
+var numberProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
+  const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema2);
   json2.type = isInt ? "integer" : "number";
   const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
   const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
@@ -34635,7 +34635,7 @@ var numberProcessor = (schema, ctx, _json, params) => {
       if (Number.isFinite(divisor) && divisor !== 0)
         divisors.add(Math.abs(divisor));
       else
-        handleUnrepresentable(schema, ctx, json2, params, `A multipleOf divisor of ${divisor} cannot be represented in JSON Schema`);
+        handleUnrepresentable(schema2, ctx, json2, params, `A multipleOf divisor of ${divisor} cannot be represented in JSON Schema`);
     }
     const [first, ...rest] = divisors;
     if (first !== void 0)
@@ -34647,11 +34647,11 @@ var numberProcessor = (schema, ctx, _json, params) => {
 var booleanProcessor = (_schema, _ctx, json2, _params) => {
   json2.type = "boolean";
 };
-var bigintProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "BigInt cannot be represented in JSON Schema");
+var bigintProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "BigInt cannot be represented in JSON Schema");
 };
-var symbolProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Symbols cannot be represented in JSON Schema");
+var symbolProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Symbols cannot be represented in JSON Schema");
 };
 var nullProcessor = (_schema, ctx, json2, _params) => {
   if (ctx.target === "openapi-3.0") {
@@ -34662,11 +34662,11 @@ var nullProcessor = (_schema, ctx, json2, _params) => {
     json2.type = "null";
   }
 };
-var undefinedProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Undefined cannot be represented in JSON Schema");
+var undefinedProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Undefined cannot be represented in JSON Schema");
 };
-var voidProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Void cannot be represented in JSON Schema");
+var voidProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Void cannot be represented in JSON Schema");
 };
 var neverProcessor = (_schema, _ctx, json2, _params) => {
   json2.not = {};
@@ -34675,11 +34675,11 @@ var anyProcessor = (_schema, _ctx, _json, _params) => {
 };
 var unknownProcessor = (_schema, _ctx, _json, _params) => {
 };
-var dateProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Date cannot be represented in JSON Schema");
+var dateProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Date cannot be represented in JSON Schema");
 };
-var enumProcessor = (schema, _ctx, json2, _params) => {
-  const def = schema._zod.def;
+var enumProcessor = (schema2, _ctx, json2, _params) => {
+  const def = schema2._zod.def;
   const values = getEnumValues(def.entries);
   if (values.length === 0) {
     json2.not = {};
@@ -34691,8 +34691,8 @@ var enumProcessor = (schema, _ctx, json2, _params) => {
     json2.type = "string";
   json2.enum = values;
 };
-var literalProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var literalProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   if (def.values.length === 0) {
     json2.not = {};
     return;
@@ -34700,10 +34700,10 @@ var literalProcessor = (schema, ctx, json2, params) => {
   const vals = [];
   for (const val of def.values) {
     if (val === void 0) {
-      if (handleUnrepresentable(schema, ctx, json2, params, "Literal `undefined` cannot be represented in JSON Schema"))
+      if (handleUnrepresentable(schema2, ctx, json2, params, "Literal `undefined` cannot be represented in JSON Schema"))
         return;
     } else if (typeof val === "bigint") {
-      if (handleUnrepresentable(schema, ctx, json2, params, "BigInt literals cannot be represented in JSON Schema"))
+      if (handleUnrepresentable(schema2, ctx, json2, params, "BigInt literals cannot be represented in JSON Schema"))
         return;
       vals.push(Number(val));
     } else {
@@ -34731,23 +34731,23 @@ var literalProcessor = (schema, ctx, json2, params) => {
     json2.enum = vals;
   }
 };
-var nanProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "NaN cannot be represented in JSON Schema");
+var nanProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "NaN cannot be represented in JSON Schema");
 };
-var templateLiteralProcessor = (schema, _ctx, json2, _params) => {
+var templateLiteralProcessor = (schema2, _ctx, json2, _params) => {
   const _json = json2;
-  const pattern = schema._zod.pattern;
+  const pattern = schema2._zod.pattern;
   if (!pattern)
     throw new Error("Pattern not found in template literal");
   _json.type = "string";
   _json.pattern = pattern.source;
 };
-var fileProcessor = (schema, _ctx, json2, _params) => {
+var fileProcessor = (schema2, _ctx, json2, _params) => {
   const _json = json2;
   _json.type = "string";
   _json.format = "binary";
   _json.contentEncoding = "binary";
-  const { minimum, maximum, mime } = aggregateChecks(schema);
+  const { minimum, maximum, mime } = aggregateChecks(schema2);
   if (minimum !== void 0)
     _json.minLength = minimum;
   if (maximum !== void 0)
@@ -34764,25 +34764,25 @@ var fileProcessor = (schema, _ctx, json2, _params) => {
 var successProcessor = (_schema, _ctx, json2, _params) => {
   json2.type = "boolean";
 };
-var customProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Custom types cannot be represented in JSON Schema");
+var customProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Custom types cannot be represented in JSON Schema");
 };
-var functionProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Function types cannot be represented in JSON Schema");
+var functionProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Function types cannot be represented in JSON Schema");
 };
-var transformProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Transforms cannot be represented in JSON Schema");
+var transformProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Transforms cannot be represented in JSON Schema");
 };
-var mapProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Map cannot be represented in JSON Schema");
+var mapProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Map cannot be represented in JSON Schema");
 };
-var setProcessor = (schema, ctx, json2, params) => {
-  handleUnrepresentable(schema, ctx, json2, params, "Set cannot be represented in JSON Schema");
+var setProcessor = (schema2, ctx, json2, params) => {
+  handleUnrepresentable(schema2, ctx, json2, params, "Set cannot be represented in JSON Schema");
 };
-var arrayProcessor = (schema, ctx, _json, params) => {
+var arrayProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
-  const { minimum, maximum } = aggregateChecks(schema);
+  const def = schema2._zod.def;
+  const { minimum, maximum } = aggregateChecks(schema2);
   if (typeof minimum === "number")
     json2.minItems = minimum;
   if (typeof maximum === "number")
@@ -34793,22 +34793,22 @@ var arrayProcessor = (schema, ctx, _json, params) => {
     path: [...params.path, "items"]
   });
 };
-function inputOptin(schema) {
-  const def = schema._zod.def;
+function inputOptin(schema2) {
+  const def = schema2._zod.def;
   if (def.type === "pipe" && def.in._zod.traits.has("$ZodTransform")) {
     return inputOptin(def.out);
   }
   if (def.type === "catch") {
     return inputOptin(def.innerType);
   }
-  return schema._zod.optin;
+  return schema2._zod.optin;
 }
-var objectProcessor = (schema, ctx, _json, params) => {
+var objectProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   const shape = def.shape;
   const symbolKeys = Object.getOwnPropertySymbols(shape);
-  if (symbolKeys.length && handleUnrepresentable(schema, ctx, json2, params, "Symbol keys cannot be represented in JSON Schema")) {
+  if (symbolKeys.length && handleUnrepresentable(schema2, ctx, json2, params, "Symbol keys cannot be represented in JSON Schema")) {
     return;
   }
   json2.type = "object";
@@ -34841,8 +34841,8 @@ var objectProcessor = (schema, ctx, _json, params) => {
     });
   }
 };
-var unionProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var unionProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const isExclusive = def.inclusive === false;
   const options = def.options.map((x, i) => processSchema(x, ctx, {
     ...params,
@@ -34854,8 +34854,8 @@ var unionProcessor = (schema, ctx, json2, params) => {
     json2.anyOf = options;
   }
 };
-var intersectionProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var intersectionProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const a = processSchema(def.left, ctx, {
     ...params,
     path: [...params.path, "allOf", 0]
@@ -34872,9 +34872,9 @@ var intersectionProcessor = (schema, ctx, json2, params) => {
   json2.allOf = allOf;
   ctx.intersections.push(allOf);
 };
-var tupleProcessor = (schema, ctx, _json, params) => {
+var tupleProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   json2.type = "array";
   const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
   const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
@@ -34930,7 +34930,7 @@ var tupleProcessor = (schema, ctx, _json, params) => {
     if (isClosed)
       json2.maxItems = maxItems;
   }
-  const { minimum, maximum } = aggregateChecks(schema);
+  const { minimum, maximum } = aggregateChecks(schema2);
   if (typeof minimum === "number")
     json2.minItems = minimum;
   if (typeof maximum === "number")
@@ -34999,9 +34999,9 @@ function rewriteKeyNames(ctx) {
     }
   }
 }
-var recordProcessor = (schema, ctx, _json, params) => {
+var recordProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   json2.type = "object";
   const keyType = def.keyType;
   const patterns = aggregateChecks(keyType).patterns;
@@ -35026,7 +35026,7 @@ var recordProcessor = (schema, ctx, _json, params) => {
         pendingRecords.set(ctx, pending);
         ctx.deferred.push(() => rewriteKeyNames(ctx));
       }
-      pending.push(schema);
+      pending.push(schema2);
     }
     json2.additionalProperties = processSchema(def.valueType, ctx, {
       ...params,
@@ -35042,10 +35042,10 @@ var recordProcessor = (schema, ctx, _json, params) => {
     }
   }
 };
-var nullableProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var nullableProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const inner = processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   if (ctx.target === "openapi-3.0") {
     seen.ref = def.innerType;
     json2.nullable = true;
@@ -35053,14 +35053,14 @@ var nullableProcessor = (schema, ctx, json2, params) => {
     json2.anyOf = [inner, { type: "null" }];
   }
 };
-var nonoptionalProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var nonoptionalProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
 var UNREPRESENTABLE_DEFAULT = /* @__PURE__ */ Symbol();
-function serializeDefaultValue(value, schema, ctx, json2, params) {
+function serializeDefaultValue(value, schema2, ctx, json2, params) {
   let unrepresentable = false;
   const serialized = JSON.stringify(value, (_, val) => {
     if (typeof val !== "bigint")
@@ -35070,74 +35070,74 @@ function serializeDefaultValue(value, schema, ctx, json2, params) {
   });
   if (!unrepresentable)
     return JSON.parse(serialized);
-  handleUnrepresentable(schema, ctx, json2, params, "BigInt defaults cannot be represented in JSON Schema");
+  handleUnrepresentable(schema2, ctx, json2, params, "BigInt defaults cannot be represented in JSON Schema");
   return UNREPRESENTABLE_DEFAULT;
 }
-var defaultProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var defaultProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
-  const value = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
+  const value = serializeDefaultValue(def.defaultValue, schema2, ctx, json2, params);
   if (value !== UNREPRESENTABLE_DEFAULT)
     json2.default = value;
 };
-var prefaultProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var prefaultProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   if (ctx.io !== "input")
     return;
-  const value = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
+  const value = serializeDefaultValue(def.defaultValue, schema2, ctx, json2, params);
   if (value !== UNREPRESENTABLE_DEFAULT)
     json2._prefault = value;
 };
-var catchProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var catchProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   let catchValue;
   try {
     catchValue = def.catchValue(void 0);
   } catch {
-    handleUnrepresentable(schema, ctx, json2, params, "Dynamic catch values are not supported in JSON Schema");
+    handleUnrepresentable(schema2, ctx, json2, params, "Dynamic catch values are not supported in JSON Schema");
     return;
   }
   json2.default = catchValue;
 };
-var pipeProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var pipeProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   const inIsTransform = def.in._zod.traits.has("$ZodTransform");
   const innerType = ctx.io === "input" ? inIsTransform ? def.out : def.in : def.out;
   processSchema(innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = innerType;
 };
-var readonlyProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var readonlyProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   json2.readOnly = true;
 };
-var promiseProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var promiseProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
-var optionalProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var optionalProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   processSchema(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
-var lazyProcessor = (schema, ctx, _json, params) => {
-  const innerType = schema._zod.innerType;
+var lazyProcessor = (schema2, ctx, _json, params) => {
+  const innerType = schema2._zod.innerType;
   processSchema(innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = innerType;
 };
 var allProcessors = {
@@ -35187,8 +35187,8 @@ function toJSONSchema(input2, params) {
     const ctx2 = initializeContext({ ...params, processors: allProcessors });
     const defs = {};
     for (const entry of registry2._idmap.entries()) {
-      const [_, schema] = entry;
-      processSchema(schema, ctx2);
+      const [_, schema2] = entry;
+      processSchema(schema2, ctx2);
     }
     const schemas = {};
     const external = {
@@ -35198,9 +35198,9 @@ function toJSONSchema(input2, params) {
     };
     ctx2.external = external;
     for (const entry of registry2._idmap.entries()) {
-      const [key, schema] = entry;
-      extractDefs(ctx2, schema);
-      assignProp(schemas, key, finalize(ctx2, schema));
+      const [key, schema2] = entry;
+      extractDefs(ctx2, schema2);
+      assignProp(schemas, key, finalize(ctx2, schema2));
     }
     if (Object.keys(defs).length > 0) {
       const defsSegment = ctx2.target === "draft-2020-12" ? "$defs" : "definitions";
@@ -35269,14 +35269,14 @@ var JSONSchemaGenerator = class {
    * Process a schema to prepare it for JSON Schema generation.
    * This must be called before emit().
    */
-  process(schema, _params = { path: [], schemaPath: [] }) {
-    return processSchema(schema, this.ctx, _params);
+  process(schema2, _params = { path: [], schemaPath: [] }) {
+    return processSchema(schema2, this.ctx, _params);
   }
   /**
    * Emit the final JSON Schema after processing.
    * Must call process() first.
    */
-  emit(schema, _params) {
+  emit(schema2, _params) {
     if (_params) {
       if (_params.cycles)
         this.ctx.cycles = _params.cycles;
@@ -35287,8 +35287,8 @@ var JSONSchemaGenerator = class {
     }
     this.ctx.sharedDefsExtractedFor = void 0;
     this.ctx.sharedEmitDoneFor = void 0;
-    extractDefs(this.ctx, schema);
-    const result = finalize(this.ctx, schema);
+    extractDefs(this.ctx, schema2);
+    const result = finalize(this.ctx, schema2);
     const { "~standard": _, ...plainResult } = result;
     return plainResult;
   }
@@ -36381,8 +36381,8 @@ var ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
 function array(element, params) {
   return _array(ZodArray, element, params);
 }
-function keyof(schema) {
-  const shape = schema._zod.def.shape;
+function keyof(schema2) {
+  const shape = schema2._zod.def.shape;
   return _enum2(Object.keys(shape));
 }
 var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
@@ -37030,11 +37030,11 @@ function json(params) {
   });
   return jsonSchema;
 }
-function preprocess(fn, schema) {
+function preprocess(fn, schema2) {
   return new ZodPreprocess({
     type: "pipe",
     in: transform(fn),
-    out: schema
+    out: schema2
   });
 }
 
@@ -37166,8 +37166,8 @@ var RECOGNIZED_KEYS = /* @__PURE__ */ new Set([
   "nullable",
   "readOnly"
 ]);
-function detectVersion(schema, defaultTarget) {
-  const $schema = schema.$schema;
+function detectVersion(schema2, defaultTarget) {
+  const $schema = schema2.$schema;
   if ($schema === "https://json-schema.org/draft/2020-12/schema") {
     return "draft-2020-12";
   }
@@ -37395,27 +37395,27 @@ function getTupleRest(restSchema, ctx) {
   return convertSchema(restSchema, ctx);
 }
 var fullTime = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
-function convertBaseSchema(schema, ctx) {
-  if (schema.not !== void 0) {
-    if (typeof schema.not === "object" && Object.keys(schema.not).length === 0) {
+function convertBaseSchema(schema2, ctx) {
+  if (schema2.not !== void 0) {
+    if (typeof schema2.not === "object" && Object.keys(schema2.not).length === 0) {
       return z.never();
     }
     throw new Error("not is not supported in Zod (except { not: {} } for never)");
   }
-  if (schema.unevaluatedItems !== void 0) {
+  if (schema2.unevaluatedItems !== void 0) {
     throw new Error("unevaluatedItems is not supported");
   }
-  if (schema.unevaluatedProperties !== void 0) {
+  if (schema2.unevaluatedProperties !== void 0) {
     throw new Error("unevaluatedProperties is not supported");
   }
-  if (schema.if !== void 0 || schema.then !== void 0 || schema.else !== void 0) {
+  if (schema2.if !== void 0 || schema2.then !== void 0 || schema2.else !== void 0) {
     throw new Error("Conditional schemas (if/then/else) are not supported");
   }
-  if (schema.dependentSchemas !== void 0 || schema.dependentRequired !== void 0) {
+  if (schema2.dependentSchemas !== void 0 || schema2.dependentRequired !== void 0) {
     throw new Error("dependentSchemas and dependentRequired are not supported");
   }
-  if (schema.$ref) {
-    const refPath = schema.$ref;
+  if (schema2.$ref) {
+    const refPath = schema2.$ref;
     if (ctx.refs.has(refPath)) {
       return ctx.refs.get(refPath);
     }
@@ -37434,9 +37434,9 @@ function convertBaseSchema(schema, ctx) {
     ctx.processing.delete(refPath);
     return zodSchema2;
   }
-  if (schema.enum !== void 0) {
-    const enumValues = schema.enum;
-    if (ctx.version === "openapi-3.0" && schema.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
+  if (schema2.enum !== void 0) {
+    const enumValues = schema2.enum;
+    if (ctx.version === "openapi-3.0" && schema2.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
       return z.null();
     }
     if (enumValues.length === 0) {
@@ -37454,13 +37454,13 @@ function convertBaseSchema(schema, ctx) {
     }
     return z.union([literalSchemas[0], literalSchemas[1], ...literalSchemas.slice(2)]);
   }
-  if (schema.const !== void 0) {
-    return z.literal(schema.const);
+  if (schema2.const !== void 0) {
+    return z.literal(schema2.const);
   }
-  const type = schema.type;
+  const type = schema2.type;
   if (Array.isArray(type)) {
     const typeSchemas = type.map((t) => {
-      const typeSchema = { ...schema, type: t };
+      const typeSchema = { ...schema2, type: t };
       return convertBaseSchema(typeSchema, ctx);
     });
     if (typeSchemas.length === 0) {
@@ -37478,8 +37478,8 @@ function convertBaseSchema(schema, ctx) {
   switch (type) {
     case "string": {
       let stringSchema = z.string();
-      if (schema.format) {
-        const format = schema.format;
+      if (schema2.format) {
+        const format = schema2.format;
         if (format === "email") {
           stringSchema = stringSchema.check(z.email());
         } else if (format === "uri" || format === "uri-reference") {
@@ -37534,14 +37534,14 @@ function convertBaseSchema(schema, ctx) {
           stringSchema = stringSchema.check(z.ksuid());
         }
       }
-      if (typeof schema.minLength === "number") {
-        stringSchema = stringSchema.min(schema.minLength);
+      if (typeof schema2.minLength === "number") {
+        stringSchema = stringSchema.min(schema2.minLength);
       }
-      if (typeof schema.maxLength === "number") {
-        stringSchema = stringSchema.max(schema.maxLength);
+      if (typeof schema2.maxLength === "number") {
+        stringSchema = stringSchema.max(schema2.maxLength);
       }
-      if (schema.pattern) {
-        stringSchema = stringSchema.regex(new RegExp(schema.pattern));
+      if (schema2.pattern) {
+        stringSchema = stringSchema.regex(new RegExp(schema2.pattern));
       }
       zodSchema = stringSchema;
       break;
@@ -37549,24 +37549,24 @@ function convertBaseSchema(schema, ctx) {
     case "number":
     case "integer": {
       let numberSchema = type === "integer" ? z.number().int() : z.number();
-      if (typeof schema.minimum === "number" && schema.exclusiveMinimum !== true) {
-        numberSchema = numberSchema.min(schema.minimum);
+      if (typeof schema2.minimum === "number" && schema2.exclusiveMinimum !== true) {
+        numberSchema = numberSchema.min(schema2.minimum);
       }
-      if (typeof schema.maximum === "number" && schema.exclusiveMaximum !== true) {
-        numberSchema = numberSchema.max(schema.maximum);
+      if (typeof schema2.maximum === "number" && schema2.exclusiveMaximum !== true) {
+        numberSchema = numberSchema.max(schema2.maximum);
       }
-      if (typeof schema.exclusiveMinimum === "number") {
-        numberSchema = numberSchema.gt(schema.exclusiveMinimum);
-      } else if (schema.exclusiveMinimum === true && typeof schema.minimum === "number") {
-        numberSchema = numberSchema.gt(schema.minimum);
+      if (typeof schema2.exclusiveMinimum === "number") {
+        numberSchema = numberSchema.gt(schema2.exclusiveMinimum);
+      } else if (schema2.exclusiveMinimum === true && typeof schema2.minimum === "number") {
+        numberSchema = numberSchema.gt(schema2.minimum);
       }
-      if (typeof schema.exclusiveMaximum === "number") {
-        numberSchema = numberSchema.lt(schema.exclusiveMaximum);
-      } else if (schema.exclusiveMaximum === true && typeof schema.maximum === "number") {
-        numberSchema = numberSchema.lt(schema.maximum);
+      if (typeof schema2.exclusiveMaximum === "number") {
+        numberSchema = numberSchema.lt(schema2.exclusiveMaximum);
+      } else if (schema2.exclusiveMaximum === true && typeof schema2.maximum === "number") {
+        numberSchema = numberSchema.lt(schema2.maximum);
       }
-      if (typeof schema.multipleOf === "number") {
-        numberSchema = numberSchema.multipleOf(schema.multipleOf);
+      if (typeof schema2.multipleOf === "number") {
+        numberSchema = numberSchema.multipleOf(schema2.multipleOf);
       }
       zodSchema = numberSchema;
       break;
@@ -37581,15 +37581,15 @@ function convertBaseSchema(schema, ctx) {
     }
     case "object": {
       const shape = {};
-      const properties = schema.properties || {};
-      const requiredSet = new Set(schema.required || []);
-      const additionalSchema = typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : void 0;
+      const properties = schema2.properties || {};
+      const requiredSet = new Set(schema2.required || []);
+      const additionalSchema = typeof schema2.additionalProperties === "object" ? convertSchema(schema2.additionalProperties, ctx) : void 0;
       for (const [key, propSchema] of Object.entries(properties)) {
         const propZodSchema = convertSchema(propSchema, ctx);
         assignProp(shape, key, requiredSet.has(key) ? propZodSchema : propZodSchema.optional());
       }
-      if (schema.patternProperties) {
-        const patternProps = schema.patternProperties;
+      if (schema2.patternProperties) {
+        const patternProps = schema2.patternProperties;
         const patternKeys = Object.keys(patternProps);
         const looseRecords = [];
         for (const pattern of patternKeys) {
@@ -37613,7 +37613,7 @@ function convertBaseSchema(schema, ctx) {
           }
           zodSchema = result;
         }
-        if (schema.additionalProperties === false) {
+        if (schema2.additionalProperties === false) {
           const propertyKeys = Object.keys(shape);
           const patterns = patternKeys.map((p) => new RegExp(p));
           const basePatternSchema = zodSchema;
@@ -37640,7 +37640,7 @@ function convertBaseSchema(schema, ctx) {
         }
       } else {
         const objectSchema = z.object(shape);
-        if (schema.additionalProperties === false) {
+        if (schema2.additionalProperties === false) {
           zodSchema = objectSchema.strict();
         } else if (additionalSchema) {
           zodSchema = objectSchema.catchall(additionalSchema);
@@ -37648,13 +37648,13 @@ function convertBaseSchema(schema, ctx) {
           zodSchema = objectSchema.passthrough();
         }
       }
-      const hasKeyGuard = schema.propertyNames !== void 0 && schema.propertyNames !== true;
-      const minProperties = typeof schema.minProperties === "number" ? schema.minProperties : void 0;
-      const maxProperties = typeof schema.maxProperties === "number" ? schema.maxProperties : void 0;
+      const hasKeyGuard = schema2.propertyNames !== void 0 && schema2.propertyNames !== true;
+      const minProperties = typeof schema2.minProperties === "number" ? schema2.minProperties : void 0;
+      const maxProperties = typeof schema2.maxProperties === "number" ? schema2.maxProperties : void 0;
       if (hasKeyGuard || minProperties !== void 0 || maxProperties !== void 0) {
         let keySchema;
         if (hasKeyGuard) {
-          const keyJSONSchema = typeof schema.propertyNames === "object" && schema.propertyNames.type === void 0 ? { type: "string", ...schema.propertyNames } : schema.propertyNames;
+          const keyJSONSchema = typeof schema2.propertyNames === "object" && schema2.propertyNames.type === void 0 ? { type: "string", ...schema2.propertyNames } : schema2.propertyNames;
           keySchema = convertSchema(keyJSONSchema, ctx);
         }
         zodSchema = checkObjectGuards(zodSchema, { keySchema, minProperties, maxProperties });
@@ -37662,53 +37662,53 @@ function convertBaseSchema(schema, ctx) {
       break;
     }
     case "array": {
-      const prefixItems = schema.prefixItems;
-      const items = schema.items;
+      const prefixItems = schema2.prefixItems;
+      const items = schema2.items;
       if (prefixItems && Array.isArray(prefixItems)) {
-        const minItems = typeof schema.minItems === "number" ? schema.minItems : 0;
+        const minItems = typeof schema2.minItems === "number" ? schema2.minItems : 0;
         const tupleItems = prefixItems.map((item) => convertSchema(item, ctx));
         const positionalItems = applyMinItems(tupleItems, minItems);
         const rest = !Array.isArray(items) ? getTupleRest(items, ctx) : void 0;
         const tupleSchema = z.tuple(positionalItems);
         zodSchema = rest ? tupleSchema.rest(rest) : tupleSchema;
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
+        if (typeof schema2.minItems === "number") {
+          zodSchema = zodSchema.check(z.minLength(schema2.minItems));
         }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
+        if (typeof schema2.maxItems === "number") {
+          zodSchema = zodSchema.check(z.maxLength(schema2.maxItems));
         }
       } else if (Array.isArray(items)) {
-        const minItems = typeof schema.minItems === "number" ? schema.minItems : 0;
+        const minItems = typeof schema2.minItems === "number" ? schema2.minItems : 0;
         const tupleItems = items.map((item) => convertSchema(item, ctx));
         const positionalItems = applyMinItems(tupleItems, minItems);
-        const rest = getTupleRest(schema.additionalItems, ctx);
+        const rest = getTupleRest(schema2.additionalItems, ctx);
         const tupleSchema = z.tuple(positionalItems);
         zodSchema = rest ? tupleSchema.rest(rest) : tupleSchema;
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
+        if (typeof schema2.minItems === "number") {
+          zodSchema = zodSchema.check(z.minLength(schema2.minItems));
         }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
+        if (typeof schema2.maxItems === "number") {
+          zodSchema = zodSchema.check(z.maxLength(schema2.maxItems));
         }
       } else if (items !== void 0) {
         const element = convertSchema(items, ctx);
         let arraySchema = z.array(element);
-        if (typeof schema.minItems === "number") {
-          arraySchema = arraySchema.min(schema.minItems);
+        if (typeof schema2.minItems === "number") {
+          arraySchema = arraySchema.min(schema2.minItems);
         }
-        if (typeof schema.maxItems === "number") {
-          arraySchema = arraySchema.max(schema.maxItems);
+        if (typeof schema2.maxItems === "number") {
+          arraySchema = arraySchema.max(schema2.maxItems);
         }
         zodSchema = arraySchema;
       } else {
         zodSchema = z.array(z.any());
       }
-      if (schema.uniqueItems === true || schema.contains !== void 0) {
+      if (schema2.uniqueItems === true || schema2.contains !== void 0) {
         zodSchema = checkArrayGuards(zodSchema, {
-          uniqueItems: schema.uniqueItems === true,
-          containsSchema: schema.contains !== void 0 ? convertSchema(schema.contains, ctx) : void 0,
-          minContains: typeof schema.minContains === "number" ? schema.minContains : void 0,
-          maxContains: typeof schema.maxContains === "number" ? schema.maxContains : void 0
+          uniqueItems: schema2.uniqueItems === true,
+          containsSchema: schema2.contains !== void 0 ? convertSchema(schema2.contains, ctx) : void 0,
+          minContains: typeof schema2.minContains === "number" ? schema2.minContains : void 0,
+          maxContains: typeof schema2.maxContains === "number" ? schema2.maxContains : void 0
         });
       }
       break;
@@ -37718,94 +37718,94 @@ function convertBaseSchema(schema, ctx) {
   }
   return zodSchema;
 }
-function convertSchema(schema, ctx) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
+function convertSchema(schema2, ctx) {
+  if (typeof schema2 === "boolean") {
+    return schema2 ? z.any() : z.never();
   }
-  let baseSchema = convertBaseSchema(schema, ctx);
-  const hasExplicitType = schema.type || schema.enum !== void 0 || schema.const !== void 0;
-  if (schema.anyOf && Array.isArray(schema.anyOf)) {
-    const options = schema.anyOf.map((s) => convertSchema(s, ctx));
+  let baseSchema = convertBaseSchema(schema2, ctx);
+  const hasExplicitType = schema2.type || schema2.enum !== void 0 || schema2.const !== void 0;
+  if (schema2.anyOf && Array.isArray(schema2.anyOf)) {
+    const options = schema2.anyOf.map((s) => convertSchema(s, ctx));
     const anyOfUnion = z.union(options);
     baseSchema = hasExplicitType ? z.intersection(baseSchema, anyOfUnion) : anyOfUnion;
   }
-  if (schema.oneOf && Array.isArray(schema.oneOf)) {
-    const options = schema.oneOf.map((s) => convertSchema(s, ctx));
+  if (schema2.oneOf && Array.isArray(schema2.oneOf)) {
+    const options = schema2.oneOf.map((s) => convertSchema(s, ctx));
     const oneOfUnion = z.xor(options);
     baseSchema = hasExplicitType ? z.intersection(baseSchema, oneOfUnion) : oneOfUnion;
   }
-  if (schema.allOf && Array.isArray(schema.allOf)) {
-    if (schema.allOf.length === 0) {
+  if (schema2.allOf && Array.isArray(schema2.allOf)) {
+    if (schema2.allOf.length === 0) {
       baseSchema = hasExplicitType ? baseSchema : z.any();
     } else {
-      let result = hasExplicitType ? baseSchema : convertSchema(schema.allOf[0], ctx);
+      let result = hasExplicitType ? baseSchema : convertSchema(schema2.allOf[0], ctx);
       const startIdx = hasExplicitType ? 0 : 1;
-      for (let i = startIdx; i < schema.allOf.length; i++) {
-        result = z.intersection(result, convertSchema(schema.allOf[i], ctx));
+      for (let i = startIdx; i < schema2.allOf.length; i++) {
+        result = z.intersection(result, convertSchema(schema2.allOf[i], ctx));
       }
       baseSchema = result;
     }
   }
-  if (schema.nullable === true && ctx.version === "openapi-3.0") {
+  if (schema2.nullable === true && ctx.version === "openapi-3.0") {
     baseSchema = z.nullable(baseSchema);
   }
-  if (schema.readOnly === true) {
+  if (schema2.readOnly === true) {
     baseSchema = z.readonly(baseSchema);
   }
-  if (schema.default !== void 0) {
-    baseSchema = baseSchema.default(schema.default);
+  if (schema2.default !== void 0) {
+    baseSchema = baseSchema.default(schema2.default);
   }
   const extraMeta = {};
   const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
   for (const key of coreMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+    if (key in schema2) {
+      extraMeta[key] = schema2[key];
     }
   }
   const contentMetadataKeys = ["contentEncoding", "contentMediaType", "contentSchema"];
   for (const key of contentMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+    if (key in schema2) {
+      extraMeta[key] = schema2[key];
     }
   }
-  if (schema.type === "object" && schema.$ref === void 0) {
-    if (schema.propertyNames !== void 0 && !containsRef(schema.propertyNames)) {
-      extraMeta.propertyNames = schema.propertyNames;
+  if (schema2.type === "object" && schema2.$ref === void 0) {
+    if (schema2.propertyNames !== void 0 && !containsRef(schema2.propertyNames)) {
+      extraMeta.propertyNames = schema2.propertyNames;
     }
     for (const key of ["minProperties", "maxProperties"]) {
-      if (schema[key] !== void 0)
-        extraMeta[key] = schema[key];
+      if (schema2[key] !== void 0)
+        extraMeta[key] = schema2[key];
     }
   }
-  if (schema.type === "array" && schema.$ref === void 0) {
-    if (schema.contains !== void 0 && !containsRef(schema.contains)) {
-      extraMeta.contains = schema.contains;
+  if (schema2.type === "array" && schema2.$ref === void 0) {
+    if (schema2.contains !== void 0 && !containsRef(schema2.contains)) {
+      extraMeta.contains = schema2.contains;
     }
     for (const key of ["uniqueItems", "minContains", "maxContains"]) {
-      if (schema[key] !== void 0)
-        extraMeta[key] = schema[key];
+      if (schema2[key] !== void 0)
+        extraMeta[key] = schema2[key];
     }
   }
-  for (const key of Object.keys(schema)) {
+  for (const key of Object.keys(schema2)) {
     if (!RECOGNIZED_KEYS.has(key)) {
-      assignProp(extraMeta, key, schema[key]);
+      assignProp(extraMeta, key, schema2[key]);
     }
   }
   if (Object.keys(extraMeta).length > 0) {
     ctx.registry.add(baseSchema, extraMeta);
   }
-  if (schema.description) {
-    baseSchema = baseSchema.describe(schema.description);
+  if (schema2.description) {
+    baseSchema = baseSchema.describe(schema2.description);
   }
   return baseSchema;
 }
-function fromJSONSchema(schema, params) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
+function fromJSONSchema(schema2, params) {
+  if (typeof schema2 === "boolean") {
+    return schema2 ? z.any() : z.never();
   }
   let normalized;
   try {
-    normalized = JSON.parse(JSON.stringify(schema));
+    normalized = JSON.parse(JSON.stringify(schema2));
   } catch {
     throw new Error("fromJSONSchema input is not valid JSON (possibly cyclic); use $defs/$ref for recursive schemas");
   }
@@ -37824,7 +37824,7 @@ function fromJSONSchema(schema, params) {
 
 // node_modules/zod/v4/core/visit.js
 var RESOLVING = /* @__PURE__ */ Symbol("z.visit/resolving");
-function visit(schema, fnOrHandlers) {
+function visit(schema2, fnOrHandlers) {
   const fn = typeof fnOrHandlers === "function" ? fnOrHandlers : (node2, rewritten) => {
     const h = fnOrHandlers[node2._zod.def.type];
     return h ? h(node2, rewritten) : node2;
@@ -37974,12 +37974,12 @@ function visit(schema, fnOrHandlers) {
       }
     }
   }
-  return run(schema);
+  return run(schema2);
 }
 
 // node_modules/zod/v4/classic/deep-partial.js
-function deepPartial(schema) {
-  return visit(schema, {
+function deepPartial(schema2) {
+  return visit(schema2, {
     object: (s) => s.partial(),
     // Every partialed option now admits `undefined`, which the constructor rejects as a duplicate.
     union: (s) => {
@@ -38002,8 +38002,8 @@ function outSide(def) {
 function inSide(def) {
   return def.in._zod.traits.has("$ZodTransform") ? outSide(def) : def.in;
 }
-function input(schema) {
-  return visit(schema, {
+function input(schema2) {
+  return visit(schema2, {
     pipe: (s) => inSide(s._zod.def),
     // A default value belongs to the output side, so a rewritten inner type leaves it stranded. `.default()` widens the declared input type with `undefined`, and `optional` is what carries that across.
     default: (s, rewritten) => rewritten ? optional(s._zod.def.innerType) : s,
@@ -38011,8 +38011,8 @@ function input(schema) {
     catch: (s, rewritten) => rewritten ? s._zod.def.innerType : s
   });
 }
-function output(schema) {
-  return visit(schema, {
+function output(schema2) {
+  return visit(schema2, {
     pipe: (s) => outSide(s._zod.def),
     // A prefault value is fed through the schema, which makes it input-side, so a rewritten inner type leaves it stranded.
     prefault: (s, rewritten) => rewritten ? s._zod.def.innerType : s
@@ -38641,7 +38641,7 @@ import crypto2 from "node:crypto";
 import fs5 from "node:fs";
 import path5 from "node:path";
 import { fileURLToPath } from "node:url";
-var VERSION = true ? "0.29.1" : "0.0.0";
+var VERSION = true ? "0.30.0" : "0.0.0";
 var stableGctkJs = () => path5.join(gctkHome(), "bin", "gctk.js");
 function runningGctkJs(argv1 = process.argv[1]) {
   const here = fileURLToPath(import.meta.url);
@@ -39585,6 +39585,7 @@ var import_yaml2 = __toESM(require_dist(), 1);
 import { spawn as spawn3 } from "node:child_process";
 import crypto4 from "node:crypto";
 import fs8 from "node:fs";
+import os4 from "node:os";
 import path8 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
@@ -39817,6 +39818,7 @@ async function startLocal(rt, ctx) {
 // src/core/demo-permissions.ts
 var DEMO_PERMISSIONS = {
   "base": [],
+  "registry": ["architect:datatable:add", "architect:datatable:delete | architect:datatableRow:delete", "architect:datatable:edit | architect:datatableRow:edit", "architect:datatable:view"],
   "wrapupcode": ["routing:wrapupCode:add", "routing:wrapupCode:delete", "routing:wrapupCode:view"],
   "responselibrary": ["responses:library:add", "responses:library:delete", "responses:library:view", "responses:response:add", "responses:response:delete", "responses:response:view"],
   "queue": ["routing:queue:add", "routing:queue:delete", "routing:queue:edit", "routing:queue:view"],
@@ -39843,6 +39845,72 @@ var DEMO_PERMISSIONS = {
   "local:latestEmail": ["analytics:agentConversationDetail:view | analytics:conversationDetail:view"],
   "local:copilot": ["conversation:suggestion:edit"]
 };
+
+// src/core/demo-registry.ts
+var REGISTRY_TABLE = "gctk demos";
+var STALE_MS = 30 * 60 * 1e3;
+var schema = {
+  $schema: "http://json-schema.org/draft-04/schema#",
+  type: "object",
+  additionalProperties: false,
+  required: ["key"],
+  properties: {
+    key: { title: "key", type: "string", $id: "/properties/key" },
+    entry: { title: "entry", type: "string", $id: "/properties/entry" }
+  }
+};
+var notFound = (err) => /HTTP_404/.test(err.code ?? "");
+var duplicate = (err) => /not\.unique|duplicate|already exists/i.test(err.message ?? "");
+async function findRegistry(c) {
+  const r = (await c.get("/api/v2/flows/datatables", { name: REGISTRY_TABLE, pageSize: 25 })).body;
+  return (r.entities ?? []).find((t) => t.name === REGISTRY_TABLE)?.id;
+}
+async function ensureRegistry(c, divisionId) {
+  const have = await findRegistry(c);
+  if (have) return have;
+  try {
+    const t = (await c.request("POST", "/api/v2/flows/datatables", {}, {
+      name: REGISTRY_TABLE,
+      description: "Which gctk demos are deployed in this org (written by gctk; do not edit).",
+      ...divisionId ? { division: { id: divisionId } } : {},
+      schema
+    })).body;
+    return t.id;
+  } catch (err) {
+    const again = await findRegistry(c);
+    if (again) return again;
+    throw err;
+  }
+}
+async function readDeployment(c, table, demo) {
+  if (!table) return void 0;
+  try {
+    const row = (await c.get(`/api/v2/flows/datatables/${table}/rows/${encodeURIComponent(demo)}`, { showbrief: false })).body;
+    return JSON.parse(String(row.entry ?? "{}"));
+  } catch (err) {
+    if (notFound(err)) return void 0;
+    throw err;
+  }
+}
+async function claimDeployment(c, table, d) {
+  try {
+    await c.request("POST", `/api/v2/flows/datatables/${table}/rows`, {}, { key: d.demo, entry: JSON.stringify(d) });
+  } catch (err) {
+    if (duplicate(err)) throw new GctkError("DEMO_TAKEN", "Someone else registered this demo in the org a moment ago. Reload the page to see their deployment.");
+    throw err;
+  }
+}
+async function writeDeployment(c, table, d) {
+  await c.request("PUT", `/api/v2/flows/datatables/${table}/rows/${encodeURIComponent(d.demo)}`, {}, { key: d.demo, entry: JSON.stringify(d) });
+}
+async function dropDeployment(c, table, demo) {
+  try {
+    await c.request("DELETE", `/api/v2/flows/datatables/${table}/rows/${encodeURIComponent(demo)}`);
+  } catch (err) {
+    if (!notFound(err)) throw err;
+  }
+}
+var deployingNow = (d, now = Date.now()) => d.state === "deploying" && now - Date.parse(d.heartbeat) < STALE_MS;
 
 // src/core/flow-export.ts
 async function exportFlowYaml(client, flow, opts = {}) {
@@ -39873,6 +39941,43 @@ var UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 var sleep2 = (ms) => new Promise((r) => setTimeout(r, ms));
 var invalid = (msg) => new GctkError("INVALID_INPUT", msg);
 var recordDir = (id) => path8.join(gctkHome(), "demos", id);
+var presenterFile = (id, profile2) => path8.join(recordDir(id), "presenter", `${profile2}.json`);
+function loadPresenter(id, profile2) {
+  try {
+    return JSON.parse(fs8.readFileSync(presenterFile(id, profile2), "utf8"));
+  } catch {
+    return void 0;
+  }
+}
+function savePresenter(id, profile2, p) {
+  fs8.mkdirSync(path8.dirname(presenterFile(id, profile2)), { recursive: true });
+  fs8.writeFileSync(presenterFile(id, profile2), `${JSON.stringify(p, null, 2)}
+`, { mode: 384 });
+}
+var personaName = (p) => `${p.firstName} ${p.lastName}`;
+var NAME_RE = /^[\p{L}][\p{L}' .-]{0,39}$/u;
+function cleanPersona(raw) {
+  const r = raw ?? {};
+  const firstName = String(r.firstName ?? "").trim();
+  const lastName = String(r.lastName ?? "").trim();
+  const salutation = String(r.salutation ?? "").trim();
+  if (!NAME_RE.test(firstName) || !NAME_RE.test(lastName)) throw invalid("Enter the first and last name of your customer (letters only, up to 40 each).");
+  if (salutation && !["Herr", "Frau"].includes(salutation)) throw invalid('The salutation is "Herr", "Frau" or none.');
+  return { ...salutation ? { salutation } : {}, firstName, lastName };
+}
+function personaValues(p, template) {
+  const x = p ?? { salutation: template?.salutation, firstName: String(template?.firstName ?? ""), lastName: String(template?.lastName ?? "") };
+  const name = personaName(x).trim();
+  return {
+    "@{customer.salutation}": x.salutation ?? "",
+    "@{customer.firstName}": x.firstName,
+    "@{customer.lastName}": x.lastName,
+    "@{customer.name}": name,
+    "@{customer.initials}": `${x.firstName.charAt(0)}${x.lastName.charAt(0)}`.toUpperCase(),
+    "@{customer.greeting}": x.salutation ? `${x.salutation} ${x.lastName}` : name
+  };
+}
+var personaMail = (p) => `${personaName(p).toLowerCase().normalize("NFKD").replace(/[^a-z0-9 ]/g, "").trim().replace(/ +/g, ".")}@muster.de`;
 var sourcesFile = () => path8.join(gctkHome(), "demo-sources.json");
 var readSources = () => {
   try {
@@ -40491,7 +40596,7 @@ function demoPermissions(m, snap) {
   const label = (id) => m.channels?.find((c) => c.id === id)?.label ?? id;
   const groups = [];
   const common = [...(snap?.objects ?? []).map((o) => o.type), ...(m.create ?? []).filter((x) => !x.channel).map((x) => x.type)];
-  groups.push({ title: "Deploy and remove", items: set2([of("base"), ...[...new Set(common)].map(forType)]) });
+  groups.push({ title: "Deploy and remove", items: set2([of("base"), of("registry"), ...[...new Set(common)].map(forType)]) });
   const channelIds = [...new Set([...(m.create ?? []).map((x) => x.channel), m.messageRouting?.channel].filter((x) => Boolean(x)))];
   for (const ch of channelIds) {
     const items = set2([...(m.create ?? []).filter((x) => x.channel === ch).map((x) => forType(x.type)), m.messageRouting?.channel === ch ? of("whatsapp") : []]);
@@ -40557,7 +40662,7 @@ async function takeSnapshot(id, opts = {}) {
       return t ?? u;
     });
     let name = g.cap.name;
-    for (const r of [...m.replace ?? [], ...source.replace ?? []]) {
+    for (const r of [...source.replace ?? [], ...m.replace ?? []]) {
       text3 = text3.split(jsonText(r.value)).join(jsonText(r.with));
       name = name.split(r.value).join(r.with);
     }
@@ -40643,13 +40748,24 @@ function parameterValues(params, input2 = {}) {
   }
   return out;
 }
+var GCTK_VERSION = true ? "0.30.0" : "dev";
+var shared = (r) => {
+  const { profile: _p, ...rest } = r;
+  return rest;
+};
+var when = (iso) => iso.slice(0, 16).replace("T", " ");
 var NO_PRESENTER = "Ihr Kundenservice";
 async function deployDemo(id, o) {
   const src = sourceOf(id);
   const m = loadManifest(src.pkg);
   const snap = readSnapshot(src.pkg);
   if (!snap) throw invalid("Take a snapshot first.");
-  const values = parameterValues(m.parameters ?? [], o.params);
+  const sharedParams = (m.parameters ?? []).filter((p) => !p.perPresenter);
+  const values = parameterValues(sharedParams, o.params);
+  if (o.persona) {
+    cleanPersona(o.persona);
+    parameterValues((m.parameters ?? []).filter((p) => p.perPresenter), o.params);
+  }
   const channel = o.channel || m.channels?.[0]?.id;
   if (m.channels && !m.channels.some((ch) => ch.id === channel)) throw invalid(`Unknown customer channel "${channel}". Known: ${m.channels.map((ch) => ch.id).join(", ")}.`);
   const forChannel = (x) => !x || x === channel;
@@ -40659,15 +40775,30 @@ async function deployDemo(id, o) {
   const divisions = await all(c, "/api/v2/authorization/divisions");
   const division = (o.divisionId ? divisions.find((d) => d.id === o.divisionId) : divisions.find((d) => d.homeDivision)) ?? divisions[0];
   if (!division) throw invalid("No division is visible to this org's OAuth client.");
-  const rec = loadRecord(id, o.profile) ?? { profile: o.profile, at: "", ids: {}, created: [], reused: [] };
+  const table = await ensureRegistry(c, division.id);
+  let org = await readDeployment(c, table, id);
+  if (org && deployingNow(org)) throw new GctkError("DEMO_BUSY", `${org.by} is deploying "${m.name}" into this org right now (since ${when(org.at)} UTC). Wait until it is done.`);
+  if (org && org.state === "deployed" && !o.update) throw new GctkError("DEMO_DEPLOYED", `"${m.name}" is deployed in this org already (by ${org.by}, ${when(org.at)} UTC). Join it as a presenter, update it, or remove it; it is never deployed twice.`);
+  const local = loadRecord(id, o.profile);
+  const rec = org ? { ...org.record, profile: o.profile } : local ?? { profile: o.profile, at: "", ids: {}, created: [], reused: [] };
   rec.at = (/* @__PURE__ */ new Date()).toISOString();
   rec.division = division.name;
   rec.channel = channel;
-  rec.params = Object.fromEntries((m.parameters ?? []).filter((p) => values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]]));
+  rec.params = Object.fromEntries(sharedParams.filter((p) => values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]]));
   const presenterName = o.presenterId ? await c.get(`/api/v2/users/${o.presenterId}`).then((r) => r.body.name).catch(() => void 0) : void 0;
   rec.presenter = o.presenterId ? { id: o.presenterId, name: presenterName ?? NO_PRESENTER } : void 0;
   const extra = { ...values, "@{presenter.name}": rec.presenter?.name ?? NO_PRESENTER };
   const env = { client: c, division: { id: division.id, name: division.name }, presenter: o.presenterId, log, refreshed: rec.refreshed ??= {} };
+  const now = () => (/* @__PURE__ */ new Date()).toISOString();
+  const entry = org ? { ...org, state: "deploying", heartbeat: now(), version: GCTK_VERSION, record: shared(rec) } : { demo: id, state: "deploying", by: presenterName ?? os4.userInfo().username, at: now(), heartbeat: now(), version: GCTK_VERSION, presenters: [], record: shared(rec) };
+  if (org) await writeDeployment(c, table, entry);
+  else await claimDeployment(c, table, entry);
+  org = entry;
+  const progress = async () => {
+    saveRecord(id, rec);
+    await writeDeployment(c, table, { ...entry, heartbeat: now(), record: shared(rec) });
+  };
+  let failure2;
   try {
     const changed = (obj) => {
       const ch = (m.channelChanges ?? []).filter((x) => x.channel === channel && x.type === obj.type && x.name === obj.name);
@@ -40676,7 +40807,8 @@ async function deployDemo(id, o) {
       if (r.removed !== ch.reduce((n, x) => n + x.removeActions.length, 0)) log(`! ${obj.name}: only ${r.removed} of the actions to remove for this channel were found`);
       return { ...obj, spec: { ...obj.spec, yaml: r.yaml } };
     };
-    for (const obj of [...snap.objects.map(changed), ...(m.create ?? []).filter((x) => forChannel(x.channel))].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type))) {
+    const shared2 = (obj) => !(m.presenterContact && obj.type === "externalcontact" && obj.name === m.presenterContact);
+    for (const obj of [...snap.objects.filter(shared2).map(changed), ...(m.create ?? []).filter((x) => forChannel(x.channel))].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type))) {
       const def = TYPES[obj.type];
       const key = token(obj.type, obj.name);
       const existing = await def.find(c, obj.name);
@@ -40689,12 +40821,12 @@ async function deployDemo(id, o) {
           log(changed2 ? `~ ${def.label} "${obj.name}" brought to the demo's version` : `= ${def.label} "${obj.name}" already the demo's version`);
           continue;
         }
-        if (def.update && JSON.stringify(obj.spec).includes("@{param:")) {
+        if (def.update && JSON.stringify(obj.spec).includes("@{param:") && rec.created.some((x) => x.id === existing)) {
           await def.update(c, existing, resolve(obj.spec, { ...rec.ids, ...extra }, `${def.label} "${obj.name}"`));
-          log(`~ ${def.label} "${obj.name}" already there, updated with your values`);
+          log(`~ ${def.label} "${obj.name}" updated with the values entered`);
           continue;
         }
-        log(`= ${def.label} "${obj.name}" already there`);
+        log(`= ${def.label} "${obj.name}" already there${rec.created.some((x) => x.id === existing) ? "" : " (not made by gctk: left as it is)"}`);
         continue;
       }
       log(`+ ${def.label} "${obj.name}"`);
@@ -40709,14 +40841,141 @@ async function deployDemo(id, o) {
       rec.ids[key] = made.id;
       rec.created.push({ type: obj.type, name: obj.name, id: made.id });
       for (const [k, v] of Object.entries(made.subs ?? {})) rec.ids[token(obj.type, obj.name, k)] = v;
-      saveRecord(id, rec);
+      await progress();
     }
     if (o.whatsappIntegrationId && m.messageRouting && forChannel(m.messageRouting.channel)) await routeWhatsApp(c, rec, o.whatsappIntegrationId, m.messageRouting.flow, log);
-  } finally {
-    saveRecord(id, rec);
+  } catch (err) {
+    failure2 = err;
+  }
+  saveRecord(id, rec);
+  try {
+    await writeDeployment(c, table, { ...entry, state: failure2 ? "incomplete" : "deployed", heartbeat: now(), record: shared(rec), ...failure2 ? { error: failure2.message } : { error: void 0 } });
+  } catch (err) {
+    log(`! could not update the org's registry: ${err.message}`);
+  }
+  if (failure2) throw failure2;
+  if (o.presenterId && !entry.presenters.some((p) => p.id === o.presenterId)) {
+    if (o.persona || !m.presenterContact) await joinDemo(id, { profile: o.profile, presenterId: o.presenterId, persona: o.persona, params: o.params, client: c, log });
+    else log("! no customer persona given: join the demo as a presenter to get your own customer contact");
   }
   log(`done: ${rec.created.length} created, ${rec.reused.length} already there`);
   return rec;
+}
+async function orgDemoStatus(id, profile2, client) {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const snap = readSnapshot(src.pkg);
+  const c = client ?? new GenesysClient(loadProfile(profile2), { source: "ui" });
+  const org = await readDeployment(c, await findRegistry(c), id);
+  const local = loadRecord(id, profile2);
+  const tpl = presenterTemplate(m, snap);
+  const template = tpl ? { ...tpl.spec.salutation ? { salutation: String(tpl.spec.salutation) } : {}, firstName: String(tpl.spec.firstName ?? ""), lastName: String(tpl.spec.lastName ?? "") } : void 0;
+  if (org) {
+    saveRecord(id, { ...org.record, profile: profile2 });
+    const r = org.record;
+    let me = loadPresenter(id, profile2);
+    if (me && !org.presenters.some((p) => p.id === me.presenterId)) {
+      fs8.rmSync(presenterFile(id, profile2), { force: true });
+      me = void 0;
+    }
+    return { ...me ? { me } : {}, ...template ? { template } : {}, deployment: { state: org.state, by: org.by, at: org.at, heartbeat: org.heartbeat, deploying: deployingNow(org), created: r.created.length, reused: r.reused.length, division: r.division, channel: r.channel, params: r.params, presenters: org.presenters, ...r.routing ? { routing: { integration: r.routing.integration, phone: r.routing.phone } } : {}, ...org.error ? { error: org.error } : {} } };
+  }
+  if (local?.created.length) return { unregistered: { at: local.at, created: local.created.length }, ...template ? { template } : {} };
+  if (local) fs8.rmSync(recordFile(id, profile2), { force: true });
+  const objects = [...snap?.objects ?? [], ...m.create ?? []];
+  const existing = [];
+  for (let i = 0; i < objects.length; i += 6) {
+    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type].find(c, obj.name).then((x) => x ? `${TYPES[obj.type].label} "${obj.name}"` : void 0).catch(() => void 0)));
+    existing.push(...found.filter((x) => Boolean(x)));
+  }
+  return { existing, ...template ? { template } : {} };
+}
+var presenterTemplate = (m, snap) => m.presenterContact ? snap?.objects.find((o) => o.type === "externalcontact" && o.name === m.presenterContact) : void 0;
+async function registerDeployment(id, profile2, client) {
+  const rec = loadRecord(id, profile2);
+  if (!rec) throw invalid("This computer has no record of a deployment into this org.");
+  const c = client ?? new GenesysClient(loadProfile(profile2), { source: "ui" });
+  const divisions = await all(c, "/api/v2/authorization/divisions");
+  const table = await ensureRegistry(c, (divisions.find((d) => d.homeDivision) ?? divisions[0])?.id);
+  const at = rec.at || (/* @__PURE__ */ new Date()).toISOString();
+  await claimDeployment(c, table, { demo: id, state: "deployed", by: rec.presenter?.name ?? os4.userInfo().username, at, heartbeat: at, version: GCTK_VERSION, presenters: rec.presenter ? [rec.presenter] : [], record: shared(rec) });
+  return orgDemoStatus(id, profile2, c);
+}
+async function joinDemo(id, o) {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const snap = readSnapshot(src.pkg);
+  const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  const log = o.log ?? (() => {
+  });
+  const table = await findRegistry(c);
+  const org = await readDeployment(c, table, id);
+  if (!table || !org || deployingNow(org)) throw invalid("The demo is not deployed in this org (yet).");
+  const before = org.presenters.find((p) => p.id === o.presenterId);
+  const name = await c.get(`/api/v2/users/${o.presenterId}`).then((r) => String(r.body.name ?? o.presenterId)).catch(() => o.presenterId);
+  const me = { id: o.presenterId, name, ...before?.contactId ? { contactId: before.contactId } : {} };
+  const tpl = presenterTemplate(m, snap);
+  let persona;
+  let params = {};
+  if (tpl) {
+    persona = cleanPersona(o.persona);
+    const values = parameterValues((m.parameters ?? []).filter((p) => p.perPresenter), o.params);
+    params = Object.fromEntries((m.parameters ?? []).filter((p) => p.perPresenter && values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]]));
+    const customer = personaName(persona);
+    const taken = org.presenters.find((p) => p.id !== o.presenterId && p.customer?.toLowerCase() === customer.toLowerCase());
+    if (taken) throw invalid(`${taken.name} plays the customer "${customer}" already. Choose another name.`);
+    const existing = await TYPES.externalcontact.find(c, customer);
+    if (existing && existing !== before?.contactId) throw invalid(`The org has a contact "${customer}" already. Choose a name nobody uses, so each presenter's customer is recognised by their own number.`);
+    const spec = resolve({
+      ...tpl.spec,
+      firstName: persona.firstName,
+      lastName: persona.lastName,
+      ...persona.salutation ? { salutation: persona.salutation } : { salutation: void 0 },
+      ...tpl.spec.personalEmail ? { personalEmail: personaMail(persona) } : {},
+      ...tpl.spec.whatsAppId ? { whatsAppId: { ...tpl.spec.whatsAppId, displayName: customer } } : {}
+    }, { ...org.record.ids, ...values }, `your customer contact "${customer}"`);
+    if (before?.contactId) {
+      await TYPES.externalcontact.update(c, before.contactId, spec);
+      log(`~ customer contact "${customer}" updated`);
+    } else {
+      me.contactId = (await TYPES.externalcontact.create(spec, { client: c, division: { id: "", name: "" }, log, refreshed: {} })).id;
+      log(`+ customer contact "${customer}"`);
+    }
+    me.customer = customer;
+  }
+  if (!before) {
+    for (const q of org.record.created.filter((x) => x.type === "queue")) {
+      try {
+        await post(c, `/api/v2/routing/queues/${q.id}/members`, [{ id: o.presenterId }]);
+        log(`+ ${name} in queue "${q.name}"`);
+      } catch (err) {
+        log(`! queue "${q.name}": ${err.message}`);
+      }
+    }
+  }
+  org.presenters = [...org.presenters.filter((p) => p.id !== o.presenterId), me];
+  await writeDeployment(c, table, org);
+  savePresenter(id, o.profile, { presenterId: o.presenterId, name, persona: persona ?? { firstName: "", lastName: "" }, params, ...me.contactId ? { contactId: me.contactId } : {} });
+  return orgDemoStatus(id, o.profile, c);
+}
+async function leaveDemo(id, o) {
+  const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  const log = o.log ?? (() => {
+  });
+  const table = await findRegistry(c);
+  const org = await readDeployment(c, table, id);
+  const p = org?.presenters.find((x) => x.id === o.presenterId);
+  if (!table || !org || !p) throw invalid("This user does not present the demo in this org.");
+  if (p.contactId) await TYPES.externalcontact.remove(c, p.contactId).catch((err) => {
+    if (!/HTTP_404/.test(err.code ?? "")) throw err;
+  });
+  for (const q of org.record.created.filter((x) => x.type === "queue")) {
+    await del(c, `/api/v2/routing/queues/${q.id}/members/${o.presenterId}`).catch(() => log(`! could not take ${p.name} out of queue "${q.name}"`));
+  }
+  org.presenters = org.presenters.filter((x) => x.id !== o.presenterId);
+  await writeDeployment(c, table, org);
+  if (loadPresenter(id, o.profile)?.presenterId === o.presenterId) fs8.rmSync(presenterFile(id, o.profile), { force: true });
+  return orgDemoStatus(id, o.profile, c);
 }
 async function routeWhatsApp(c, rec, integrationId, flowName, log) {
   const flowId = rec.ids[token("messageflow", flowName)];
@@ -40741,13 +41000,26 @@ async function restoreRouting(c, rec, log) {
   rec.routing = void 0;
 }
 async function removeDemo(id, o) {
-  const rec = loadRecord(id, o.profile);
-  if (!rec) throw invalid("Nothing was deployed into this org.");
   const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  const table = await findRegistry(c);
+  const org = await readDeployment(c, table, id);
+  if (org && deployingNow(org)) throw new GctkError("DEMO_BUSY", `${org.by} is deploying this demo right now. Wait until it is done.`);
+  const rec = org ? { ...org.record, profile: o.profile } : loadRecord(id, o.profile);
+  if (!rec) throw invalid("Nothing was deployed into this org.");
   const log = o.log ?? (() => {
   });
   const failed = [];
   let removed = 0;
+  for (const p of org?.presenters ?? []) {
+    if (!p.contactId) continue;
+    try {
+      await TYPES.externalcontact.remove(c, p.contactId);
+      log(`- customer contact "${p.customer}" (${p.name})`);
+    } catch (err) {
+      if (!/HTTP_404/.test(err.code ?? "")) failed.push(`customer contact "${p.customer}": ${err.message}`);
+    }
+  }
+  fs8.rmSync(presenterFile(id, o.profile), { force: true });
   try {
     await restoreRouting(c, rec, log);
   } catch (err) {
@@ -40768,8 +41040,13 @@ async function removeDemo(id, o) {
       } else rec.created = rec.created.filter((y) => y.id !== x.id);
     }
   }
-  if (!rec.created.length && !rec.routing) fs8.rmSync(recordFile(id, o.profile), { force: true });
-  else saveRecord(id, rec);
+  if (!rec.created.length && !rec.routing) {
+    fs8.rmSync(recordFile(id, o.profile), { force: true });
+    if (table && org) await dropDeployment(c, table, id);
+  } else {
+    saveRecord(id, rec);
+    if (table && org) await writeDeployment(c, table, { ...org, state: "incomplete", heartbeat: (/* @__PURE__ */ new Date()).toISOString(), record: shared(rec), error: failed.join("; ") });
+  }
   return { removed, failed };
 }
 async function checkPrerequisites(id, profile2, client) {
@@ -40833,11 +41110,13 @@ function commandStatus(id) {
   }
   return out;
 }
-function runValues(m, rec, profileRegion) {
+function runValues(m, rec, profileRegion, me, template) {
   return {
     ...rec?.ids ?? {},
-    ...parameterValues((m.parameters ?? []).map((p) => ({ ...p, optional: true })), rec?.params ?? {}),
-    "@{presenter.name}": rec?.presenter?.name ?? NO_PRESENTER,
+    ...parameterValues((m.parameters ?? []).map((p) => ({ ...p, optional: true })), { ...rec?.params ?? {}, ...me?.params ?? {} }),
+    ...personaValues(me?.persona.firstName ? me.persona : void 0, template),
+    ...m.presenterContact && me?.contactId ? { [token("externalcontact", m.presenterContact)]: me.contactId } : {},
+    "@{presenter.name}": me?.name ?? rec?.presenter?.name ?? NO_PRESENTER,
     "@{org.region}": profileRegion,
     "@{org.messengerEnv}": environmentFor(profileRegion)
   };
@@ -40852,7 +41131,7 @@ async function startLocalPart(id, src, m, profileName, client) {
   fs8.writeFileSync(file2, "", { mode: 384 });
   const log = (line) => fs8.appendFileSync(file2, `${(/* @__PURE__ */ new Date()).toLocaleTimeString()}  ${line}
 `);
-  const handle = await startLocal(m.local, { client: client ?? new GenesysClient(profile2, { source: "ui" }), dir: src.pkg, region: profile2.region, values: runValues(m, rec, profile2.region), log });
+  const handle = await startLocal(m.local, { client: client ?? new GenesysClient(profile2, { source: "ui" }), dir: src.pkg, region: profile2.region, values: runValues(m, rec, profile2.region, loadPresenter(id, profileName), presenterTemplate(m, readSnapshot(src.pkg))?.spec), log });
   log(`started for ${profileName}`);
   locals.set(id, { handle, profile: profileName, startedAt: (/* @__PURE__ */ new Date()).toISOString() });
   return commandStatus(id).find((s) => s.id === LOCAL);
@@ -40879,7 +41158,7 @@ async function startCommand(id, cmdId, profileName, client) {
   const profile2 = loadProfile(profileName);
   const creds = loadCredentials(profile2);
   const rec = loadRecord(id, profileName);
-  const ids = { ...runValues(m, rec, profile2.region), "@{org.clientId}": creds.clientId, "@{org.clientSecret}": creds.clientSecret, "@{org.name}": profile2.name };
+  const ids = { ...runValues(m, rec, profile2.region, loadPresenter(id, profileName), presenterTemplate(m, readSnapshot(src.pkg))?.spec), "@{org.clientId}": creds.clientId, "@{org.clientSecret}": creds.clientSecret, "@{org.name}": profile2.name };
   const isSource = profileName === snapshotSource(id)?.profile;
   const fill = (v) => v.replace(/@\{[^}]+\}/g, (t) => ids[t] ?? (isSource ? "" : t));
   const env = { ...process.env };
@@ -43178,9 +43457,9 @@ var ZodArray2 = class _ZodArray extends ZodType2 {
     return this.min(1, message);
   }
 };
-ZodArray2.create = (schema, params) => {
+ZodArray2.create = (schema2, params) => {
   return new ZodArray2({
-    type: schema,
+    type: schema2,
     minLength: null,
     maxLength: null,
     exactLength: null,
@@ -43188,30 +43467,30 @@ ZodArray2.create = (schema, params) => {
     ...processCreateParams(params)
   });
 };
-function deepPartialify(schema) {
-  if (schema instanceof ZodObject2) {
+function deepPartialify(schema2) {
+  if (schema2 instanceof ZodObject2) {
     const newShape = {};
-    for (const key in schema.shape) {
-      const fieldSchema = schema.shape[key];
+    for (const key in schema2.shape) {
+      const fieldSchema = schema2.shape[key];
       newShape[key] = ZodOptional2.create(deepPartialify(fieldSchema));
     }
     return new ZodObject2({
-      ...schema._def,
+      ...schema2._def,
       shape: () => newShape
     });
-  } else if (schema instanceof ZodArray2) {
+  } else if (schema2 instanceof ZodArray2) {
     return new ZodArray2({
-      ...schema._def,
-      type: deepPartialify(schema.element)
+      ...schema2._def,
+      type: deepPartialify(schema2.element)
     });
-  } else if (schema instanceof ZodOptional2) {
-    return ZodOptional2.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodNullable2) {
-    return ZodNullable2.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodTuple2) {
-    return ZodTuple2.create(schema.items.map((item) => deepPartialify(item)));
+  } else if (schema2 instanceof ZodOptional2) {
+    return ZodOptional2.create(deepPartialify(schema2.unwrap()));
+  } else if (schema2 instanceof ZodNullable2) {
+    return ZodNullable2.create(deepPartialify(schema2.unwrap()));
+  } else if (schema2 instanceof ZodTuple2) {
+    return ZodTuple2.create(schema2.items.map((item) => deepPartialify(item)));
   } else {
-    return schema;
+    return schema2;
   }
 }
 var ZodObject2 = class _ZodObject extends ZodType2 {
@@ -43427,8 +43706,8 @@ var ZodObject2 = class _ZodObject extends ZodType2 {
   //   }) as any;
   //   return merged;
   // }
-  setKey(key, schema) {
-    return this.augment({ [key]: schema });
+  setKey(key, schema2) {
+    return this.augment({ [key]: schema2 });
   }
   // merge<Incoming extends AnyZodObject>(
   //   merging: Incoming
@@ -43878,10 +44157,10 @@ var ZodTuple2 = class _ZodTuple extends ZodType2 {
       status.dirty();
     }
     const items = [...ctx.data].map((item, itemIndex) => {
-      const schema = this._def.items[itemIndex] || this._def.rest;
-      if (!schema)
+      const schema2 = this._def.items[itemIndex] || this._def.rest;
+      if (!schema2)
         return null;
-      return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+      return schema2._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
     }).filter((x) => !!x);
     if (ctx.common.async) {
       return Promise.all(items).then((results) => {
@@ -44395,9 +44674,9 @@ var ZodPromise2 = class extends ZodType2 {
     }));
   }
 };
-ZodPromise2.create = (schema, params) => {
+ZodPromise2.create = (schema2, params) => {
   return new ZodPromise2({
-    type: schema,
+    type: schema2,
     typeName: ZodFirstPartyTypeKind2.ZodPromise,
     ...processCreateParams(params)
   });
@@ -44525,17 +44804,17 @@ var ZodEffects = class extends ZodType2 {
     util.assertNever(effect);
   }
 };
-ZodEffects.create = (schema, effect, params) => {
+ZodEffects.create = (schema2, effect, params) => {
   return new ZodEffects({
-    schema,
+    schema: schema2,
     typeName: ZodFirstPartyTypeKind2.ZodEffects,
     effect,
     ...processCreateParams(params)
   });
 };
-ZodEffects.createWithPreprocess = (preprocess2, schema, params) => {
+ZodEffects.createWithPreprocess = (preprocess2, schema2, params) => {
   return new ZodEffects({
-    schema,
+    schema: schema2,
     effect: { type: "preprocess", transform: preprocess2 },
     typeName: ZodFirstPartyTypeKind2.ZodEffects,
     ...processCreateParams(params)
@@ -44914,8 +45193,8 @@ function object2(shape, params) {
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/zod-compat.js
 function isZ4Schema(s) {
-  const schema = s;
-  return !!schema._zod;
+  const schema2 = s;
+  return !!schema2._zod;
 }
 function objectFromShape(shape) {
   const values = Object.values(shape);
@@ -44929,33 +45208,33 @@ function objectFromShape(shape) {
     return objectType(shape);
   throw new Error("Mixed Zod versions detected in object shape.");
 }
-function safeParse3(schema, data) {
-  if (isZ4Schema(schema)) {
-    const result2 = safeParse(schema, data);
+function safeParse3(schema2, data) {
+  if (isZ4Schema(schema2)) {
+    const result2 = safeParse(schema2, data);
     return result2;
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const result = v3Schema.safeParse(data);
   return result;
 }
-async function safeParseAsync3(schema, data) {
-  if (isZ4Schema(schema)) {
-    const result2 = await safeParseAsync(schema, data);
+async function safeParseAsync3(schema2, data) {
+  if (isZ4Schema(schema2)) {
+    const result2 = await safeParseAsync(schema2, data);
     return result2;
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const result = await v3Schema.safeParseAsync(data);
   return result;
 }
-function getObjectShape(schema) {
-  if (!schema)
+function getObjectShape(schema2) {
+  if (!schema2)
     return void 0;
   let rawShape2;
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     rawShape2 = v4Schema._zod?.def?.shape;
   } else {
-    const v3Schema = schema;
+    const v3Schema = schema2;
     rawShape2 = v3Schema.shape;
   }
   if (!rawShape2)
@@ -44969,29 +45248,29 @@ function getObjectShape(schema) {
   }
   return rawShape2;
 }
-function normalizeObjectSchema(schema) {
-  if (!schema)
+function normalizeObjectSchema(schema2) {
+  if (!schema2)
     return void 0;
-  if (typeof schema === "object") {
-    const asV3 = schema;
-    const asV4 = schema;
+  if (typeof schema2 === "object") {
+    const asV3 = schema2;
+    const asV4 = schema2;
     if (!asV3._def && !asV4._zod) {
-      const values = Object.values(schema);
+      const values = Object.values(schema2);
       if (values.length > 0 && values.every((v) => typeof v === "object" && v !== null && (v._def !== void 0 || v._zod !== void 0 || typeof v.parse === "function"))) {
-        return objectFromShape(schema);
+        return objectFromShape(schema2);
       }
     }
   }
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     const def = v4Schema._zod?.def;
     if (def && (def.type === "object" || def.shape !== void 0)) {
-      return schema;
+      return schema2;
     }
   } else {
-    const v3Schema = schema;
+    const v3Schema = schema2;
     if (v3Schema.shape !== void 0) {
-      return schema;
+      return schema2;
     }
   }
   return void 0;
@@ -45031,23 +45310,23 @@ function getParseErrorMessage(error62) {
   }
   return String(error62);
 }
-function getSchemaDescription(schema) {
-  return schema.description;
+function getSchemaDescription(schema2) {
+  return schema2.description;
 }
-function isSchemaOptional(schema) {
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+function isSchemaOptional(schema2) {
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     return v4Schema._zod?.def?.type === "optional";
   }
-  const v3Schema = schema;
-  if (typeof schema.isOptional === "function") {
-    return schema.isOptional();
+  const v3Schema = schema2;
+  if (typeof schema2.isOptional === "function") {
+    return schema2.isOptional();
   }
   return v3Schema._def?.typeName === "ZodOptional";
 }
-function getLiteralValue(schema) {
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+function getLiteralValue(schema2) {
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     const def2 = v4Schema._zod?.def;
     if (def2) {
       if (def2.value !== void 0)
@@ -45057,7 +45336,7 @@ function getLiteralValue(schema) {
       }
     }
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const def = v3Schema._def;
   if (def) {
     if (def.value !== void 0)
@@ -45066,7 +45345,7 @@ function getLiteralValue(schema) {
       return def.values[0];
     }
   }
-  const directValue = schema.value;
+  const directValue = schema2.value;
   if (directValue !== void 0)
     return directValue;
   return void 0;
@@ -46891,16 +47170,16 @@ function parseIntersectionDef(def, refs) {
   ].filter((x) => !!x);
   let unevaluatedProperties = refs.target === "jsonSchema2019-09" ? { unevaluatedProperties: false } : void 0;
   const mergedAllOf = [];
-  allOf.forEach((schema) => {
-    if (isJsonSchema7AllOfType(schema)) {
-      mergedAllOf.push(...schema.allOf);
-      if (schema.unevaluatedProperties === void 0) {
+  allOf.forEach((schema2) => {
+    if (isJsonSchema7AllOfType(schema2)) {
+      mergedAllOf.push(...schema2.allOf);
+      if (schema2.unevaluatedProperties === void 0) {
         unevaluatedProperties = void 0;
       }
     } else {
-      let nestedSchema = schema;
-      if ("additionalProperties" in schema && schema.additionalProperties === false) {
-        const { additionalProperties, ...rest } = schema;
+      let nestedSchema = schema2;
+      if ("additionalProperties" in schema2 && schema2.additionalProperties === false) {
+        const { additionalProperties, ...rest } = schema2;
         nestedSchema = rest;
       } else {
         unevaluatedProperties = void 0;
@@ -47127,60 +47406,60 @@ function escapeNonAlphaNumeric(source) {
   }
   return result;
 }
-function addFormat(schema, value, message, refs) {
-  if (schema.format || schema.anyOf?.some((x) => x.format)) {
-    if (!schema.anyOf) {
-      schema.anyOf = [];
+function addFormat(schema2, value, message, refs) {
+  if (schema2.format || schema2.anyOf?.some((x) => x.format)) {
+    if (!schema2.anyOf) {
+      schema2.anyOf = [];
     }
-    if (schema.format) {
-      schema.anyOf.push({
-        format: schema.format,
-        ...schema.errorMessage && refs.errorMessages && {
-          errorMessage: { format: schema.errorMessage.format }
+    if (schema2.format) {
+      schema2.anyOf.push({
+        format: schema2.format,
+        ...schema2.errorMessage && refs.errorMessages && {
+          errorMessage: { format: schema2.errorMessage.format }
         }
       });
-      delete schema.format;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.format;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
+      delete schema2.format;
+      if (schema2.errorMessage) {
+        delete schema2.errorMessage.format;
+        if (Object.keys(schema2.errorMessage).length === 0) {
+          delete schema2.errorMessage;
         }
       }
     }
-    schema.anyOf.push({
+    schema2.anyOf.push({
       format: value,
       ...message && refs.errorMessages && { errorMessage: { format: message } }
     });
   } else {
-    setResponseValueAndErrors(schema, "format", value, message, refs);
+    setResponseValueAndErrors(schema2, "format", value, message, refs);
   }
 }
-function addPattern2(schema, regex, message, refs) {
-  if (schema.pattern || schema.allOf?.some((x) => x.pattern)) {
-    if (!schema.allOf) {
-      schema.allOf = [];
+function addPattern2(schema2, regex, message, refs) {
+  if (schema2.pattern || schema2.allOf?.some((x) => x.pattern)) {
+    if (!schema2.allOf) {
+      schema2.allOf = [];
     }
-    if (schema.pattern) {
-      schema.allOf.push({
-        pattern: schema.pattern,
-        ...schema.errorMessage && refs.errorMessages && {
-          errorMessage: { pattern: schema.errorMessage.pattern }
+    if (schema2.pattern) {
+      schema2.allOf.push({
+        pattern: schema2.pattern,
+        ...schema2.errorMessage && refs.errorMessages && {
+          errorMessage: { pattern: schema2.errorMessage.pattern }
         }
       });
-      delete schema.pattern;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.pattern;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
+      delete schema2.pattern;
+      if (schema2.errorMessage) {
+        delete schema2.errorMessage.pattern;
+        if (Object.keys(schema2.errorMessage).length === 0) {
+          delete schema2.errorMessage;
         }
       }
     }
-    schema.allOf.push({
+    schema2.allOf.push({
       pattern: stringifyRegExpWithFlags(regex, refs),
       ...message && refs.errorMessages && { errorMessage: { pattern: message } }
     });
   } else {
-    setResponseValueAndErrors(schema, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
+    setResponseValueAndErrors(schema2, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
   }
 }
 function stringifyRegExpWithFlags(regex, refs) {
@@ -47278,7 +47557,7 @@ function parseRecordDef(def, refs) {
       additionalProperties: refs.rejectedAdditionalProperties
     };
   }
-  const schema = {
+  const schema2 = {
     type: "object",
     additionalProperties: parseDef(def.valueType._def, {
       ...refs,
@@ -47286,17 +47565,17 @@ function parseRecordDef(def, refs) {
     }) ?? refs.allowedAdditionalProperties
   };
   if (refs.target === "openApi3") {
-    return schema;
+    return schema2;
   }
   if (def.keyType?._def.typeName === ZodFirstPartyTypeKind2.ZodString && def.keyType._def.checks?.length) {
     const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
     return {
-      ...schema,
+      ...schema2,
       propertyNames: keyType
     };
   } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind2.ZodEnum) {
     return {
-      ...schema,
+      ...schema2,
       propertyNames: {
         enum: def.keyType._def.values
       }
@@ -47304,11 +47583,11 @@ function parseRecordDef(def, refs) {
   } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind2.ZodBranded && def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind2.ZodString && def.keyType._def.type._def.checks?.length) {
     const { type, ...keyType } = parseBrandedDef(def.keyType._def, refs);
     return {
-      ...schema,
+      ...schema2,
       propertyNames: keyType
     };
   }
-  return schema;
+  return schema2;
 }
 
 // node_modules/zod-to-json-schema/dist/esm/parsers/map.js
@@ -47581,9 +47860,9 @@ function decideAdditionalProperties(def, refs) {
       return refs.removeAdditionalStrategy === "strict" ? refs.allowedAdditionalProperties : refs.rejectedAdditionalProperties;
   }
 }
-function safeIsOptional(schema) {
+function safeIsOptional(schema2) {
   try {
-    return schema.isOptional();
+    return schema2.isOptional();
   } catch {
     return true;
   }
@@ -47639,18 +47918,18 @@ function parseSetDef(def, refs) {
     ...refs,
     currentPath: [...refs.currentPath, "items"]
   });
-  const schema = {
+  const schema2 = {
     type: "array",
     uniqueItems: true,
     items
   };
   if (def.minSize) {
-    setResponseValueAndErrors(schema, "minItems", def.minSize.value, def.minSize.message, refs);
+    setResponseValueAndErrors(schema2, "minItems", def.minSize.value, def.minSize.message, refs);
   }
   if (def.maxSize) {
-    setResponseValueAndErrors(schema, "maxItems", def.maxSize.value, def.maxSize.message, refs);
+    setResponseValueAndErrors(schema2, "maxItems", def.maxSize.value, def.maxSize.message, refs);
   }
-  return schema;
+  return schema2;
 }
 
 // node_modules/zod-to-json-schema/dist/esm/parsers/tuple.js
@@ -47831,17 +48110,17 @@ var addMeta = (def, refs, jsonSchema) => {
 };
 
 // node_modules/zod-to-json-schema/dist/esm/zodToJsonSchema.js
-var zodToJsonSchema = (schema, options) => {
+var zodToJsonSchema = (schema2, options) => {
   const refs = getRefs(options);
-  let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema2]) => ({
+  let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema3]) => ({
     ...acc,
-    [name2]: parseDef(schema2._def, {
+    [name2]: parseDef(schema3._def, {
       ...refs,
       currentPath: [...refs.basePath, refs.definitionPath, name2]
     }, true) ?? parseAnyDef(refs)
   }), {}) : void 0;
   const name = typeof options === "string" ? options : options?.nameStrategy === "title" ? void 0 : options?.name;
-  const main = parseDef(schema._def, name === void 0 ? refs : {
+  const main = parseDef(schema2._def, name === void 0 ? refs : {
     ...refs,
     currentPath: [...refs.basePath, refs.definitionPath, name]
   }, false) ?? parseAnyDef(refs);
@@ -47902,20 +48181,20 @@ function mapMiniTarget(t) {
     return "draft-2020-12";
   return "draft-7";
 }
-function toJsonSchemaCompat(schema, opts) {
-  if (isZ4Schema(schema)) {
-    return toJSONSchema(schema, {
+function toJsonSchemaCompat(schema2, opts) {
+  if (isZ4Schema(schema2)) {
+    return toJSONSchema(schema2, {
       target: mapMiniTarget(opts?.target),
       io: opts?.pipeStrategy ?? "input"
     });
   }
-  return zodToJsonSchema(schema, {
+  return zodToJsonSchema(schema2, {
     strictUnions: opts?.strictUnions ?? true,
     pipeStrategy: opts?.pipeStrategy ?? "input"
   });
 }
-function getMethodLiteral(schema) {
-  const shape = getObjectShape(schema);
+function getMethodLiteral(schema2) {
+  const shape = getObjectShape(schema2);
   const methodSchema = shape?.method;
   if (!methodSchema) {
     throw new Error("Schema is missing a method literal");
@@ -47926,8 +48205,8 @@ function getMethodLiteral(schema) {
   }
   return value;
 }
-function parseWithCompat(schema, data) {
-  const result = safeParse3(schema, data);
+function parseWithCompat(schema2, data) {
+  const result = safeParse3(schema2, data);
   if (!result.success) {
     throw result.error;
   }
@@ -48935,8 +49214,8 @@ var AjvJsonSchemaValidator = class {
    * @param schema - Standard JSON Schema object
    * @returns A validator function that validates input data
    */
-  getValidator(schema) {
-    const ajvValidator = "$id" in schema && typeof schema.$id === "string" ? this._ajv.getSchema(schema.$id) ?? this._ajv.compile(schema) : this._ajv.compile(schema);
+  getValidator(schema2) {
+    const ajvValidator = "$id" in schema2 && typeof schema2.$id === "string" ? this._ajv.getSchema(schema2.$id) ?? this._ajv.compile(schema2) : this._ajv.compile(schema2);
     return (input2) => {
       const valid = ajvValidator(input2);
       if (valid) {
@@ -49577,11 +49856,11 @@ var Server = class extends Protocol {
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/completable.js
 var COMPLETABLE_SYMBOL = /* @__PURE__ */ Symbol.for("mcp.completable");
-function isCompletable(schema) {
-  return !!schema && typeof schema === "object" && COMPLETABLE_SYMBOL in schema;
+function isCompletable(schema2) {
+  return !!schema2 && typeof schema2 === "object" && COMPLETABLE_SYMBOL in schema2;
 }
-function getCompleter(schema) {
-  const meta3 = schema[COMPLETABLE_SYMBOL];
+function getCompleter(schema2) {
+  const meta3 = schema2[COMPLETABLE_SYMBOL];
   return meta3?.complete;
 }
 var McpZodTypeKind;
@@ -50400,20 +50679,20 @@ function isZodRawShapeCompat(obj) {
   }
   return Object.values(obj).some(isZodTypeLike);
 }
-function getZodSchemaObject(schema) {
-  if (!schema) {
+function getZodSchemaObject(schema2) {
+  if (!schema2) {
     return void 0;
   }
-  if (isZodRawShapeCompat(schema)) {
-    return objectFromShape(schema);
+  if (isZodRawShapeCompat(schema2)) {
+    return objectFromShape(schema2);
   }
-  if (!isZodSchemaInstance(schema)) {
+  if (!isZodSchemaInstance(schema2)) {
     throw new Error("inputSchema must be a Zod schema or raw shape, received an unrecognized object");
   }
-  return schema;
+  return schema2;
 }
-function promptArgumentsFromSchema(schema) {
-  const shape = getObjectShape(schema);
+function promptArgumentsFromSchema(schema2) {
+  const shape = getObjectShape(schema2);
   if (!shape)
     return [];
   return Object.entries(shape).map(([name, field]) => {
@@ -50426,8 +50705,8 @@ function promptArgumentsFromSchema(schema) {
     };
   });
 }
-function getMethodValue(schema) {
-  const shape = getObjectShape(schema);
+function getMethodValue(schema2) {
+  const shape = getObjectShape(schema2);
   const methodSchema = shape?.method;
   if (!methodSchema) {
     throw new Error("Schema is missing a method literal");
@@ -50571,7 +50850,7 @@ import path14 from "node:path";
 import crypto8 from "node:crypto";
 import fs13 from "node:fs";
 import http2 from "node:http";
-import os5 from "node:os";
+import os6 from "node:os";
 import path13 from "node:path";
 
 // src/core/demo-ready.ts
@@ -52251,7 +52530,7 @@ async function monitorOrg(client, metrics = MONITOR_METRICS, now = /* @__PURE__ 
 // src/core/data-info.ts
 import crypto6 from "node:crypto";
 import fs11 from "node:fs";
-import os4 from "node:os";
+import os5 from "node:os";
 import path11 from "node:path";
 function size(p) {
   try {
@@ -52271,7 +52550,7 @@ var HOME_PLACES = [
   ["mcp-launch.json", "Cursor setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
   ["ai-setup.json", "Cursor setup: added locations", "Config files and folders you added on the Cursor setup page."],
   ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (Cursor setup, Details) can put them back."],
-  ["demos", "Demos: deployments and logs", "Per org what a deploy created (for Remove), the commands that run, and their logs."],
+  ["demos", "Demos: deployments and logs", `This computer's copy of each org's deployment (the org keeps the original in its data table "gctk demos"), the commands that run, and their logs.`],
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
   ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the Genesys tools of each folder (programs and settings, no credentials)."],
@@ -52325,7 +52604,7 @@ function dataInfo(opts = {}) {
     keychain = keychainName();
   } catch {
   }
-  return { home, userHome: os4.homedir(), homeFromEnv: Boolean(process.env.GCTK_HOME), keychain, places, secrets, elsewhere };
+  return { home, userHome: os5.homedir(), homeFromEnv: Boolean(process.env.GCTK_HOME), keychain, places, secrets, elsewhere };
 }
 function dataPath(key, opts = {}) {
   const info = dataInfo(opts);
@@ -52334,7 +52613,7 @@ function dataPath(key, opts = {}) {
 }
 
 // src/ui/index.html
-var ui_default = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>gctk \xB7 Genesys Cloud Toolkit</title>\n<style nonce="__NONCE__">\n:root {\n  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #e2e6ec;\n  --accent: #ff4f1f; --accent-ink: #ffffff;\n  --ok: #1a7f4b; --ok-bg: #e5f5ec; --warn: #9a6200; --warn-bg: #fff4de; --bad: #b42318; --bad-bg: #fde8e6;\n  --info: #1f5fbf; --info-bg: #e7effb; --neutral-bg: #eef0f3;\n  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;\n  color-scheme: light;\n}\n/* Dark: the system setting, unless the user picked light in the top bar; or picked dark explicitly. */\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n    --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;\n    --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;\n    --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;\n    color-scheme: dark;\n  }\n}\n:root[data-theme="dark"] {\n  --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;\n  --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;\n  --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;\n  color-scheme: dark;\n}\n.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }\n.theme button { background: none; border: 0; padding: 3px 10px; font: inherit; font-size: 12px; color: var(--muted); cursor: pointer; }\n.theme button[aria-pressed="true"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }\n* { box-sizing: border-box; }\nbody { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }\nheader { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }\n.hbar { display: flex; align-items: center; gap: 14px; padding: 10px 20px 4px; flex-wrap: wrap; }\nheader h1 { font-size: 16px; margin: 0; white-space: nowrap; }\nheader h1 span { color: var(--accent); }\n.org { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }\n.org select { padding: 3px 6px; font-size: 13px; }\nnav { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; padding: 0 14px 6px; }\nnav button { background: none; border: 0; padding: 6px 12px; border-radius: 6px; color: var(--muted); font: inherit; cursor: pointer; }\nnav button[aria-current="page"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }\nnav .sep { flex: 1; min-width: 12px; }\nnav .minor button { font-size: 13px; padding: 6px 9px; }\n.count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; text-align: center; }\n.who { margin-left: auto; color: var(--muted); font-size: 12px; }\nmain { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }\nh2 { font-size: 18px; margin: 8px 0 12px; }\nh3 { font-size: 15px; margin: 18px 0 8px; }\n.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }\n.muted { color: var(--muted); }\na { color: var(--info); }\n.mono { font-family: var(--mono); font-size: 12.5px; }\n.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }\n.spacer { flex: 1; }\n.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--neutral-bg); }\n.t-production, .r-high, .s-rejected, .s-failed, .s-stale { background: var(--bad-bg); color: var(--bad); }\n.t-test, .r-medium, .s-pending { background: var(--warn-bg); color: var(--warn); }\n.t-dev, .s-approved { background: var(--info-bg); color: var(--info); }\n.r-low, .s-applied, .a-granted { background: var(--ok-bg); color: var(--ok); }\n.a-missing { background: var(--bad-bg); color: var(--bad); }\ntable { width: 100%; border-collapse: collapse; }\nth, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }\nth { font-size: 12px; color: var(--muted); font-weight: 600; }\ntd.v { font-family: var(--mono); font-size: 12px; word-break: break-word; max-width: 380px; }\n.d-added td:first-child::before { content: "+ "; color: var(--ok); font-weight: 700; }\n.d-removed td:first-child::before { content: "\u2212 "; color: var(--bad); font-weight: 700; }\n.d-changed td:first-child::before { content: "~ "; color: var(--warn); font-weight: 700; }\n.warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }\n.warn li { margin: 2px 0; }\n.error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; margin: 10px 0; white-space: pre-wrap; }\n.okbox { background: var(--ok-bg); color: var(--ok); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }\nbutton.btn { font: inherit; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }\nbutton.btn:hover { border-color: var(--muted); }\nbutton.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }\nbutton.danger { color: var(--bad); }\nbutton:disabled { opacity: .5; cursor: not-allowed; }\ninput, select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }\ntextarea { width: 100%; min-height: 80px; font-family: var(--mono); font-size: 12.5px; }\nlabel { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }\n.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }\ndetails summary { cursor: pointer; color: var(--muted); margin: 8px 0; }\npre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 360px; font-size: 12px; }\n.empty { text-align: center; padding: 30px; color: var(--muted); }\nmain.wide { max-width: 1500px; padding-bottom: 16px; }\n.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; margin-bottom: 14px; }\n.cards .panel { margin: 0; display: flex; flex-direction: column; gap: 8px; }\n.lead { font-size: 15px; color: var(--muted); margin: 0 0 16px; max-width: 820px; }\n.kv { display: grid; grid-template-columns: minmax(90px, 38%) minmax(0, 1fr); gap: 2px 10px; font-size: 13px; }\n.kv dt { color: var(--muted); }\n.kv dd { margin: 0; }\n[hidden] { display: none !important; }\n/* ---- Monitoring: one card per object kind, count against the org\'s limit. */\n.mon { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 8px; }\n.mon > div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }\n.mon .n { font-size: 22px; font-weight: 700; line-height: 1.2; }\n.mon .n small { font-size: 13px; font-weight: 400; color: var(--muted); }\n.meter { height: 6px; border-radius: 3px; background: var(--neutral-bg); overflow: hidden; }\n.meter i { display: block; height: 100%; background: var(--ok); }\n.m-warn .meter i { background: var(--warn); }\n.m-alert .meter i { background: var(--bad); }\n.mon > .m-alert { border-color: var(--bad); }\n.mon > .m-error .n { color: var(--muted); }\n.ws-opts { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }\n.ws-opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; cursor: pointer; }\n.ws-opt:hover { border-color: var(--muted); }\n.ws-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }\n.ws-opt .mark { flex: none; width: 16px; height: 16px; margin-top: 2px; border: 2px solid var(--muted); border-radius: 50%; }\n.ws-opt.multi .mark { border-radius: 4px; }\n.ws-opt[aria-pressed="true"] .mark { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px var(--bg); }\n.ws-opt small { display: block; color: var(--muted); font-size: 12px; }\n.srv { border-top: 1px solid var(--line); }\n.srv > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; cursor: pointer; padding: 8px 4px; margin: 0; color: var(--text); }\n.srv > summary::-webkit-details-marker { display: none; }\n.srv > summary::before { content: "\u25B8"; color: var(--muted); width: 12px; }\n.srv[open] > summary::before { content: "\u25BE"; }\n.srv > summary:hover { background: var(--neutral-bg); border-radius: 6px; }\n.srv .body { padding: 0 4px 12px 24px; display: grid; gap: 8px; }\n.grp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }\n.sub-head { font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); margin: 4px 0 2px; }\n.sub-head .mono { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; }\n.skill-group > summary { margin: 8px 0 2px; }\n.todo-group { border-top: 1px solid var(--line); padding: 10px 0; }\n.todo-group:first-of-type { border-top: 0; padding-top: 0; }\n.todo-group > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--text); }\n.todo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }\n.skill-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 4px; border-top: 1px solid var(--line); font-size: 13px; }\n.creds > summary { color: var(--info); margin: 0; }\n.twin { padding: 4px 0 8px; }\n.twin .todo-row { flex-wrap: nowrap; }\n.twin-path { flex: 1; min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }\n.twin + .twin { border-top: 1px dashed var(--line); padding-top: 8px; }\n.skill-row > .row { justify-content: flex-end; }\n.prereqs { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 10px; align-items: baseline; }\n.keybox { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--bg); }\n.chat { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }\n.dtabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 0 0 14px; }\n.dtabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }\n.dtabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }\n.dtabs button:disabled { cursor: default; opacity: .55; }\n.dtabs small { font-size: 10px; margin-left: 4px; text-transform: uppercase; letter-spacing: .04em; }\n.dblock { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }\n.dblock.live { border-left: 4px solid var(--ok); }\n.dblock.setup { border-left: 4px solid var(--accent); }\n.dblock-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }\n.dblock-head strong { font-size: 15px; }\n.dstep { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px; }\n.dstep b { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 13px; }\n.dstep h3 { margin: 0; font-size: 17px; }\n.dcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }\n.dcard { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }\n.dcard:hover { border-color: var(--muted); }\n.dcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }\n.dcard strong { font-size: 15px; }\n.dcard .what { color: var(--muted); font-size: 13px; }\n.dcard .st { margin-top: auto; font-size: 13px; display: flex; align-items: center; gap: 6px; }\n.dcard .st::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--line); }\n.dcard .st.ok { color: var(--ok); } .dcard .st.ok::before { background: var(--ok); }\n.dcard .st.todo { color: var(--warn); } .dcard .st.todo::before { background: var(--warn); }\n.dcard .st.bad { color: var(--bad); } .dcard .st.bad::before { background: var(--bad); }\n.dblock input, .dblock select, .dblock textarea, .panel select { max-width: 100%; box-sizing: border-box; }\n.dtools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }\n</style>\n</head>\n<body>\n<header>\n  <div class="hbar">\n    <h1><span>gctk</span> Genesys Cloud Toolkit</h1>\n    <div class="org" id="org"></div>\n    <div class="who" id="who"></div>\n    <div class="theme" id="theme" role="group" aria-label="Colour theme"></div>\n  </div>\n  <nav id="nav" aria-label="Pages"></nav>\n</header>\n<main id="main"><div class="empty">Loading\u2026</div></main>\n<script nonce="__NONCE__">\n"use strict";\n// Colour theme: follows the system until the user picks light or dark in the top bar (remembered\n// in this browser). Set before the first render so the page does not flash.\nconst THEME_KEY = "gctk-theme";\nfunction currentTheme() {\n  const t = document.documentElement.dataset.theme;\n  return t === "light" || t === "dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\nfunction setTheme(t) {\n  document.documentElement.dataset.theme = t;\n  try { localStorage.setItem(THEME_KEY, t); } catch {}\n  renderThemeToggle();\n}\nfunction renderThemeToggle() {\n  const box = document.getElementById("theme");\n  const now = currentTheme();\n  box.replaceChildren(...[["light", "\u2600 Light"], ["dark", "\u263E Dark"]].map(([t, label]) => {\n    const b = document.createElement("button");\n    b.type = "button";\n    b.textContent = label;\n    b.setAttribute("aria-pressed", String(now === t));\n    b.addEventListener("click", () => setTheme(t));\n    return b;\n  }));\n}\n(() => {\n  let saved = null;\n  try { saved = localStorage.getItem(THEME_KEY); } catch {}\n  if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;\n  renderThemeToggle();\n  // Without an explicit choice, follow system changes live.\n  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!document.documentElement.dataset.theme) renderThemeToggle(); });\n})();\n// Token arrives in the URL fragment; keep it for this tab only and remove it from the address bar.\nconst TOKEN = (() => {\n  const m = location.hash.match(/token=([\\w-]+)/);\n  if (m) {\n    const view = location.hash.match(/view=([\\w-]+)/);\n    const demo = location.hash.match(/[#&]demo=([\\w-]+)/);\n    try {\n      sessionStorage.setItem("gctk-token", m[1]);\n      if (view) sessionStorage.setItem("gctk-view", view[1]);\n      if (demo) sessionStorage.setItem("gctk-open-demo", demo[1]);\n    } catch {}\n    history.replaceState(null, "", "/");\n    return m[1];\n  }\n  try { return sessionStorage.getItem("gctk-token") || ""; } catch { return ""; }\n})();\n\nasync function api(path, opts = {}) {\n  const method = opts.method || "GET";\n  // Every write is JSON (the server refuses anything else, which also stops cross-site form posts).\n  const body = method === "GET" ? undefined : JSON.stringify(opts.body ?? {});\n  const res = await fetch(path, {\n    method,\n    headers: { "x-gctk-token": TOKEN, ...(body ? { "content-type": "application/json" } : {}) },\n    body,\n  });\n  const data = await res.json().catch(() => ({}));\n  if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.code });\n  return data;\n}\n\n// DOM builder: all dynamic content goes through text nodes, never parsed as HTML.\nfunction h(tag, attrs, ...children) {\n  const el = document.createElement(tag);\n  for (const [k, v] of Object.entries(attrs || {})) {\n    if (v === undefined || v === null || v === false) continue;\n    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);\n    else if (k === "class") el.className = v;\n    else el.setAttribute(k, v === true ? "" : String(v));\n  }\n  for (const c of children.flat(Infinity)) {\n    if (c === undefined || c === null || c === false) continue;\n    el.append(c instanceof Node ? c : document.createTextNode(String(c)));\n  }\n  return el;\n}\nconst pill = (text, cls) => h("span", { class: `pill ${cls || ""}` }, text);\nconst fmt = (v) => v === undefined ? "" : (typeof v === "string" ? JSON.stringify(v) : JSON.stringify(v, null, 0));\nconst short = (s, n = 160) => (s = fmt(s), s.length > n ? s.slice(0, n - 1) + "\u2026" : s);\nconst time = (iso) => iso ? new Date(iso).toLocaleString() : "";\n\nconst state = { view: (() => { try { return sessionStorage.getItem("gctk-view") || "profiles"; } catch { return "profiles"; } })(), overview: null, profile: null };\n// Main pages follow a solution consultant\'s demo prep; setup and control pages sit on the right.\n// The ids are the page names the agent opens with gc_ui (UI_PAGES), so they stay as they are.\nconst VIEWS = [\n  ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],\n  ["ai-setup", "Cursor setup", "The MCP servers Cursor loads in every folder: which org each one works on, and fixes"],\n  ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],\n  ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],\n  ["site", "Website", "A customer website for the industry, in the customer\'s brand, with your Messenger on it"],\n  ["demo", "Demo ready", "Fill the agent\'s home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],\n];\nconst MINOR_VIEWS = [\n  ["monitoring", "Monitoring", "How many queues, flows, data actions \u2026 an org has, next to its limits"],\n  ["data", "Your data", "Where gctk keeps your orgs, settings and records on this computer"],\n];\n\nfunction renderNav() {\n  const nav = document.getElementById("nav");\n  const btn = ([id, label, title]) => h("button", { "aria-current": state.view === id ? "page" : null, title, onclick: () => go(id) }, label);\n  nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));\n  const o = state.overview;\n  document.getElementById("who").replaceChildren(o ? `${o.user} \xB7 gctk ${o.version}` : "",\n    o?.persistent ? h("button", { class: "btn", style: "padding:2px 8px;font-size:12px;margin-left:8px", title: "Stops the background UI; the AI or `gctk ui` starts it again", onclick: stopUi }, "Stop UI") : "");\n  renderOrg();\n}\n\n/** The org the AI works on by default (in Cursor or Claude Code), switchable in the top bar. */\nfunction renderOrg() {\n  const box = document.getElementById("org");\n  const o = state.overview;\n  if (!o) return box.replaceChildren();\n  const usable = o.profiles.filter((p) => !p.error);\n  if (!usable.length) return box.replaceChildren(h("button", { class: "btn primary", style: "padding:3px 10px;font-size:12px", onclick: () => go("profiles") }, "Connect an org"));\n  const active = usable.find((p) => p.name === o.activeProfile);\n  const sel = h("select", { title: "The org the AI works on unless you name another one.", "aria-label": "Org the AI works on" },\n    active ? null : h("option", { value: "" }, "choose\u2026"),\n    usable.map((p) => h("option", { value: p.name, selected: p.name === o.activeProfile }, `${p.name} \xB7 ${p.tier}${p.credentialsStored ? "" : " \xB7 no credentials"}`)));\n  sel.addEventListener("change", async () => {\n    const next = usable.find((p) => p.name === sel.value);\n    if (!next) return;\n    if (next.tier === "production" && !confirm(`Work on the production org "${next.name}" by default?`)) { sel.value = o.activeProfile || ""; return; }\n    try {\n      await api(`/api/profiles/${encodeURIComponent(next.name)}/activate`, { method: "POST", body: {} });\n      state.profile = next.name;\n      await refreshOverview();\n      await render();\n    } catch (err) { sel.value = o.activeProfile || ""; showError(err); }\n  });\n  box.replaceChildren(...[h("span", {}, "Working on"), sel, active ? pill(active.tier, `t-${active.tier}`) : null].filter(Boolean));\n}\n\nasync function refreshOverview() {\n  state.overview = await api("/api/overview");\n  if (!state.profile) state.profile = state.overview.activeProfile || state.overview.profiles[0]?.name || null;\n  renderNav();\n}\n\nfunction go(view) {\n  state.view = view;\n  try { sessionStorage.setItem("gctk-view", view); } catch {}\n  render();\n}\nconst main = () => document.getElementById("main");\nasync function stopUi() {\n  if (!confirm("Stop the gctk UI? The AI can open it again any time.")) return;\n  try { await api("/api/shutdown", { method: "POST", body: {} }); main().replaceChildren(h("div", { class: "panel empty" }, "The gctk UI was stopped. Ask the AI to open it again, or run `gctk ui`.")); }\n  catch (err) { showError(err); }\n}\nfunction showError(err) { main().prepend(h("div", { class: "error" }, err.message || String(err))); }\n\nasync function render() {\n  renderNav();\n  state.cleanup?.();\n  state.cleanup = null;\n  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;\n  try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }\n}\n\n// ----------------------------------------------------------------- home\nfunction copyButton(text) {\n  const btn = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");\n  btn.addEventListener("click", () => { try { navigator.clipboard.writeText(text); btn.textContent = "Copied"; setTimeout(() => (btn.textContent = "Copy"), 1200); } catch {} });\n  return btn;\n}\nconst navLink = (view, text) => h("a", { href: "#", onclick: (e) => { e.preventDefault(); go(view); } }, text);\n\n// -------------------------------------------------------------- website\n// The customer\'s side of the demo: a fake website on its own origin (site.gctk.localhost) with the\n// org\'s Web Messenger. Choices are remembered in this browser.\nconst SITE_KEY = "gctk-site";\nasync function viewSite() {\n  const meta = state.siteMeta || (state.siteMeta = await api("/api/site"));\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(SITE_KEY) || "{}") || {}; } catch {}\n  const industryOf = (id) => meta.industries.find((i) => i.id === id) || meta.industries[0];\n  const cfg = { industry: industryOf(saved.industry).id, lang: saved.lang === "de" ? "de" : "en", phone: saved.phone || "+49 30 1234 5678", logo: saved.logo || "", deploymentId: saved.deploymentId || "", domain: saved.domain || meta.defaultDomain };\n  cfg.brand = saved.brand || industryOf(cfg.industry).brand;\n  cfg.color = saved.color || industryOf(cfg.industry).color;\n  if (!meta.regions.some((r) => r.domain === cfg.domain)) cfg.domain = meta.defaultDomain;\n  const save = () => { try { localStorage.setItem(SITE_KEY, JSON.stringify(cfg)); } catch {} drawLink(); };\n  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;\n\n  // 1. Industry\n  const cards = h("div", { class: "cards", style: "grid-template-columns:repeat(auto-fill,minmax(200px,1fr))" });\n  const drawIndustries = () => cards.replaceChildren(...meta.industries.map((i) => h("button", {\n    class: "ws-opt", "aria-pressed": String(cfg.industry === i.id), style: "flex-direction:column;gap:6px",\n    onclick: () => {\n      const before = industryOf(cfg.industry);\n      // Brand and colour follow the industry until the user has typed their own.\n      if (cfg.brand === before.brand) { cfg.brand = i.brand; brand.value = i.brand; }\n      if (cfg.color === before.color) { cfg.color = i.color; color.value = i.color; }\n      cfg.industry = i.id; drawIndustries(); save();\n    },\n  }, h("span", { class: "row", style: "flex-wrap:nowrap" }, h("span", { style: `width:18px;height:18px;border-radius:5px;background:${/^#[0-9a-f]{6}$/i.test(i.color) ? i.color : "#888"};flex:none` }), h("strong", {}, i.label[cfg.lang] || i.label.en)),\n    h("small", {}, i.headline))));\n\n  // 2. Brand\n  const brand = h("input", { value: cfg.brand, maxlength: 60 });\n  brand.addEventListener("input", () => { cfg.brand = brand.value.trim(); save(); });\n  const color = h("input", { type: "color", value: cfg.color, style: "height:36px;padding:2px" });\n  color.addEventListener("input", () => { cfg.color = color.value; save(); });\n  const lang = h("select", {}, [["en", "English"], ["de", "Deutsch"]].map(([v, t]) => h("option", { value: v, selected: v === cfg.lang }, t)));\n  lang.addEventListener("change", () => { cfg.lang = lang.value; drawIndustries(); save(); });\n  const phone = h("input", { value: cfg.phone, maxlength: 30 });\n  phone.addEventListener("input", () => { cfg.phone = phone.value; save(); });\n  const logoMsg = h("span", { class: "muted", style: "font-size:12px" }, cfg.logo ? "Logo uploaded." : "No logo: the initials are shown.");\n  const picker = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp", hidden: true });\n  picker.addEventListener("change", async () => {\n    const f = picker.files?.[0];\n    picker.value = "";\n    if (!f) return;\n    try {\n      const data = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = fail; r.readAsDataURL(f); });\n      cfg.logo = (await api("/api/site/files", { method: "POST", body: { data } })).logo;\n      logoMsg.textContent = `${f.name} uploaded.`;\n      save();\n    } catch (err) { logoMsg.textContent = err.message; }\n  });\n  const logoRow = h("div", { class: "row" }, h("button", { class: "btn", onclick: () => picker.click() }, "Upload logo\u2026"),\n    h("button", { class: "btn", onclick: () => { cfg.logo = ""; logoMsg.textContent = "No logo: the initials are shown."; save(); } }, "Remove"), logoMsg, picker);\n\n  // 3. Chat: the deployment ID (Admin \u2192 Message \u2192 Messenger Deployments), or the whole snippet pasted.\n  const depInput = h("input", { value: cfg.deploymentId, placeholder: "e.g. 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60, or paste the snippet", style: "width:100%", spellcheck: "false" });\n  const regionSel = h("select", {}, meta.regions.map((r) => h("option", { value: r.domain, selected: r.domain === cfg.domain }, `${r.domain} (${r.key})`)));\n  const depInfo = h("div", { style: "font-size:13px;margin-top:6px" });\n  const drawDep = () => {\n    const raw = depInput.value.trim();\n    put(depInfo, !raw ? h("div", { class: "muted" }, "Without a deployment ID the website shows a note instead of the chat.")\n      : cfg.deploymentId ? h("div", { class: "muted" }, `The site loads deployment ${cfg.deploymentId} from apps.${cfg.domain}. In Genesys Cloud, the deployment must allow the domain ${meta.host} (or all domains).`)\n        : h("div", { class: "error" }, "That is not a deployment ID: it looks like 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60."));\n  };\n  depInput.addEventListener("input", () => {\n    const raw = depInput.value;\n    cfg.deploymentId = (raw.match(UUID) || [""])[0].toLowerCase();\n    // A pasted snippet also names the region.\n    const host = raw.match(/https:\\/\\/apps\\.([a-z0-9.-]+)\\/genesys-bootstrap/i)?.[1];\n    if (host && meta.regions.some((r) => r.domain === host)) { cfg.domain = host; regionSel.value = host; }\n    if (/^\\s*</.test(raw) && cfg.deploymentId) depInput.value = cfg.deploymentId;\n    drawDep(); save();\n  });\n  regionSel.addEventListener("change", () => { cfg.domain = regionSel.value; drawDep(); save(); });\n\n  // 4. Open\n  const link = h("div");\n  const drawLink = () => {\n    const q = new URLSearchParams({ industry: cfg.industry, lang: cfg.lang, brand: cfg.brand, color: cfg.color, phone: cfg.phone, ...(cfg.logo ? { logo: cfg.logo } : {}), ...(cfg.deploymentId ? { deployment: cfg.deploymentId, domain: cfg.domain } : {}) });\n    const url = `http://${meta.host}:${location.port}/site?${q}`;\n    put(link, h("div", { class: "row" },\n      h("button", { class: "btn primary", onclick: () => window.open(url, "_blank", "noopener") }, "Open website"),\n      h("span", { class: "mono muted", style: "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" }, url), copyButton(url)));\n  };\n  drawIndustries();\n  drawLink();\n  drawDep();\n  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Customer website"),\n    h("p", { class: "lead" }, "The customer\'s side of the demo: a website for their industry, in their brand, with your Genesys Messenger on it. Chat from it like a real customer while the agent desktop is on the other screen."),\n    step(1, "Industry", cards),\n    step(2, "Brand",\n      h("div", { class: "grid" }, h("label", {}, "Brand name", brand), h("label", {}, "Brand colour", color), h("label", {}, "Language", lang), h("label", {}, "Phone number on the site", phone)),\n      h("div", { style: "margin-top:10px" }, logoRow)),\n    step(3, "Chat",\n      h("div", { class: "grid", style: "grid-template-columns:minmax(0,2fr) minmax(0,1fr)" }, h("label", {}, "Messenger deployment ID", depInput), h("label", {}, "Region of the org", regionSel)),\n      depInfo,\n      h("p", { class: "muted", style: "font-size:13px;margin-bottom:0" }, "Find the ID in Genesys Cloud under Admin \u2192 Message \u2192 Messenger Deployments (open the deployment; the ID is in its snippet). No deployment yet? Create one there with an inbound message flow to your queue, or ask the AI to help you.")),\n    step(4, "Open", link));\n}\n\n// ----------------------------------------------------------- demo ready\n// Fills one agent\'s home screen with demo data, one section per component. A button writes to the\n// org right away; the server records what it did, so Clean up removes exactly that.\nconst DEMO_KEY = "gctk-demo-pick";\n/** replaceChildren that skips empty parts and flattens lists (DOM would print null and arrays as text). */\nconst put = (el, ...kids) => el.replaceChildren(...kids.flat(Infinity).filter((k) => k !== null && k !== undefined && k !== false));\nfunction demoPick() {\n  if (state.demoPick) return state.demoPick;\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(DEMO_KEY) || "{}") || {}; } catch {}\n  return (state.demoPick = { profile: saved.profile || "", userId: saved.userId || "", userName: saved.userName || "" });\n}\nfunction saveDemoPick() { try { localStorage.setItem(DEMO_KEY, JSON.stringify(state.demoPick)); } catch {} }\n\n/** The n-th working day from today at a local time, for template dates. */\nfunction workday(offset, time) {\n  const d = new Date();\n  for (let n = 0; n < offset;) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n++; }\n  const [hh, mm] = time.split(":").map(Number);\n  d.setHours(hh, mm, 0, 0);\n  return d;\n}\nconst localInput = (d) => { const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };\n\nasync function demoUsers(profile) {\n  state.demoUsers ??= {};\n  return (state.demoUsers[profile] ??= api(`/api/demo/users?profile=${encodeURIComponent(profile)}`).catch((err) => { delete state.demoUsers[profile]; throw err; }));\n}\n\n/** Result of a run: what was applied, notes. */\nfunction demoResult(r, onRetry) {\n  const failed = r.applied.filter((a) => a.status !== "applied");\n  return h("div", {},\n    r.applied.length ? h("ul", { style: "margin:8px 0;padding-left:20px" }, r.applied.map((a) =>\n      h("li", {}, a.status === "applied" ? "\u2713 " : "\u2717 ", a.title.replace(/^Demo ready \\([^)]*\\): /, ""), a.error ? h("div", { class: "error", style: "margin:4px 0" }, a.error) : null))) : null,\n    r.busy && onRetry ? h("div", { class: "warn row" }, h("span", { style: "flex:1" }, "Genesys Cloud is still working on the last step. Continue in a minute to do the rest."),\n      h("button", { class: "btn primary", onclick: onRetry }, "Continue")) : null,\n    r.notes.map((n) => h("div", { class: "muted", style: "font-size:13px" }, n)),\n    r.done && !failed.length ? h("div", { class: "okbox" }, r.applied.length ? "Done. The agent sees the changes on the Genesys Cloud home screen (reload it there)." : "Nothing to change: everything is already there.") : null);\n}\n\n/** run(input, button): runs a section and shows the result in out. */\nfunction demoRunner(section, base, out, reload) {\n  let last = null;\n  const run = async (input, btn) => {\n    if (input) last = input;\n    if (!last) return;\n    if (btn) btn.disabled = true;\n    out.replaceChildren(h("div", { class: "muted" }, "Working\u2026"));\n    try {\n      const r = await api(`/api/demo/${section}/run`, { method: "POST", body: { ...base, input: last } });\n      out.replaceChildren(demoResult(r, () => run(last)));\n      reload();\n      state.demoChanged?.();\n    } catch (err) { out.replaceChildren(h("div", { class: "error" }, err.message)); }\n    if (btn) btn.disabled = false;\n  };\n  return run;\n}\n\n/**\n * The two areas of a section: what the agent has in the org now (live) and what can be added\n * (suggestions and templates, created only when the user presses the button).\n */\nfunction demoBlock(kind, title, note, ...children) {\n  return h("div", { class: `dblock ${kind}` },\n    h("div", { class: "dblock-head" }, h("strong", {}, title),\n      h("span", { class: "muted", style: "font-size:12px" }, kind === "live" ? "in Genesys Cloud now" : note || "nothing changes until you press the button")),\n    ...children);\n}\n\n/** One line per area for the overview cards: [state, text]; state ok (done), todo or bad. */\nconst DEMO_STATUS = {\n  coaching: (s) => {\n    const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= Date.now() && a.status !== "Completed").length;\n    return upcoming ? ["ok", `${upcoming} upcoming appointment${upcoming > 1 ? "s" : ""}`] : s.appointments.length ? ["todo", "Only past appointments"] : ["todo", "No appointments yet"];\n  },\n  learning: (s) => s.assignments.length ? ["ok", `${s.assignments.length} module${s.assignments.length > 1 ? "s" : ""} assigned`] : ["todo", "Nothing assigned yet"],\n  sta: (s) => {\n    const q = s.agentQueues.find((id) => s.queuePrograms[id]);\n    if (q && s.settings.text) return ["ok", `${s.queues.find((x) => x.id === q)?.name || "Queue"} is analysed`];\n    return s.agentQueues.length ? ["todo", "Not set up yet"] : ["todo", "The agent is in no queue yet"];\n  },\n  evaluations: (s) => {\n    const evals = Array.isArray(s.evaluations) ? s.evaluations : [];\n    const convs = Array.isArray(s.conversations) ? s.conversations : [];\n    if (evals.length) return ["ok", `${evals.length} evaluation${evals.length > 1 ? "s" : ""}`];\n    return convs.length ? ["todo", `Not set up yet \xB7 ${convs.length} conversation${convs.length > 1 ? "s" : ""} to evaluate`] : ["bad", "Needs handled conversations first"];\n  },\n  scorecard: (s) => {\n    const p = s.gamification.active && s.profiles.find((x) => x.id === s.currentProfile);\n    return p ? ["ok", `In profile ${p.name}`] : ["todo", s.gamification.active ? "The agent is in no profile yet" : "Not set up yet"];\n  },\n  schedule: (s) => s.current && s.schedules.some((x) => x.published) ? ["ok", "Published schedule"] : ["todo", "No schedule yet"],\n};\nconst DEMO_TAB_KEY = "gctk-demo-tab";\n\nasync function viewDemo() {\n  const meta = state.demoMeta || (state.demoMeta = await api("/api/demo"));\n  const profiles = state.overview?.profiles.filter((p) => !p.error && p.credentialsStored) || [];\n  const pick = demoPick();\n  if (!profiles.some((p) => p.name === pick.profile)) { pick.profile = state.profile && profiles.some((p) => p.name === state.profile) ? state.profile : profiles[0]?.name || ""; pick.userId = ""; pick.userName = ""; }\n  const prof = profiles.find((p) => p.name === pick.profile);\n\n  const profileSel = h("select", { onchange: (e) => { pick.profile = e.target.value; pick.userId = ""; pick.userName = ""; saveDemoPick(); render(); } },\n    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier})`)));\n  const agentSel = h("select", { disabled: true, style: "min-width:min(260px,100%);max-width:100%" }, h("option", { value: "" }, "Loading users\u2026"));\n  const filter = h("input", { type: "search", placeholder: "Search by name or email", disabled: true, style: "min-width:200px" });\n  const msg = h("div");\n  const sections = h("div");\n  let users = [];\n  const fill = () => {\n    const q = filter.value.trim().toLowerCase();\n    const shown = users.filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id === pick.userId);\n    agentSel.replaceChildren(h("option", { value: "" }, shown.length ? "Choose the agent\u2026" : "Nobody matches the search"), ...shown.map((u) => h("option", { value: u.id, selected: u.id === pick.userId }, u.email ? `${u.name} \xB7 ${u.email}` : u.name)));\n  };\n  filter.addEventListener("input", fill);\n  agentSel.addEventListener("change", () => {\n    const u = users.find((x) => x.id === agentSel.value);\n    pick.userId = u?.id || ""; pick.userName = u?.name || ""; saveDemoPick();\n    drawSections();\n  });\n  // An overview of the agent\'s home screen (one card per area, with what is there now) opens one\n  // area at a time; Refresh dates and Clean up are tools below it. The choice is remembered here.\n  const VIEWS_BY_ID = { coaching: () => demoCoaching(prof, pick, users), learning: () => demoLearning(pick), sta: () => demoSta(pick), evaluations: () => demoEvaluations(pick, users), scorecard: () => demoScorecard(pick), schedule: () => demoSchedule(pick), refresh: () => demoRefresh(pick), cleanup: () => demoCleanup(pick) };\n  const SHORT = { coaching: "1:1s and coaching sessions in the agent\'s calendar", learning: "Training modules the agent has to complete", sta: "Transcripts, sentiment and topics for the agent\'s conversations", evaluations: "Quality evaluations of the agent\'s conversations", scorecard: "Scorecard and leaderboard values", schedule: "This week\'s shifts, breaks and training" };\n  const ORDER = ["coaching", "learning", "evaluations", "scorecard", "schedule", "sta"];\n  const areas = ORDER.map((id) => meta.sections.find((x) => x.id === id)).filter((x) => x && x.ready && VIEWS_BY_ID[x.id])\n    .map((x) => ({ id: x.id, title: x.id === "sta" ? "Speech & text analytics" : x.title, what: SHORT[x.id] || x.what }));\n  let tab = (() => { try { return localStorage.getItem(DEMO_TAB_KEY) || ""; } catch { return ""; } })();\n  if (![...areas.map((a) => a.id), "refresh", "cleanup"].includes(tab)) tab = areas[0]?.id || "cleanup";\n  const open = (id) => { tab = id; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); };\n\n  const drawSections = () => {\n    state.demoChanged = null;\n    if (!pick.userId) { sections.replaceChildren(h("div", { class: "panel empty" }, "Choose the agent you will log in as during the demo. The page then shows what their home screen has and what is missing.")); return; }\n    const q = `profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`;\n    const stEls = {};\n    const cards = h("div", { class: "dcards" }, areas.map((a) => {\n      stEls[a.id] = h("span", { class: "st" }, "Checking\u2026");\n      return h("button", { class: "dcard", "aria-pressed": a.id === tab ? "true" : "false", onclick: () => open(a.id) }, h("strong", {}, a.title), h("span", { class: "what" }, a.what), stEls[a.id]);\n    }));\n    const loadStatus = () => {\n      for (const a of areas) {\n        api(`/api/demo/${a.id}/status?${q}`).then((s) => {\n          const [cls, text] = DEMO_STATUS[a.id](s);\n          stEls[a.id].className = `st ${cls}`; stEls[a.id].textContent = text;\n        }).catch(() => { stEls[a.id].className = "st bad"; stEls[a.id].textContent = "Could not be read"; });\n      }\n    };\n    loadStatus();\n    state.demoChanged = loadStatus;\n    // Demo data ages: say so above everything, with a way to the refresh.\n    const stale = h("div");\n    if (tab !== "refresh") {\n      api(`/api/demo/refresh/status?${q}`).then((st) => {\n        if (st.stale) put(stale, h("div", { class: "warn row" }, h("span", { style: "flex:1" }, `${st.stale} date${st.stale > 1 ? "s" : ""} on ${pick.userName || "the agent"}\'s home screen ${st.stale > 1 ? "lie" : "lies"} in the past, so the demo looks stale.`),\n          h("button", { class: "btn primary", onclick: () => open("refresh") }, "Refresh dates")));\n      }).catch(() => {});\n    }\n    const tool = (id, label, note) => h("button", { class: "btn", "aria-pressed": id === tab ? "true" : "false", style: id === tab ? "border-color:var(--accent)" : "", title: note, onclick: () => open(id) }, label);\n    sections.replaceChildren(\n      stale,\n      h("div", { class: "dstep" }, h("b", {}, "2"), h("h3", {}, `What ${pick.userName || "the agent"}\'s home screen shows`)),\n      h("p", { class: "muted", style: "margin:0 0 10px;font-size:13px" }, "Green is ready for the demo. Open an area to see the details and fill what is missing."),\n      cards,\n      h("div", { class: "dtools" }, h("span", { class: "muted", style: "font-size:13px" }, "Later:"),\n        tool("refresh", "Refresh dates", "A week later the demo data lies in the past: move it forward"),\n        tool("cleanup", "Clean up after the demo", "Remove everything this page created for the agent")),\n      h("div", { class: "dstep" }, h("b", {}, "3"), h("h3", {}, tab === "refresh" ? "Refresh dates" : tab === "cleanup" ? "Clean up" : areas.find((a) => a.id === tab)?.title || "")),\n      VIEWS_BY_ID[tab]());\n  };\n\n  if (pick.profile) {\n    demoUsers(pick.profile).then((list) => {\n      users = list;\n      agentSel.disabled = filter.disabled = false;\n      fill();\n      msg.replaceChildren();\n      if (pick.userId && !users.some((u) => u.id === pick.userId)) { pick.userId = ""; pick.userName = ""; }\n      drawSections();\n    }).catch((err) => msg.replaceChildren(h("div", { class: "error" }, err.message)));\n  }\n\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demo ready"),\n    h("p", { class: "lead" }, "Make an agent\'s Genesys Cloud home screen look lived-in before a demo. Choose the agent, then fill what is still empty. Nothing changes in Genesys Cloud until you press a button, and Clean up removes it all again afterwards."),\n    profiles.length ? [\n      h("div", { class: "dstep" }, h("b", {}, "1"), h("h3", {}, "The demo agent")),\n      h("div", { class: "panel" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "Org", profileSel), h("label", { class: "row", style: "min-width:0;max-width:100%" }, "Agent", agentSel), filter),\n        prof ? h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, `The user you log in as during the demo. Changes go to ${prof.name} (${prof.tier}).`) : null,\n        msg)] : h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first."),\n    sections);\n}\n\nfunction demoCoaching(prof, pick, users) {\n  const templates = state.demoMeta.coachingTemplates;\n  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading appointments\u2026"));\n  const out = h("div");\n  const base = { profile: pick.profile, userId: pick.userId, agentName: pick.userName };\n\n  const facilitator = h("select", {}, h("option", { value: "" }, "No facilitator"),\n    users.filter((u) => u.id !== pick.userId).map((u) => h("option", { value: u.id }, u.name)));\n  const rows = h("div", { style: "display:grid;gap:10px" });\n  const addRow = (t) => {\n    const r = {\n      use: h("input", { type: "checkbox", checked: true, title: "Include" }),\n      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),\n      when: h("input", { type: "datetime-local", value: localInput(t.date) }),\n      length: h("input", { type: "number", min: 5, max: 480, step: 5, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),\n      completed: h("input", { type: "checkbox", checked: Boolean(t.completed) }),\n      description: h("input", { value: t.description, style: "width:100%" }),\n      state: h("span"),\n    };\n    const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n      h("div", { class: "row" }, r.use, r.name, r.when, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min"),\n        h("label", { class: "row", style: "font-size:12px", title: "Created, then set to completed. Completed appointments cannot be deleted later." }, r.completed, "completed"),\n        r.state,\n        h("button", { class: "btn", style: "padding:2px 8px", title: "Remove row", onclick: () => el.remove() }, "\xD7")),\n      r.description);\n    el.demo = r;\n    for (const f of [r.name, r.when]) f.addEventListener("change", () => mark(r, false));\n    rows.append(el);\n    mark(r, true);\n  };\n\n  // Marks suggestions the agent already has (same name and start: nothing would be created).\n  let known = null;\n  const mark = (r, uncheck) => {\n    if (!known) return;\n    const at = new Date(r.when.value).getTime();\n    const same = known.find((a) => a.name === r.name.value && Math.abs(Date.parse(a.dateStart) - at) < 60_000);\n    const named = known.find((a) => a.name === r.name.value);\n    if (same && uncheck) r.use.checked = false;\n    r.state.replaceChildren(same ? pill("already in the org", "s-applied") : named ? h("span", { class: "muted", style: "font-size:12px" }, `same name on ${new Date(named.dateStart).toLocaleDateString()}`) : pill("new", ""));\n  };\n  for (const t of templates) addRow({ ...t, date: workday(t.workdayOffset, t.time) });\n\n  const run = demoRunner("coaching", base, out, () => load());\n\n  const createBtn = h("button", { class: "btn primary" }, "Add to the agent\'s calendar");\n  createBtn.addEventListener("click", () => {\n    const chosen = [...rows.children].map((el) => el.demo).filter((r) => r.use.checked);\n    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one appointment.")); return; }\n    if (chosen.some((r) => !r.when.value)) { out.replaceChildren(h("div", { class: "error" }, "Every appointment needs a start.")); return; }\n    if (chosen.some((r) => r.completed.checked) && !confirm("Appointments marked completed cannot be deleted afterwards (Genesys Cloud keeps them). Continue?")) return;\n    run({ appointments: chosen.map((r) => ({\n      name: r.name.value, description: r.description.value, dateStart: new Date(r.when.value).toISOString(),\n      lengthInMinutes: Number(r.length.value), completed: r.completed.checked, ...(facilitator.value ? { facilitatorId: facilitator.value } : {}),\n    })) }, createBtn);\n  });\n\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/coaching/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const now = Date.now();\n      const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= now && a.status !== "Completed").length;\n      known = s.appointments;\n      for (const el of rows.children) mark(el.demo, true);\n      put(list, \n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.appointments.length} appointment${s.appointments.length === 1 ? "" : "s"}`),\n          h("span", { class: "muted" }, `(last 60 and next 90 days; ${upcoming} upcoming)`)),\n        !s.appointments.length ? h("div", { class: "muted" }, "The agent has no coaching appointments yet.") : null,\n        s.appointments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["When", "Appointment", "Length", "Facilitator", "Status", ""].map((t) => h("th", {}, t))),\n          s.appointments.map((a) => h("tr", {},\n            h("td", { style: "white-space:nowrap" }, time(a.dateStart)),\n            h("td", {}, a.name),\n            h("td", {}, a.lengthInMinutes ? `${a.lengthInMinutes} min` : ""),\n            h("td", {}, nameOf(a.facilitatorId)),\n            h("td", {}, pill(a.status || "?", a.status === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),\n            h("td", {}, a.status === "Scheduled" ? h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {\n              if (confirm(`Delete "${a.name}"?`)) run({ appointments: [], remove: [a.id] }, e.target);\n            } }, "Delete") : null))))) : null);\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Appointments show up in the agent\'s calendar and Development view. Genesys Cloud only accepts appointments in the future; tick completed for a session that is already done."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s appointments`, "", list),\n    demoBlock("setup", "Suggested appointments", "change anything you like; nothing is created until you press the button",\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row", title: "The facilitator and the agent need the permission coaching:appointment:participate." }, "Facilitator (optional)", facilitator)),\n      rows,\n      h("div", { class: "row", style: "margin-top:10px" },\n        h("button", { class: "btn", onclick: () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }) }, "+ Appointment"),\n        h("span", { class: "spacer" }), createBtn)),\n    out);\n}\n\nconst dateInput = (d) => localInput(d).slice(0, 10);\n/** A due date from a date input: that day, 17:00 local time. */\nconst dueIso = (v) => { const d = new Date(`${v}T17:00`); return isNaN(d) ? "" : d.toISOString(); };\n\nfunction demoLearning(pick) {\n  const templates = state.demoMeta.learningTemplates;\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading learning\u2026"));\n  const pickBox = h("div");\n  const out = h("div");\n  const run = demoRunner("learning", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  let rows = [];\n\n  const newRow = (t, checked) => {\n    const r = {\n      kind: "new",\n      use: h("input", { type: "checkbox", checked }),\n      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),\n      due: h("input", { type: "date", value: dateInput(workday(t.dueWorkdays, "17:00")) }),\n      length: h("input", { type: "number", min: 15, max: 480, step: 15, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),\n      description: h("input", { value: t.description, style: "width:100%" }),\n      content: h("textarea", { style: "min-height:70px;font-family:inherit;font-size:13px" }, t.content),\n    };\n    r.el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n      h("div", { class: "row" }, r.use, r.name, h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min")),\n      r.description, r.content);\n    return r;\n  };\n\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/learning/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const assigned = new Set(s.assignments.map((a) => a.moduleId));\n      const open = s.assignments.filter((a) => a.state !== "Completed").length;\n      put(list, \n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.assignments.length} assigned module${s.assignments.length === 1 ? "" : "s"}`),\n          h("span", { class: "muted" }, `(${open} open)`)),\n        !s.assignments.length ? h("div", { class: "muted" }, "The agent has no learning assignments yet.") : null,\n        s.assignments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["Module", "Due", "Progress", "State", ""].map((t) => h("th", {}, t))),\n          s.assignments.map((a) => h("tr", {},\n            h("td", {}, a.moduleName),\n            h("td", { style: "white-space:nowrap" }, a.dueDate ? new Date(a.dueDate).toLocaleDateString() : ""),\n            h("td", {}, `${Math.round(a.completionPercentage || 0)} %`),\n            h("td", {}, pill(a.isOverdue ? "overdue" : a.state || "?", a.state === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),\n            h("td", {}, h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {\n              if (confirm(`Remove "${a.moduleName}" from the agent?`)) run({ assignments: [], remove: [a.id] }, e.target);\n            } }, "Remove")))))) : null);\n\n      // What can be assigned: published modules of the org that the agent does not have yet, and new ones.\n      const available = s.modules.filter((m) => m.isPublished && !assigned.has(m.id));\n      const filter = h("input", { placeholder: "Filter modules", style: "min-width:200px" });\n      const orgRows = available.map((m, i) => {\n        const r = { kind: "org", id: m.id, name: m.name, use: h("input", { type: "checkbox", checked: i < 3 }), due: h("input", { type: "date", value: dateInput(workday(3 + 2 * Math.min(i, 5), "17:00")) }) };\n        r.el = h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:4px 0" }, r.use,\n          h("span", { style: "flex:1;min-width:220px" }, m.name, m.source === "GenesysBeyond" ? h("span", { class: "muted", style: "font-size:12px" }, " \xB7 Genesys Beyond") : null,\n            m.lengthInMinutes ? h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${m.lengthInMinutes} min`) : null),\n          h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due);\n        return r;\n      });\n      filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const r of orgRows) r.el.style.display = !q || r.name.toLowerCase().includes(q) ? "" : "none"; });\n      const existingNames = new Set(s.modules.map((m) => m.name));\n      const newRows = templates.filter((t) => !existingNames.has(t.name)).map((t) => newRow(t, !available.length));\n      const newBox = h("div", { style: "display:grid;gap:10px" }, newRows.map((r) => r.el));\n      rows = [...orgRows, ...newRows];\n      put(pickBox, \n        h("strong", { style: "display:block;margin-bottom:6px" }, "Modules that already exist in the org"),\n        available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, `${available.length} published module${available.length === 1 ? "" : "s"} the agent does not have yet`)),\n          h("div", { style: "max-height:260px;overflow:auto" }, orgRows.map((r) => r.el)))\n          : h("div", { class: "muted" }, s.modules.some((m) => m.isPublished) ? "The agent already has every published module." : "The org has no published learning modules yet; create some below."),\n        h("strong", { style: "display:block;margin:14px 0 2px" }, "Or new modules"),\n        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Created in the org with the text below, then assigned."),\n        newBox,\n        h("div", { class: "row", style: "margin-top:10px" },\n          h("button", { class: "btn", onclick: () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); } }, "+ New module"),\n          h("span", { class: "spacer" }), assignBtn));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n\n  const assignBtn = h("button", { class: "btn primary" }, "Assign to the agent");\n  assignBtn.addEventListener("click", () => {\n    const chosen = rows.filter((r) => r.use.checked);\n    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one module.")); return; }\n    if (chosen.some((r) => !dueIso(r.due.value))) { out.replaceChildren(h("div", { class: "error" }, "Every module needs a due date.")); return; }\n    run({ assignments: chosen.map((r) => r.kind === "org"\n      ? { moduleId: r.id, dueDate: dueIso(r.due.value) }\n      : { newModule: { name: r.name.value, description: r.description.value, content: r.content.value, lengthInMinutes: Number(r.length.value) }, dueDate: dueIso(r.due.value) }) }, assignBtn);\n  });\n  load();\n\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up on the home screen and in the Development view. To show a completed one, open it once as the agent: only the agent can complete a module."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s learning`, "", list),\n    demoBlock("setup", "Assign modules", "nothing changes until you press the button", pickBox),\n    out);\n}\n\nfunction demoSta(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading speech and text analytics\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("sta", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const onOff = (v) => pill(v ? "on" : "off", v ? "s-applied" : "s-pending");\n  const TRANSCRIPTION = { EnabledQueueFlow: "on for queues and flows that enable it", EnabledGlobally: "on for all interactions", Disabled: "off" };\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/sta/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const programName = (id) => s.programs.find((p) => p.id === id)?.name || (id ? "another program" : "");\n      put(info, \n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Text analytics"), h("dd", {}, onOff(s.settings.text), " sentiment ", onOff(s.settings.sentiment), " agent empathy ", onOff(s.settings.empathy)),\n          h("dt", {}, "Expected dialects"), h("dd", {}, s.settings.dialects.length ? s.settings.dialects.join(", ") : h("span", { class: "muted" }, "none")),\n          h("dt", {}, "Voice transcription"), h("dd", {}, TRANSCRIPTION[s.transcription] || s.transcription),\n          h("dt", {}, "Agent\'s queues"), h("dd", {}, s.agentQueues.length ? s.agentQueues.map((id) => {\n            const q = s.queues.find((x) => x.id === id);\n            const prog = programName(s.queuePrograms[id]);\n            return h("div", {}, q?.name || id, h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${prog ? `program ${prog}` : "in no program"} \xB7 transcription ${s.transcribed[id] ? "on" : "off"}`));\n          }) : h("span", { class: "muted" }, "none"))));\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const agentQs = s.queues.filter((q) => s.agentQueues.includes(q.id));\n    const otherQs = s.queues.filter((q) => !s.agentQueues.includes(q.id));\n    const queueSel = h("select", {},\n      agentQs.length ? h("optgroup", { label: "The agent\'s queues" }, agentQs.map((q) => h("option", { value: q.id }, q.name))) : null,\n      otherQs.length ? h("optgroup", { label: "Other queues" }, otherQs.map((q) => h("option", { value: q.id }, q.name))) : null);\n    const addAgent = h("input", { type: "checkbox", checked: true });\n    const addAgentRow = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, addAgent, "Add the agent to this queue");\n    const analytics = h("input", { type: "checkbox", checked: true });\n    const dialect = h("select", {}, h("option", { value: "" }, "keep the expected dialects"), s.dialects.map((d) => h("option", { value: d, selected: !s.settings.dialects.length && d === "en-US" }, d)));\n    const transcription = h("input", { type: "checkbox", checked: true });\n    const byName = s.programs.find((p) => p.name === s.defaults.program);\n    const programSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New program\u2026"),\n      s.programs.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.id === s.settings.defaultProgram ? " (default program)" : ""}${p.published ? "" : " (not published)"}`)));\n    const programName = h("input", { value: s.defaults.program, style: "min-width:220px" });\n    const filter = h("input", { placeholder: "Filter topics", style: "min-width:200px" });\n    const topicBoxes = s.topics.map((t) => {\n      const box = h("input", { type: "checkbox", checked: s.defaults.topics.includes(t.name) });\n      const el = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, box, t.name, t.dialect ? h("span", { class: "muted", style: "font-size:11px" }, t.dialect) : null);\n      return { t, box, el };\n    });\n    filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const b of topicBoxes) b.el.style.display = !q || b.t.name.toLowerCase().includes(q) ? "" : "none"; });\n    const topicsWrap = h("div", {},\n      h("div", { class: "row", style: "margin:8px 0 4px" }, h("span", { class: "muted", style: "font-size:12px" }, "Topics of the new program: these exist in the org (published); tick the ones the program should use"), filter),\n      h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px;max-height:220px;overflow:auto" }, topicBoxes.map((b) => b.el)));\n    // Own topics, for when the org\'s topics do not fit.\n    const topicRows = h("div", { style: "display:grid;gap:10px" });\n    const addTopic = (t) => {\n      const r = {\n        name: h("input", { value: t.name, placeholder: "Topic name, e.g. Parcel not delivered", style: "flex:1;min-width:220px" }),\n        dialect: h("select", {}, s.dialects.map((d) => h("option", { value: d, selected: d === t.dialect }, d))),\n        strictness: h("select", { title: "How closely the conversation must match a phrase" }, [["1", "1 \xB7 loose"], ["55", "55"], ["65", "65"], ["72", "72 \xB7 default"], ["85", "85"], ["90", "90 \xB7 strict"]].map(([v, l]) => h("option", { value: v, selected: v === "72" }, l))),\n        description: h("input", { value: t.description || "", placeholder: "Description (optional)", style: "width:100%" }),\n        phrases: h("textarea", { placeholder: "One phrase per line, the way customers or agents say it", style: "min-height:70px;font-family:inherit;font-size:13px" }, (t.phrases || []).join("\\n")),\n      };\n      const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n        h("div", { class: "row" }, r.name, r.dialect, h("label", { class: "row" }, "Strictness", r.strictness), h("span", { class: "spacer" }),\n          h("button", { class: "btn", style: "padding:2px 8px", title: "Remove topic", onclick: () => el.remove() }, "\xD7")),\n        r.description, r.phrases);\n      el.demo = r;\n      topicRows.append(el);\n    };\n    const defaultDialect = () => dialect.value || s.settings.dialects[0] || "en-US";\n    const newTopicsWrap = h("div", {},\n      h("div", { class: "row", style: "margin:8px 0 4px" }, h("strong", { style: "font-size:13px" }, "New topics"),\n        h("span", { class: "muted", style: "font-size:12px" }, "when the org\'s topics do not fit: created, published and added to the program (also to an existing one); Clean up deletes them again")),\n      topicRows,\n      h("div", { style: "margin-top:6px" }, h("button", { class: "btn", onclick: () => addTopic({ name: "", dialect: defaultDialect(), phrases: [] }) }, "+ Topic")));\n    const queueInfo = h("div", { class: "muted", style: "font-size:13px" });\n    const sync = () => {\n      const inQueue = s.agentQueues.includes(queueSel.value);\n      addAgentRow.style.display = inQueue ? "none" : "";\n      const now = s.queuePrograms[queueSel.value];\n      const target = programSel.value;\n      queueInfo.textContent = now && now !== target\n        ? `The queue is in program "${s.programs.find((p) => p.id === now)?.name || now}" now; a queue belongs to one program, so it moves (Clean up moves it back).`\n        : now === target ? "The queue is in this program already." : "";\n      programName.style.display = topicsWrap.style.display = target === NEW ? "" : "none";\n    };\n    queueSel.addEventListener("change", sync);\n    programSel.addEventListener("change", sync);\n    const btn = h("button", { class: "btn primary" }, "Set up speech and text analytics");\n    btn.addEventListener("click", () => {\n      if (!queueSel.value) { out.replaceChildren(h("div", { class: "error" }, "Choose a queue.")); return; }\n      run({\n        queueId: queueSel.value,\n        addAgent: addAgent.checked && !s.agentQueues.includes(queueSel.value),\n        analytics: analytics.checked,\n        dialect: dialect.value,\n        transcription: transcription.checked,\n        program: programSel.value === NEW ? { name: programName.value, topicIds: topicBoxes.filter((b) => b.box.checked).map((b) => b.t.id) } : { id: programSel.value },\n        newTopics: [...topicRows.children].map((el) => el.demo).filter((r) => r.name.value.trim() || r.phrases.value.trim()).map((r) => ({\n          name: r.name.value, dialect: r.dialect.value, strictness: r.strictness.value, description: r.description.value, phrases: r.phrases.value.split("\\n"),\n        })),\n      }, btn);\n    });\n    put(form, \n      s.queues.length ? h("div", { style: "display:grid;gap:8px" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "The agent\'s queue", queueSel), addAgentRow),\n        queueInfo,\n        h("details", {}, h("summary", {}, "More options: language, program and topics"),\n          h("div", { style: "display:grid;gap:8px" },\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, analytics, "Text analytics, sentiment and agent empathy (org-wide)"),\n            h("div", { class: "row" }, h("label", { class: "row" }, "Language of the calls", dialect)),\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, transcription, "Voice transcription for this queue"),\n            h("div", { class: "row" }, h("label", { class: "row" }, "Program", programSel), programName),\n            topicsWrap, newTopicsWrap)),\n        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn))\n        : h("div", { class: "warn" }, "The org has no queues yet."));\n    sync();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Gives the agent\'s calls and messages transcripts, sentiment, empathy and topics. Calls also need to be recorded (the default in Genesys Cloud)."),\n    demoBlock("live", "Now in the org", "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoEvaluations(pick, users) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading evaluations\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("evaluations", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(true));\n  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";\n  const MEDIA = { email: "Email", message: "Message", voice: "Call", callback: "Callback", chat: "Chat" };\n  const RESULTS = [["strong", "strong"], ["mixed", "mixed"], ["weak", "needs work"]];\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/evaluations/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const failed = (v) => v && !Array.isArray(v);\n      const evals = failed(s.evaluations) ? [] : s.evaluations;\n      const convs = failed(s.conversations) ? [] : s.conversations;\n      const formName = (id) => s.forms.find((f) => f.id === id)?.name || "a form";\n      const evaluated = new Set(evals.map((e) => e.conversationId));\n      put(info,\n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${evals.length} evaluation${evals.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 90 days)")),\n        failed(s.evaluations) ? h("div", { class: "error" }, s.evaluations.error) : null,\n        evals.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["Created", "Conversation", "Form", "Score", "Evaluator", "Agent sees it"].map((t) => h("th", {}, t))),\n          evals.map((e) => h("tr", {},\n            h("td", { style: "white-space:nowrap" }, time(e.createdDate)),\n            h("td", { class: "mono" }, (e.conversationId || "").slice(0, 8)),\n            h("td", {}, formName(e.formId)),\n            h("td", {}, e.score !== undefined ? pill(`${Math.round(e.score)} %`, e.score >= 80 ? "s-applied" : e.score >= 50 ? "s-pending" : "s-failed") : ""),\n            h("td", {}, nameOf(e.evaluatorId)),\n            h("td", {}, e.released ? pill("released", "s-applied") : pill("not released", "s-pending")))))) : h("div", { class: "muted" }, "The agent has no evaluations yet."),\n        h("div", { class: "row", style: "margin:12px 0 6px" }, h("strong", {}, `${convs.length} handled conversation${convs.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 4 weeks)")),\n        failed(s.conversations) ? h("div", { class: "error" }, s.conversations.error) : null,\n        !convs.length && !failed(s.conversations) ? h("div", { class: "muted" }, "None in the last 4 weeks.") : null);\n      if (withForm) drawForm(s, convs.filter((c) => !evaluated.has(c.id)));\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s, open) => {\n    const NEW = "__new__";\n    if (!open.length) {\n      put(form, h("div", { class: "warn" }, `Nothing to evaluate yet. Log in as ${pick.userName || "the agent"}, handle a few calls, chats or emails, then come back here.`));\n      return;\n    }\n    const formSel = h("select", {}, h("option", { value: NEW }, "New form from the template\u2026"), s.forms.map((f, i) => h("option", { value: f.id, selected: i === 0 }, f.name)));\n    const formName = h("input", { value: s.defaults.form, style: "min-width:240px" });\n    const syncForm = () => { formName.style.display = formSel.value === NEW ? "" : "none"; };\n    formSel.addEventListener("change", syncForm);\n    const candidates = users.filter((u) => s.evaluators.includes(u.id));\n    const evaluator = h("select", {}, candidates.map((u) => h("option", { value: u.id }, u.name)));\n    const rows = open.map((c, i) => {\n      const result = h("select", {}, RESULTS.map(([v, l]) => h("option", { value: v, selected: v === ["strong", "mixed", "strong", "weak"][i % 4] }, l)));\n      const comment = h("input", { value: s.defaults.comments[result.value], style: "flex:1;min-width:260px" });\n      let edited = false;\n      comment.addEventListener("input", () => { edited = true; });\n      result.addEventListener("change", () => { if (!edited) comment.value = s.defaults.comments[result.value]; });\n      const use = h("input", { type: "checkbox", checked: i < 3 });\n      return { c, use, result, comment, el: h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:6px 0" }, use,\n        h("span", { style: "min-width:230px" }, time(c.start), h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${MEDIA[c.mediaType] || c.mediaType || ""}${c.customer ? ` \xB7 ${c.customer}` : ""}`)),\n        result, comment) };\n    });\n    const btn = h("button", { class: "btn primary", disabled: !rows.length || !candidates.length }, "Create evaluations");\n    btn.addEventListener("click", () => {\n      const chosen = rows.filter((r) => r.use.checked);\n      if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one conversation.")); return; }\n      run({\n        form: formSel.value === NEW ? { name: formName.value } : { id: formSel.value },\n        evaluatorId: evaluator.value,\n        evaluations: chosen.map((r) => ({ conversationId: r.c.id, result: r.result.value, comment: r.comment.value })),\n      }, btn);\n    });\n    put(form,\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Form", formSel), formName,\n        h("span", { class: "muted", style: "font-size:12px" }, "existing forms are published forms of the org; a new form is created from the template and published (published forms stay in the org)")),\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Evaluator", evaluator),\n        candidates.length ? h("span", { class: "muted", style: "font-size:12px" }, "users who may score evaluations (quality:evaluation:edit)") : h("span", { class: "error", style: "margin:0" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),),\n      h("div", { class: "muted", style: "font-size:13px;margin:6px 0" }, "Tick the conversations to evaluate and choose how the agent did. The agent sees the evaluation right away."),\n      h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)),\n      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));\n    syncForm();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Evaluations show up in the agent\'s performance views and feed the quality score on the scorecard. Genesys Cloud only evaluates real conversations, so the agent needs a few handled ones first."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s evaluations and conversations`, "", info),\n    demoBlock("setup", "Evaluate conversations", "nothing is created until you press the button", form),\n    out);\n}\n\nfunction demoSchedule(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading workforce management\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("schedule", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/schedule/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const bu = s.current && s.businessUnits.find((b) => b.id === s.current.businessUnitId);\n      const mu = bu && bu.managementUnits.find((m) => m.id === s.current.id);\n      put(info,\n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Management unit"), h("dd", {}, mu ? `${mu.name} (business unit ${bu.name})` : h("span", { class: "muted" }, "none: the agent has no schedule")),\n          s.week ? [h("dt", {}, "This week"), h("dd", {}, `from ${s.week}`)] : null),\n        s.schedules.length ? h("table", {},\n          h("tr", {}, ["Schedule", "Weeks", "Published", "Agent\'s shifts"].map((t) => h("th", {}, t))),\n          s.schedules.map((x) => h("tr", {}, h("td", {}, x.description || x.id), h("td", {}, x.weekCount ?? ""), h("td", {}, pill(x.published ? "published" : "not published", x.published ? "s-applied" : "s-pending")), h("td", {}, x.shifts ?? "\u2014"))))\n          : mu ? h("div", { class: "muted" }, "No schedule for this week in the business unit.") : null,\n        !s.businessUnits.length ? h("div", { class: "muted", style: "margin-top:6px" }, "The org has no business unit yet.") : null);\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const buSel = h("select", {}, h("option", { value: NEW }, "New business unit\u2026"), s.businessUnits.map((b) => h("option", { value: b.id, selected: b.name === s.defaults.businessUnit || b.id === s.current?.businessUnitId }, b.name)));\n    const buName = h("input", { value: s.defaults.businessUnit, style: "min-width:200px" });\n    const tz = h("input", { value: Intl.DateTimeFormat().resolvedOptions().timeZone || s.defaults.timeZone, title: "Time zone of the business unit, e.g. Europe/London", style: "min-width:160px" });\n    const muSel = h("select");\n    const muName = h("input", { value: s.defaults.managementUnit, style: "min-width:200px" });\n    const syncBu = () => {\n      const bu = s.businessUnits.find((b) => b.id === buSel.value);\n      buName.style.display = tz.style.display = bu ? "none" : "";\n      muSel.replaceChildren(h("option", { value: NEW }, "New management unit\u2026"), ...(bu?.managementUnits ?? []).map((m) => h("option", { value: m.id, selected: m.name === s.defaults.managementUnit || m.id === s.current?.id }, m.name)));\n      syncMu();\n    };\n    const syncMu = () => { muName.style.display = muSel.value === NEW ? "" : "none"; };\n    buSel.addEventListener("change", syncBu);\n    muSel.addEventListener("change", syncMu);\n    const weeks = h("select", {}, [1, 2, 3, 4].map((n) => h("option", { value: n, selected: n === 2 }, `${n} week${n > 1 ? "s" : ""}`)));\n    const start = h("input", { type: "time", value: "09:00" });\n    const length = h("select", {}, [6, 7, 7.5, 8, 9].map((n) => h("option", { value: n * 60, selected: n === 8 }, `${n} h`)));\n    const DAYS = [["Mon", 1], ["Tue", 2], ["Wed", 3], ["Thu", 4], ["Fri", 5], ["Sat", 6], ["Sun", 0]];\n    const days = DAYS.map(([l, d]) => ({ d, box: h("input", { type: "checkbox", checked: d >= 1 && d <= 5 }), l }));\n    const training = h("input", { type: "checkbox", checked: true });\n    const btn = h("button", { class: "btn primary" }, "Set up the schedule");\n    btn.addEventListener("click", () => run({\n      businessUnit: buSel.value === NEW ? { name: buName.value, timeZone: tz.value } : { id: buSel.value },\n      managementUnit: muSel.value === NEW ? { name: muName.value } : { id: muSel.value },\n      weeks: Number(weeks.value),\n      pattern: { start: start.value, lengthMinutes: Number(length.value), days: days.filter((x) => x.box.checked).map((x) => x.d), training: training.checked },\n    }, btn));\n    put(form,\n      h("div", { style: "display:grid;gap:8px" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "Business unit", buSel), buName, tz),\n        h("div", { class: "row" }, h("label", { class: "row" }, "Management unit", muSel), muName,\n          h("span", { class: "muted", style: "font-size:12px" }, "the agent moves into it")),\n        h("details", {}, h("summary", {}, "Change the shifts (default: 2 weeks from this week, Monday to Friday from 09:00, 8 hours)"),\n          h("div", { style: "display:grid;gap:8px" },\n            h("div", { class: "row" }, h("label", { class: "row" }, "Schedule", weeks), h("span", { class: "muted", style: "font-size:12px" }, "from this week"),\n              h("label", { class: "row" }, "Start", start), h("label", { class: "row" }, "Shift", length)),\n            h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:12px" }, "Working days"), days.map((x) => h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, x.box, x.l))),\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, training, "Training hour on Wednesdays (besides two breaks and lunch every day)"),\n            h("div", { class: "muted", style: "font-size:12px" }, "Weeks that already have a schedule stay as they are."))),\n        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn)));\n    syncBu();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "A published schedule shows up on the home screen and in the schedule view. A new business unit takes Genesys Cloud a minute or two to set up."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s schedule`, "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoScorecard(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading gamification\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("scorecard", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/scorecard/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const current = s.profiles.find((p) => p.id === s.currentProfile);\n      put(info, \n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Gamification"), h("dd", {}, s.gamification.active ? [pill("on", "s-applied"), h("span", { class: "muted" }, ` since ${s.gamification.dateStart}`)] : pill("off", "s-pending")),\n          h("dt", {}, "Agent\'s profile"), h("dd", {}, current ? [current.name, current.active === false ? h("span", { class: "muted" }, " (inactive)") : null] : h("span", { class: "muted" }, "none")),\n          current ? [h("dt", {}, "Metrics"), h("dd", {}, s.currentMetrics.length ? s.currentMetrics.join(", ") : h("span", { class: "muted" }, "none"))] : null),\n        s.gamification.active && current ? h("div", { class: "muted", style: "font-size:13px" }, "Scorecard values come from the agent\'s real activity and are calculated by Genesys Cloud a few times a day, so new data can take a while to show.") : null);\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const byName = s.profiles.find((p) => p.name === s.defaults.profile);\n    const profileSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New profile\u2026"),\n      s.profiles.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.active === false ? " (inactive)" : ""} \xB7 ${p.memberCount ?? 0} member${p.memberCount === 1 ? "" : "s"}`)));\n    const profileName = h("input", { value: s.defaults.profile, style: "min-width:220px" });\n    const activate = h("input", { type: "checkbox", checked: true });\n    const boxes = s.definitions.map((d) => ({ d, box: h("input", { type: "checkbox", checked: s.defaults.metrics.includes(d.name) }), tag: h("span", { class: "muted", style: "font-size:11px;white-space:nowrap" }) }));\n    const metricsBox = h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px" },\n      boxes.map(({ d, box, tag }) => h("label", { class: "row", style: "font-size:13px;color:var(--text);flex-wrap:nowrap" }, box, d.label, tag)));\n    // Metrics the agent\'s current profile has already: shown as such, not as suggestions.\n    const markMetrics = () => {\n      const has = profileSel.value === s.currentProfile ? new Set(s.currentMetrics) : new Set();\n      for (const b of boxes) {\n        const inProfile = has.has(b.d.label);\n        b.box.disabled = inProfile;\n        if (inProfile) b.box.checked = true;\n        b.tag.textContent = inProfile ? "already in the profile" : "";\n      }\n    };\n    const own = (id) => s.own.includes(id);\n    const sync = () => {\n      const editable = profileSel.value === NEW || own(profileSel.value);\n      profileName.style.display = profileSel.value === NEW ? "" : "none";\n      metricsWrap.style.display = editable ? "" : "none";\n      existingNote.style.display = editable ? "none" : "";\n      markMetrics();\n    };\n    const metricsWrap = h("div", {}, h("div", { class: "muted", style: "font-size:12px;margin:8px 0 4px" }, "Metrics of the profile (objectives start today; Genesys Cloud does not accept earlier dates)"), metricsBox);\n    const existingNote = h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, "An existing profile keeps its metrics; only the agent becomes a member.");\n    profileSel.addEventListener("change", sync);\n    const btn = h("button", { class: "btn primary" }, "Set up the scorecard");\n    btn.addEventListener("click", () => run({\n      activate: activate.checked,\n      profile: profileSel.value === NEW ? { name: profileName.value } : { id: profileSel.value },\n      metrics: boxes.filter((b) => b.box.checked).map((b) => b.d.id),\n    }, btn));\n    put(form, \n      !s.gamification.active ? h("label", { class: "row", style: "font-size:13px;color:var(--text);margin-bottom:8px" }, activate, "Switch gamification on for the org (from today)") : null,\n      h("div", { class: "row" }, h("label", { class: "row" }, "Performance profile", profileSel), profileName),\n      metricsWrap, existingNote,\n      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));\n    sync();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Puts the agent into a performance profile, so the scorecard and leaderboard show values. Genesys Cloud calculates them a few times a day."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s scorecard`, "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoRefresh(pick) {\n  const list = h("div", {}, h("div", { class: "muted" }, "Checking the dates\u2026"));\n  const out = h("div");\n  const run = demoRunner("refresh", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  const day = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/refresh/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const box = (on, label, note) => { const b = h("input", { type: "checkbox", checked: on, disabled: !on }); return [b, h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600;margin-top:10px" }, b, label, h("span", { class: "muted", style: "font-weight:400" }, note))]; };\n      const [coaching, coachingLabel] = box(s.appointments.length > 0, "Coaching", s.appointments.length ? `${s.appointments.length} appointment${s.appointments.length > 1 ? "s" : ""} in the past` : "all ahead");\n      const [learning, learningLabel] = box(s.assignments.length > 0, "Learning", s.assignments.length ? `${s.assignments.length} due date${s.assignments.length > 1 ? "s" : ""} in the past` : "all ahead");\n      const sch = s.schedule;\n      const [schedule, scheduleLabel] = box(sch.state === "stale", "Schedule",\n        sch.state === "stale" ? `nothing for the week of ${sch.week}` : sch.state === "current" ? "covers this week" : "Demo ready has not made a schedule for this agent");\n      const move = (rows) => rows.length ? h("table", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "Now"), h("th", {}, "After the refresh")),\n        rows.map((r) => h("tr", {}, h("td", {}, r.name || r.moduleName), h("td", { class: "muted" }, day(r.dateStart || r.dueDate)), h("td", {}, day(r.newDate))))) : null;\n      const btn = h("button", { class: "btn primary", disabled: !s.stale }, "Refresh");\n      btn.addEventListener("click", () => run({ coaching: coaching.checked, learning: learning.checked, schedule: schedule.checked }, btn));\n      put(list,\n        s.stale ? null : h("div", { class: "okbox" }, "Everything Demo ready created for this agent lies ahead. Nothing to refresh."),\n        coachingLabel, move(s.appointments),\n        learningLabel, move(s.assignments),\n        scheduleLabel, sch.state === "stale" ? h("div", { class: "muted", style: "font-size:13px" }, `A new ${Math.max(2, sch.weeks || 2)}-week schedule from ${sch.week} in "${sch.businessUnit.name}", with the default shifts (09:00, 8 hours, Monday to Friday).`) : null,\n        h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "spacer" }), btn));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "A week later the appointments and due dates lie in the past and the schedule has run out. This moves what the page created forward by whole weeks (same weekday and time) and publishes a new schedule."),\n    list, out);\n}\n\nfunction demoCleanup(pick) {\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading what Demo ready created\u2026"));\n  const out = h("div");\n  const run = demoRunner("cleanup", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  const TITLES = { coaching: "Coaching", learning: "Learning", sta: "Speech and text analytics", evaluations: "Evaluations", scorecard: "Scorecard", schedule: "Schedule" };\n  const STATE = { remove: ["will be removed", "s-pending"], restore: ["will be restored", "s-pending"], gone: ["already removed", "s-applied"], kept: ["cannot be removed", "s-failed"] };\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/cleanup/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const open = s.items.filter((i) => i.state === "remove" || i.state === "restore");\n      const boxes = {};\n      const sections = Object.keys(TITLES).filter((k) => s.items.some((i) => i.section === k));\n      const btn = h("button", { class: "btn danger", disabled: !open.length }, "Remove the ticked areas");\n      btn.addEventListener("click", () => {\n        const chosen = sections.filter((k) => boxes[k]?.checked);\n        if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one section.")); return; }\n        const n = open.filter((i) => chosen.includes(i.section)).length;\n        if (!confirm(`Remove or restore ${n} thing${n === 1 ? "" : "s"} Demo ready created for ${pick.userName || "this agent"} in ${pick.profile}?`)) return;\n        run({ sections: chosen }, btn);\n      });\n      put(list, \n        s.items.length ? h("div", {},\n          sections.map((k) => {\n            const its = s.items.filter((i) => i.section === k);\n            const todo = its.filter((i) => i.state === "remove" || i.state === "restore").length;\n            boxes[k] = h("input", { type: "checkbox", checked: todo > 0, disabled: !todo });\n            const row = (i) => h("tr", {}, h("td", {}, i.label), h("td", { style: "white-space:nowrap" }, pill(STATE[i.state][0], STATE[i.state][1])), h("td", { class: "muted", style: "font-size:12px" }, i.reason || ""));\n            const gone = its.filter((i) => i.state === "gone");\n            return h("div", { style: "margin-bottom:10px" },\n              h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600" }, boxes[k], TITLES[k], h("span", { class: "muted", style: "font-weight:400" }, todo ? `${todo} to remove or restore` : "nothing left")),\n              h("table", {}, its.filter((i) => i.state !== "gone").map(row)),\n              gone.length ? h("details", {}, h("summary", { style: "font-size:12px" }, `${gone.length} already removed`), h("table", {}, gone.map(row))) : null);\n          }),\n          h("div", { class: "row" }, h("span", { class: "spacer" }), btn))\n          : h("div", { class: "muted" }, "Demo ready has not created anything for this agent in this org yet."),\n        s.notRemovable.map((n) => h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, n)));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Removes what this page created for the agent and puts back what it changed. What was already in the org stays as it is."),\n    list, out);\n}\n\n// ------------------------------------------------------------- profiles\nasync function viewProfiles() {\n  const o = state.overview || await api("/api/overview");\n  // Where each org is used: Cursor servers linked to it, projects and AXL workshops. Read once per visit.\n  state.orgUse = {};\n  Promise.all([api("/api/ai-setup").catch(() => ({ servers: [] })), api("/api/axl").catch(() => ({ workshops: [] }))]).then(([s, axl]) => {\n    const use = {};\n    const add = (name, text) => (use[name] ||= []).push(text);\n    for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} (${whereText(x)})`);\n    for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "project" : "AXL workshop"} ${w.name}`);\n    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" \xB7 ")] : h("span", { class: "muted" }, "Not used by Cursor or a project yet."));\n    state.orgUse = use;\n  });\n  state.orgUseEls = {};\n  return h("div", {},\n    h("h2", {}, "Orgs"),\n    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; Cursor\'s servers and your projects use them from here."),\n    h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),\n    o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),\n    addProfileForm(o));\n}\n\nfunction profileCard(p) {\n  if (p.error) return h("div", { class: "panel error" }, `${p.name}: ${p.error}`);\n  const msg = h("div");\n  const cid = h("input", { placeholder: "Client ID", autocomplete: "off" });\n  const csec = h("input", { placeholder: "Client secret", type: "password", autocomplete: "off" });\n  const run = async (fn, okText) => {\n    msg.replaceChildren();\n    try { const r = await fn(); await refreshOverview(); msg.replaceChildren(h("div", { class: r && r.verified === false ? "error" : "okbox" }, r && r.verified === false ? `Stored, but verification failed: ${r.error}` : okText(r))); }\n    catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "panel" },\n    h("div", { class: "row" }, h("strong", {}, p.name), pill(p.tier, `t-${p.tier}`), h("span", { class: "muted" }, p.region),\n      p.active ? pill("working on", "") : null, h("span", { class: "spacer" }),\n      p.credentialsStored ? pill("credentials ok", "a-granted") : pill("no credentials", "a-missing")),\n    p.description ? h("div", { class: "muted" }, p.description) : null,\n    (state.orgUseEls[p.name] = h("div", { style: "font-size:13px;margin-top:4px" }, h("span", { class: "muted" }, "Checking where it is used\u2026"))),\n    h("details", {}, h("summary", {}, "Credentials"),\n      h("div", { class: "row" }, cid, csec, h("button", { class: "btn", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Store & verify"))),\n    h("div", { class: "row", style: "margin-top:8px" },\n      !p.active ? h("button", { class: "btn", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Work on this org") : null,\n      h("span", { class: "spacer" }),\n      h("button", { class: "btn danger", onclick: () => { const used = (state.orgUse || {})[p.name] || []; if (confirm(`Delete the org ${p.name} and its stored credentials?${used.length ? `\\n\\nThese then stop working:\\n\u2022 ${used.join("\\n\u2022 ")}` : ""}`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),\n    msg);\n}\n\nfunction addProfileForm(o) {\n  const f = {\n    name: h("input", { placeholder: "prod-de" }), region: h("input", { placeholder: "mypurecloud.de" }),\n    tier: h("select", {}, o.tiers.map((t) => h("option", { value: t }, t))), description: h("input", { placeholder: "Customer X production" }),\n    clientId: h("input", { placeholder: "Client ID", autocomplete: "off" }), clientSecret: h("input", { type: "password", placeholder: "Client secret", autocomplete: "off" }),\n  };\n  const msg = h("div");\n  const submit = async () => {\n    msg.replaceChildren();\n    try {\n      const r = await api("/api/profiles", { method: "POST", body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) });\n      f.clientSecret.value = "";\n      await refreshOverview();\n      await render();\n      if (r.verified === false) showError(new Error(`Profile created, credentials stored, but verification failed: ${r.error}`));\n    } catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "Connect an org"),\n    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "Region / domain", f.region), h("label", {}, "Tier", f.tier), h("label", {}, "Description", f.description),\n      h("label", {}, "OAuth client ID (Client Credentials)", f.clientId), h("label", {}, "Client secret", f.clientSecret)),\n    h("p", { class: "muted" }, "Name: short, e.g. demo-emea. Region: the domain you log in with, e.g. mypurecloud.de. Tier: sandbox for a personal demo org. Use a dedicated OAuth client (Client Credentials) per org; the secret is stored in the OS keychain and never shown again."),\n    h("button", { class: "btn primary", onclick: submit }, "Connect org"), msg);\n}\n\n// ------------------------------------------------------------------ axl\n// AXL workshops run in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list\n// of workshops here, each with the org the harness works on and the folder opened in Cursor.\n// Everything shown is local state; names and paths are the user\'s text (text nodes only).\nconst AXL_STAGES = [["research", "Research"], ["discovery", "Discovery"], ["build", "Build & test"], ["readout", "Readout"]];\nconst AXL_ARTIFACT_LABELS = { pov: "POV deck", spec: "Spec", run: "Run", readout: "Readout" };\nconst axlUrl = (id, rest = "") => `/api/axl/workshops/${encodeURIComponent(id)}${rest}`;\n\n/** One word for where a workshop stands, for the overview and the detail view. */\nfunction axlHarnessState(x) {\n  const w = x.workshop, f = x.folder;\n  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];\n  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];\n  if (!f.connected || f.stale) return [f.connected ? "out of date" : "not set up", "s-pending", "Press Set up folder."];\n  if (x.lastStart?.sinceSetup) return ["running", "s-applied", `Cursor started the harness ${time(x.lastStart.at)} (${x.lastStart.detail}).`];\n  return ["not started in Cursor", "s-pending", "Switch on this project\'s ava-harness in Cursor (Settings \u2192 MCP)."];\n}\n\nfunction axlOpenInCursor(id, small) {\n  return h("button", { class: "btn", style: small ? "padding:2px 10px;font-size:12px" : null, onclick: async () => {\n    try { const r = await api(axlUrl(id, "/open-cursor"), { method: "POST", body: {} }); if (!r.opened) showError(new Error("Could not open Cursor. Open the folder in Cursor yourself.")); } catch (err) { showError(err); }\n  } }, "Open in Cursor");\n}\n\nasync function viewAxl() {\n  const [st, templates] = await Promise.all([api("/api/axl"), api("/api/axl/tool-templates").catch(() => [])]);\n  state.toolTemplates = templates;\n  const box = h("div", {});\n  const draw = (next) => {\n    const open = state.axlOpen;\n    const x = open && open !== "new" ? next.workshops.find((y) => y.workshop.id === open) : null;\n    if (open && open !== "new" && !x) state.axlOpen = null;\n    box.replaceChildren(state.axlOpen === "new" ? axlNew(next, draw) : x ? axlDetail(next, x, draw) : axlOverview(next, draw));\n  };\n  draw(st);\n  return box;\n}\n\nconst isLabProject = (w) => w.lab !== false;\nconst usesHarnessUi = (w) => isLabProject(w) || w.harness === true;\nconst toolTitle = (n) => (TOOL_NAMES[n] || [n])[0];\n/** The tools a project\'s folder gets, in plain names. */\nconst projectTools = (w) => [...(usesHarnessUi(w) ? ["AVA harness"] : []), ...(w.tools || []).map((t) => toolTitle(t.name))];\n\n/** Where a project stands: workshops by their harness, projects by their folder\'s tools. */\nfunction projectState(x) {\n  const w = x.workshop, f = x.folder;\n  if (isLabProject(w)) return axlHarnessState(x);\n  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];\n  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];\n  if (!projectTools(w).length) return ["no tools", "s-pending", "Pick the Genesys tools for this folder."];\n  if (!f.exists || f.stale || (!f.connected && !(f.tools || []).some((t) => t.connected))) return [f.stale ? "out of date" : "not set up", "s-pending", "Press Set up folder."];\n  const started = Object.keys(x.toolStarts || {}).length || x.lastStart;\n  return started ? ["running", "s-applied", "Cursor has started the tools of this folder."] : ["set up", "s-applied", "Open the folder in Cursor and switch its tools on (Settings \u2192 MCP)."];\n}\n\nfunction axlHarnessMissing(st, draw) {\n  if (st.harnessInstalled) return null;\n  const cmd = h("input", { value: "", placeholder: st.harnessCommand, style: "flex:1;min-width:280px", "aria-label": "Path of ava-mcp" });\n  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "AVA harness not found"),\n    h("p", { class: "muted", style: "font-size:13px" }, `gctk starts the harness (ava-mcp from genesys-ava-skills) from ${st.harnessCommand}, but there is nothing there. Install it, or enter where it is.`),\n    h("div", { class: "row" }, cmd, h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl/settings", { method: "PUT", body: { harnessCommand: cmd.value } })); } catch (err) { showError(err); } } }, "Save")));\n}\n\nfunction axlOverview(st, draw) {\n  const open = (id) => { state.axlOpen = id; draw(st); };\n  const rows = st.workshops.map((x) => {\n    const w = x.workshop;\n    const [label, cls, hint] = projectState(x);\n    const latest = x.sessions[0];\n    return h("tr", {},\n      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), isLabProject(w) ? [" ", pill("AXL workshop", "")] : null,\n        h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),\n      h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),\n      h("td", {}, projectTools(w).join(", ") || h("span", { class: "muted" }, "\u2013"),\n        isLabProject(w) && x.sessions.length ? h("div", { class: "muted", style: "font-size:12px" }, `${x.sessions.length} session${x.sessions.length > 1 ? "s" : ""} \xB7 ${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`) : null),\n      h("td", { title: hint }, pill(label, cls)),\n      h("td", { style: "white-space:nowrap;text-align:right" }, x.folder.exists ? axlOpenInCursor(w.id, true) : null, " ", h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(w.id) }, "Settings")));\n  });\n  const harnessUsers = st.workshops.filter((x) => usesHarnessUi(x.workshop));\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Projects"), h("span", { class: "spacer" }),\n      h("button", { class: "btn" , onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"),\n      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New project")),\n    h("p", { class: "lead" }, "A project is a folder you build a demo in with the AI in Cursor. Each project has its own org: gctk gives the folder the Genesys tools you pick, started with that org\'s credentials from the keychain, and nothing changes in your other folders. An AXL workshop is a project with the lab guide."),\n    harnessUsers.length ? axlHarnessMissing(st, draw) : null,\n    st.globalHarness.present && harnessUsers.length ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a project\'s, so switch it off in each project folder (Settings \u2192 MCP).`) : null,\n    st.workshops.length\n      ? h("div", { class: "panel", style: "overflow-x:auto" }, h("table", {}, h("tr", {}, h("th", {}, "Project"), h("th", {}, "Org"), h("th", {}, "Tools"), h("th", {}, "Status"), h("th", {}, "")), rows))\n      : h("div", { class: "panel empty" }, "No projects yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Create the first one"), "."));\n}\n\n/** Orgs for a project (any, production marked) or a workshop (sandbox and dev only). */\nfunction projectOrgSelect(st, value, lab) {\n  const list = lab ? st.choices : st.orgs;\n  return h("select", { "aria-label": "Org" },\n    h("option", { value: "" }, list.length ? "choose\u2026" : lab ? "no sandbox or dev org" : "no org yet: add one on the Orgs page"),\n    list.map((c) => h("option", { value: c.name, selected: c.name === value }, `${c.name} \xB7 ${c.tier} \xB7 ${c.region}${c.tier === "production" ? " \xB7 PRODUCTION" : ""}`)));\n}\n/** Asks once before a project works on a production org; true when the org is fine to use. */\nfunction confirmOrg(st, name) {\n  const o = st.orgs.find((x) => x.name === name);\n  if (!o || o.tier !== "production") return { ok: true };\n  return { ok: confirm(`${name} is a PRODUCTION org.\\n\\nThe AI tools in this folder would read and change it directly, with that org\'s credentials. Use a sandbox or dev org for demos where you can.\\n\\nLet this project work on ${name}?`), confirmProduction: true };\n}\n\n/** Checkboxes for the AVA harness and the Genesys tools found in the user\'s configs. */\nfunction toolPicker(w, st) {\n  const lab = isLabProject(w);\n  const templates = state.toolTemplates || [];\n  const harness = h("input", { type: "checkbox", checked: usesHarnessUi(w) ? true : null, disabled: lab ? true : null, style: "width:auto" });\n  const stored = w.tools || [];\n  const boxes = [];\n  const line = (box, title, sub) => h("label", { style: "display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:14px" }, box, h("span", {}, h("strong", {}, title), sub ? h("div", { class: "muted", style: "font-size:12px" }, sub) : null));\n  const rows = [line(harness, "AVA harness", lab ? "always on for an AXL workshop" : `builds and tests AI agents \xB7 starts ${st.harnessCommand}${st.harnessInstalled ? "" : " (not installed yet)"}`)];\n  for (const t of templates) {\n    const has = stored.some((x) => x.name === t.name);\n    const box = h("input", { type: "checkbox", checked: has ? true : null, style: "width:auto" });\n    boxes.push([box, t.id]);\n    rows.push(line(box, toolTitle(t.name), `${t.name !== toolTitle(t.name) ? `${t.name} \xB7 ` : ""}as in ${t.from.replace(/^\\/Users\\/[^/]+/, "~")}`));\n  }\n  for (const x of stored.filter((x) => !templates.some((t) => t.name === x.name))) {\n    const box = h("input", { type: "checkbox", checked: true, style: "width:auto" });\n    boxes.push([box, `keep:${x.name}`]);\n    rows.push(line(box, toolTitle(x.name), "set up earlier; no longer found in your editor configs"));\n  }\n  if (!templates.length && !stored.length) rows.push(h("div", { class: "muted", style: "font-size:13px" }, "Other Genesys tools appear here once you have them in one of your editor configs (for example the Architect MCP server); gctk copies the program and settings, never the credentials."));\n  return { el: h("div", { style: "display:grid;gap:8px" }, rows), read: () => ({ ...(lab ? {} : { harness: harness.checked }), tools: boxes.filter(([b]) => b.checked).map(([, id]) => id) }) };\n}\n\nfunction axlNew(st, draw) {\n  const back = () => { state.axlOpen = null; draw(st); };\n  let lab = false;\n  const name = h("input", { placeholder: "e.g. Acme Bank", style: "min-width:260px", "aria-label": "Project name" });\n  const folder = h("input", { placeholder: "~/Demos/Acme Bank", style: "flex:1;min-width:320px", "aria-label": "Project folder" });\n  let folderTouched = false;\n  folder.addEventListener("input", () => { folderTouched = true; });\n  name.addEventListener("input", () => { if (!folderTouched) folder.value = name.value.trim() ? `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}` : ""; });\n  const orgBox = h("div");\n  const toolsBox = h("div");\n  let org, picker;\n  const drawType = () => {\n    org = projectOrgSelect(st, org?.value, lab);\n    put(orgBox, h("label", {}, lab ? "Org the lab builds in (sandbox or dev)" : "Org the AI works on in this folder", org));\n    picker = toolPicker({ lab: lab ? undefined : false, harness: false }, st);\n    put(toolsBox, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:6px" }, "Genesys tools for this folder"), picker.el);\n    if (!folderTouched && name.value.trim()) folder.value = `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}`;\n  };\n  const kind = (value, title, sub) => h("button", { class: "ws-opt", "aria-pressed": String(lab === value), onclick: (e) => { lab = value; for (const b of e.currentTarget.parentElement.children) b.setAttribute("aria-pressed", String(b === e.currentTarget)); drawType(); } },\n    h("span", { class: "mark" }), h("span", {}, h("strong", {}, title), h("small", {}, sub)));\n  drawType();\n  const create = async () => {\n    const c = confirmOrg(st, org.value);\n    if (!c.ok) return;\n    try {\n      const r = await api("/api/axl/workshops", { method: "POST", body: { name: name.value, profile: org.value, folder: folder.value, lab, ...(c.confirmProduction ? { confirmProduction: true } : {}), ...picker.read() } });\n      state.axlOpen = r.id;\n      draw(r);\n    } catch (err) { showError(err); }\n  };\n  return h("div", {},\n    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "\u2190 All projects")),\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New project"),\n    h("div", { class: "panel" },\n      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:12px" },\n        h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px" },\n          kind(false, "Demo project", "A folder for building a demo with the AI, on any of your orgs."),\n          kind(true, "AXL workshop", "An AI Agent eXperience Lab: AVA harness, lab guide and sessions; sandbox or dev orgs only.")),\n        h("label", {}, "Name (usually the customer)", name),\n        orgBox,\n        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder),\n        toolsBox),\n      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder and writes the chosen tools into its .cursor/mcp.json, each started through gctk with this org\'s credentials from the keychain. No secret goes into the folder."),\n      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create project"), h("button", { class: "btn", onclick: back }, "Cancel"))));\n}\n\n// A condensed AXL Session Field Guide (2026-09-24): what to do in each step, the prompts to paste\n// into the Cursor agent, and what comes out. `done` names the session artifact that shows the step\n// is finished. Keep it in step with the field guide when that changes. The facilitator skill never\n// loads by itself (disable-model-invocation), so every prompt that starts a job names it; follow-ups\n// in the same chat do not.\nconst AXL_GUIDE = [\n  { id: "before", title: "Before the session", when: "days before", done: "spec",\n    todo: [\n      "Log the session in Salesforce as soon as it is agreed: SE/SA Task, Activity Type \\"Agentic Experience Lab\\".",\n      "Six gates green: CX Activate sandbox org (recording and Architect execution history on), SDD role, SDD OAuth client, coding agent ready (current wheel, axl-lab-facilitator and axl-capsule installed, model: latest Opus, medium effort), SMS/WhatsApp number if needed, the right people incl. an executive sponsor.",\n      "Verify the org connection in this workshop folder, then have the agent read something back from the org.",\n      "Run the research job in the Cursor agent you will keep for the whole engagement. Review the assumptions and the customer\'s language (45\u201360 min).",\n      "Nothing gets pre-built in Genesys Cloud.",\n    ],\n    prompts: [\n      { text: "Confirm which Genesys Cloud org you are connected to and show me its name and id.", note: "Check the org (in this workshop folder)" },\n      { dynamic: "research", note: "Job 1: research \u2013 starts the agent you keep. Built from the form above." },\n      { text: "Ignore the previous sessions in this workspace and follow the skill instructions for this customer from scratch.", note: "Follow-up, only if the workspace has earlier sessions" },\n    ],\n    out: "Spec artifact (spec-artifact.md, plus the version you present)" },\n  { id: "frame", title: "1 \xB7 Frame & point of view", when: "0:00\u20130:20",\n    todo: [\n      "Set the stage (5 min): AXL Intro Slides, example artifacts to hand. Say that most of the middle is a coding agent working, and that something will break and you will fix it live.",\n      "Reconfirm the six gates, present the spec artifact (intent, success criteria, tools), explain spec-driven building and the anatomy of an AVA.",\n      "Decide: keep the use case (Path A, also with changes) or start from scratch (Path B).",\n    ],\n    out: "Expectations set, gates green, scope agreed" },\n  { id: "discovery", title: "2 \xB7 Discovery", when: "0:20\u20131:00",\n    todo: [\n      "Path A: write the customer\'s changes in their words at the end of the spec artifact, read them back, get a yes.",\n      "Path B: pick the option to build a new use case during discovery and author it live (costs ~45 min).",\n      "Agree about four success criteria, the happy path and the escalation. One intent, voice-first, at most 6 tools.",\n    ],\n    prompts: [{ text: "/axl-lab-facilitator Let\'s continue with the <use case>", note: "Job 2: discovery on the chosen use case (Path B: pick the new use case option it offers)" }],\n    out: "Agreed spec artifact and signed-off success criteria" },\n  { id: "build", title: "3 \xB7 Create & test the AVA", when: "1:00\u20132:30", done: "run",\n    todo: [\n      "Hand the build over with the Job 3 prompt; it runs design, build, test, evaluate and critique (30\u201380 min). Stop it past 90 min and take the best version.",\n      "Don\'t spectate: work Track 1 in this order \u2013 custom summary configuration, DID, inbound and bot flow (After Contact AI on, Deepgram Flux), escalation queue with your own user, wrap-up codes with descriptions, ElevenLabs voice, test end to end.",\n      "Track 2 only when Track 1 is green, one topic (Copilot with knowledge in a second Cursor window, or AI scoring).",\n    ],\n    prompts: [\n      { dynamic: "build", note: "Job 3: build and test, once the plan is confirmed. Test strategy from the form in \\"Before the session\\"." },\n      { text: "Refine, retest and iterate until all tests are passed.", note: "Follow-up, if it stops on failing tests" },\n    ],\n    out: "Published AVA, run artifact (run-artifact.html), end-to-end path wired" },\n  { id: "review", title: "4 \xB7 Review, test manually & refine", when: "2:30\u20133:10",\n    todo: [\n      "Walk the run artifact with the customer and agree the UAT shortlist from the success criteria.",\n      "With four or more people, split into groups: happy path, guardrails, edge cases & escalation, voice & language quality. Log everything, 5-minute readback, one refine pass.",\n    ],\n    out: "Independently validated AVA and agreed follow-up fixes" },\n  { id: "polish", title: "5 \xB7 Polish & dry-run", when: "3:10\u20133:40", done: "readout",\n    todo: [\n      "One clean rehearsal: real number \u2192 Architect \u2192 AVA \u2192 escalation with summary.",\n      "Then generate the readout artifact (after the last refine) and read it through for overstated claims.",\n    ],\n    prompts: [{ text: "/axl-lab-facilitator The build is complete. Create the readout artifact for this session.", note: "Job 4: readout, after the last refine" }],\n    out: "Showcase-ready AVA and the readout artifact (readout-artifact.html)" },\n  { id: "showcase", title: "6 \xB7 Live showcase & readout", when: "3:40\u20134:00",\n    todo: [\n      "Open with the readout artifact. Show in order: self-service on a real call, seamless escalation, the custom summary and wrap-up code, the scorecard \u2013 each tied to a KPI.",\n      "Close with commitment: what happens to the prototype, who owns it and by when, what would need to be true to go live.",\n    ],\n    out: "A committed next step with a named owner and a date" },\n  { id: "after", title: "After the session", when: "same day",\n    todo: [\n      "Send the readout artifact as PDF (never the HTML) with the next steps at the top.",\n      "Package with axl-capsule if the customer continues (always on Kiro Crew, before the instance expires).",\n      "Rotate the SDD OAuth client\'s secret.",\n    ],\n    prompts: [{ text: "/axl-capsule Package this AXL session so the customer can continue it\\nin <their coding agent>.", note: "Only runs when named; after the readout is final" }],\n    out: "Capsule for the customer (if they continue), secret rotated" },\n];\n\nconst AXL_BRIEF_DEFAULTS = { moreUseCases: 2, language: (navigator.language || "").startsWith("de") ? "de" : "en", functionPath: true, runsPerCase: 1, threshold: 80, afterThreshold: "decide", maxVersions: 5, parallel: 2 };\n\n/** The research (Job 1) and build (Job 3) prompts from a workshop\'s brief, in the session language. */\nfunction axlPrompts(w, brief) {\n  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...brief };\n  const de = b.language === "de";\n  const lines = [];\n  const add = (text) => { if (text) lines.push(text); };\n  const runs = b.runsPerCase === 1 ? (de ? "einmal" : "once") : (de ? `${b.runsPerCase}-mal` : `${b.runsPerCase} times`);\n  const after = {\n    decide: de ? "entscheide ich, ob wir weitermachen oder diese L\xF6sung in die UATs \xFCbergeben" : "I decide whether we continue or hand this solution over to the UATs",\n    uat: de ? "\xFCbergib die L\xF6sung in die UATs" : "hand the solution over to the UATs",\n    continue: de ? `iteriere weiter, bis alle Testcases bestanden sind, h\xF6chstens bis Version ${b.maxVersions}` : `keep iterating until all test cases pass, up to version ${b.maxVersions} at most`,\n  }[b.afterThreshold];\n  const testing = de\n    ? `Das Testing soll sp\xE4ter nach folgendem Ziel ablaufen: Nach dem Erstellen der Test Cases soll jeder Testcase pro Iteration ${runs} durchlaufen werden. Wenn mindestens ${b.threshold} % der Testcases bestanden sind, ${after}.`\n    : `Testing later follows this goal: once the test cases are created, run each test case ${runs} per iteration. When at least ${b.threshold}% of the test cases pass, ${after}.`;\n  const parallel = b.parallel > 1\n    ? (de ? `Versuche das Testing mit ${b.parallel} parallelen Testcase Runs. Wenn Rate Limits erreicht werden, gehe zur\xFCck auf eine parallele Session.` : `Try testing with ${b.parallel} parallel test case runs. If you hit rate limits, fall back to one session at a time.`)\n    : (de ? "F\xFChre die Testcase Runs nacheinander aus." : "Run the test cases one at a time.");\n\n  add(de ? `/axl-lab-facilitator Recherchiere f\xFCr eine AXL Session mit ${b.customer} als Kunden.` : `/axl-lab-facilitator Research ${b.customer} for an upcoming AXL session.`);\n  add(b.useCase);\n  if (b.moreUseCases > 0) add(b.useCase\n    ? (de ? `Entwickle au\xDFerdem ${b.moreUseCases} weitere m\xF6gliche Use Cases als Entscheidungsgrundlage.` : `Also develop ${b.moreUseCases} further possible use cases as a basis for the decision.`)\n    : (de ? `Schlage ${b.moreUseCases} m\xF6gliche Use Cases als Entscheidungsgrundlage vor.` : `Propose ${b.moreUseCases} possible use cases as a basis for the decision.`));\n  if (b.knowledge) add(de ? `Au\xDFerdem soll es Wissen zu folgenden Themen geben: ${b.knowledge}` : `The agent should also have knowledge about: ${b.knowledge}`);\n  if (b.persona) add(de ? `Der Agentic Agent soll den Namen ${b.persona} tragen.` : `The agentic agent should be called ${b.persona}.`);\n  add(de ? "Alle Assets und diese Session sollen auf Deutsch stattfinden." : "All assets and this session are in English.");\n  if (b.functionPath) add(de ? "Alle Tools sollen soweit m\xF6glich den Function Path nutzen und nicht den Echo Path." : "All tools should use the function path rather than the echo path wherever possible.");\n  add(testing);\n  add(parallel);\n  const research = lines.join("\\n");\n\n  const build = [\n    de ? "/axl-lab-facilitator Job 3: Baue und teste den AVA." : "/axl-lab-facilitator Job 3: Build and test the AVA.",\n    de ? `H\xF6chstens 10 Testcases; jeder Testcase l\xE4uft pro Iteration ${runs}. Wenn mindestens ${b.threshold} % bestanden sind, ${after}. Sonst verfeinere und iteriere, h\xF6chstens bis Version ${b.maxVersions}.`\n       : `At most 10 test cases; run each test case ${runs} per iteration. When at least ${b.threshold}% pass, ${after}. Otherwise refine and iterate, up to version ${b.maxVersions} at most.`,\n    parallel,\n  ].join("\\n");\n  return { research, build };\n}\n\n/** The form behind the research prompt; saved with the workshop (the user\'s text, shown as text only). */\nfunction axlBriefForm(w, onChange) {\n  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...(w.brief || {}) };\n  const field = (label, el, wide) => h("label", { style: wide ? "grid-column:1/-1" : null }, label, el);\n  const input = (key, attrs = {}) => h("input", { value: b[key] ?? "", ...attrs });\n  const area = (key, placeholder) => h("textarea", { placeholder, style: "min-height:70px;font-family:inherit;font-size:13.5px" }, b[key] ?? "");\n  const num = (key, min, max) => h("input", { type: "number", min, max, value: b[key], style: "width:80px" });\n  const select = (key, opts) => h("select", {}, opts.map(([v, l]) => h("option", { value: v, selected: String(b[key]) === v }, l)));\n  const els = {\n    customer: input("customer", { placeholder: w.name }),\n    useCase: area("useCase", "What the agent should do, e.g. a central reservation line: ask for date, tent, lunch or evening, number of tables (10 people each), point out the prices."),\n    moreUseCases: num("moreUseCases", 0, 5),\n    knowledge: area("knowledge", "Optional, e.g. which beer is served where, opening hours"),\n    persona: input("persona", { placeholder: "e.g. Johann" }),\n    language: select("language", [["de", "Deutsch"], ["en", "English"]]),\n    functionPath: h("input", { type: "checkbox", checked: b.functionPath ? true : null, style: "width:auto" }),\n    runsPerCase: num("runsPerCase", 1, 5),\n    threshold: num("threshold", 50, 100),\n    afterThreshold: select("afterThreshold", [["decide", "I decide: continue or hand over to UATs"], ["uat", "hand over to UATs"], ["continue", "keep iterating up to the max version"]]),\n    maxVersions: num("maxVersions", 1, 10),\n    parallel: num("parallel", 1, 4),\n  };\n  const read = () => {\n    const out = {};\n    for (const [k, el] of Object.entries(els)) out[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;\n    return out;\n  };\n  for (const el of Object.values(els)) {\n    el.addEventListener("input", () => onChange(read(), false));\n    el.addEventListener("change", () => onChange(read(), true));\n  }\n  return h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 0" },\n    field("Customer", els.customer),\n    field("Session and assets in", els.language),\n    field("Persona name of the agent", els.persona),\n    field("Use case", els.useCase, true),\n    field("Further use cases to propose", els.moreUseCases),\n    field("Knowledge", els.knowledge, true),\n    h("label", { style: "display:flex;gap:8px;align-items:center;grid-column:1/-1" }, els.functionPath, "Tools use the function path where possible (a tool with a failure path, e.g. for the escalation, still needs the echo path)"),\n    field("Runs per test case and iteration", els.runsPerCase),\n    field("Pass threshold (%)", els.threshold),\n    field("When reached", els.afterThreshold),\n    field("Max version", els.maxVersions),\n    field("Parallel test runs (falls back to 1 on rate limits)", els.parallel));\n}\n\n/** The field guide for one workshop; steps whose artifact exists in the latest session are ticked. */\nfunction axlGuide(x) {\n  const w = x.workshop;\n  let brief = w.brief || {};\n  const dyn = {};\n  const refresh = () => {\n    const p = axlPrompts(w, brief);\n    for (const [k, el] of Object.entries(dyn)) el.pre.textContent = p[k];\n  };\n  const onChange = (next, persist) => {\n    brief = next;\n    refresh();\n    if (persist) api(axlUrl(w.id), { method: "PUT", body: { brief: next } }).then((r) => { const y = r.workshops.find((z) => z.workshop.id === w.id); if (y) w.brief = y.workshop.brief; }).catch(showError);\n  };\n  const latest = x.sessions[0];\n  const have = new Set(latest ? latest.artifacts : []);\n  const doneIdx = AXL_GUIDE.reduce((n, g, i) => (g.done && have.has(g.done) ? i : n), -1);\n  const fill = (text) => text.replaceAll("<customer>", x.workshop.name);\n  const panel = h("div", { class: "panel" },\n    h("h3", { style: "margin-top:0" }, "Running the workshop"),\n    h("p", { class: "muted", style: "font-size:13px;margin:0 0 8px" }, latest\n      ? `Progress from the latest session, ${latest.name.replace(/^AXL-/i, "")}. Prompts go into the Cursor agent you started for the research; keep that one agent for the whole engagement.`\n      : "Condensed from the AXL Session Field Guide. Prompts go into the Cursor agent you start for the research; keep that one agent for the whole engagement."),\n    AXL_GUIDE.map((g, i) => {\n      const done = i <= doneIdx;\n      return h("details", { style: "border-top:1px solid var(--line);padding:4px 0", open: i === doneIdx + 1 ? true : null },\n        h("summary", { style: "color:var(--text)" }, done ? "\u2713 " : "", h("strong", {}, g.title), h("span", { class: "muted" }, `  ${g.when}`)),\n        h("ul", { style: "margin:4px 0 8px;padding-left:20px;font-size:13.5px" }, g.todo.map((t) => h("li", {}, t))),\n        g.id === "before" ? axlBriefForm(w, onChange) : null,\n        (g.prompts || []).map((pr) => {\n          const pre = h("pre", { style: "flex:1;margin:0;white-space:pre-wrap" }, pr.dynamic ? "" : fill(pr.text));\n          if (pr.dynamic) dyn[pr.dynamic] = { pre };\n          const copy = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");\n          copy.addEventListener("click", () => { try { navigator.clipboard.writeText(pre.textContent); copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy"), 1200); } catch {} });\n          return h("div", { style: "margin:6px 0" },\n            h("div", { class: "muted", style: "font-size:12px;margin-bottom:2px" }, pr.note),\n            h("div", { class: "row", style: "align-items:flex-start;flex-wrap:nowrap" }, pre, copy));\n        }),\n        h("div", { style: "font-size:13px;margin:4px 0 6px" }, h("span", { class: "muted" }, "Comes out: "), g.out));\n    }));\n  refresh();\n  return panel;\n}\n\n/** What the AI in Cursor gets in this folder: its own servers, your global ones and plugins. */\nfunction folderServers(w) {\n  const box = h("div", {}, h("div", { class: "muted" }, "Reading your Cursor configs\u2026"));\n  if (!w.folder) { put(box, h("div", { class: "muted" }, "Set the folder first.")); return box; }\n  api("/api/ai-setup").then((s) => {\n    const list = s.servers.filter((x) => x.editor === "cursor" && (x.scope === "user" || x.scope === "plugin" || x.project === w.folder));\n    const own = new Set(list.filter((x) => x.project === w.folder).map((x) => x.name));\n    const from = (x) => x.project === w.folder ? "this folder" : x.scope === "plugin" ? `plugin ${x.plugin}` : "all projects (~/.cursor/mcp.json)";\n    const org = (x) => x.credentials === "gctk-profile" ? "needs no org" : x.org?.profile || (x.org?.clientId ? "an OAuth client gctk does not know" : x.genesys ? "org not known" : "\u2013");\n    put(box, list.length ? h("table", {}, h("tr", {}, h("th", {}, "Server"), h("th", {}, "From"), h("th", {}, "Org"), h("th", {}, "")),\n      [...list].sort((a, b) => (a.project === w.folder ? 0 : 1) - (b.project === w.folder ? 0 : 1) || a.name.localeCompare(b.name)).map((x) => h("tr", {},\n        h("td", {}, h("strong", {}, toolTitle(x.name)), x.name !== toolTitle(x.name) ? h("div", { class: "muted mono", style: "font-size:11.5px" }, x.name) : null),\n        h("td", { class: "muted" }, from(x)),\n        h("td", {}, org(x), x.org?.profile && w.profile && x.genesys && x.org.profile !== w.profile && x.project !== w.folder ? [" ", pill("another org", "s-pending")] : null),\n        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder\'s: switch this one off here (Settings \u2192 MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on Cursor setup", "s-failed") : null))))\n      : h("div", { class: "muted" }, "Cursor loads no MCP servers in this folder yet."));\n  }).catch((err) => put(box, h("div", { class: "error" }, err.message)));\n  return box;\n}\n\nfunction axlDetail(st, x, draw) {\n  const w = x.workshop, f = x.folder, org = x.org;\n  const lab = isLabProject(w);\n  const back = () => { state.axlOpen = null; draw(st); };\n  const put2 = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };\n  let n = 0;\n  const step = (title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${++n}. ${title}`), ...body);\n  const note = (text) => h("p", { class: "muted", style: "font-size:13px;margin:8px 0" }, text);\n  const setupBtn = () => h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder");\n\n  const name = h("input", { value: w.name, style: "font-size:18px;font-weight:600;min-width:260px", "aria-label": "Project name" });\n  name.addEventListener("change", () => put2({ name: name.value }));\n\n  // Org\n  const sel = projectOrgSelect(st, w.profile, lab);\n  sel.addEventListener("change", () => {\n    const c = confirmOrg(st, sel.value);\n    if (!c.ok) { sel.value = w.profile || ""; return; }\n    put2({ profile: sel.value, ...(c.confirmProduction ? { confirmProduction: true } : {}) });\n  });\n  const orgPanel = step(lab ? "Org for the workshop" : "Org for this folder",\n    h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat && usesHarnessUi(w) ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),\n    note(lab ? "Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the folder right away; restart the tools in Cursor afterwards."\n      : "The org every Genesys tool in this folder works on. A new org goes into the folder right away; restart the tools in Cursor afterwards (switch them off and on under Settings \u2192 MCP)."),\n    org?.tier === "production" && !lab ? h("div", { class: "warn" }, "A production org: the AI tools in this folder change it directly.") : null,\n    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The folder\'s tools now work on ${w.profile}. Restart them in Cursor so it takes effect.`) : null,\n    org?.problem ? h("div", { class: "error" }, org.problem) : null,\n    org && !org.credentialsStored ? h("div", { class: "warn" }, "No credentials stored for this org. Enter them on the Orgs page.") : null);\n\n  // Folder\n  const dir = h("input", { value: w.folder || "", placeholder: "~/Demos/customer", style: "flex:1;min-width:280px", "aria-label": "Project folder" });\n  const folderState = !w.folder ? null\n    : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; Set up folder creates it.")\n    : f.stale ? h("div", { class: "warn" }, "The folder\'s tools are out of date. Press Set up folder.")\n    : (f.connected || (f.tools || []).some((t) => t.connected)) ? h("div", { class: "okbox" }, `Set up: the folder starts ${projectTools(w).join(", ")} with ${w.profile}.`)\n    : h("div", { class: "warn" }, "Not set up yet.");\n  const folderPanel = step("Folder",\n    h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put2({ folder: dir.value }) }, "Save")),\n    note(lab ? `The folder you open in Cursor for this workshop. The lab keeps each customer\'s session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server into the folder\'s .cursor/mcp.json (your other entries there stay).`\n      : "The folder you open in Cursor for this demo. gctk writes the tools into its .cursor/mcp.json; your own entries there stay."),\n    folderState,\n    w.folder ? h("div", { class: "row", style: "margin-top:8px" },\n      f.exists && !f.stale && (f.connected || (f.tools || []).some((t) => t.connected)) ? null : setupBtn(),\n      f.exists ? h("button", { class: "btn", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: {} }).catch(showError) }, "Show in Finder") : null) : null);\n\n  // Tools (projects only; a workshop always has the harness)\n  let toolsPanel = null;\n  if (!lab) {\n    const picker = toolPicker(w, st);\n    toolsPanel = step("Genesys tools in this folder",\n      note("Each tool starts through gctk with the org above; its credentials come from the keychain, never from the folder."),\n      picker.el,\n      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save tools")));\n  }\n\n  // What Cursor loads here\n  const loadsPanel = step("What the AI gets in this folder",\n    note("Every MCP server Cursor loads when this folder is open: the folder\'s own, your global ones and plugins. A global server with the same name as one of the folder\'s runs next to it; switch it off for this folder in Cursor."),\n    folderServers(w));\n\n  // Cursor\n  const [label, cls, hint] = projectState(x);\n  const cursorPanel = step("In Cursor",\n    h("div", { class: cls === "s-applied" ? "okbox" : "warn" }, pill(label, cls), " ", hint),\n    h("ol", { style: "margin:8px 0;padding-left:20px;font-size:13.5px" },\n      h("li", {}, "Open the folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),\n      h("li", {}, "Settings \u2192 MCP: switch on this folder\'s tools. Cursor never starts a new project server by itself; after an org change, switch them off and on again."),\n      st.globalHarness.present && usesHarnessUi(w) ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other folders.") : null,\n      h("li", {}, lab ? "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator." : "Ask the AI to confirm the org: \\"Which Genesys Cloud org are you connected to?\\" Then start building.")),\n    h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"));\n\n  // Sessions (workshops)\n  let sessionsPanel = null;\n  if (lab) {\n    const stageIdx = (s) => AXL_STAGES.findIndex(([id]) => id === s.stage);\n    sessionsPanel = step("Sessions", x.sessions.length ? h("table", {},\n      h("tr", {}, h("th", {}, "Session"), h("th", {}, "Reached"), h("th", {}, "Artifacts"), h("th", {}, "Changed"), h("th", {}, "")),\n      x.sessions.map((s) => h("tr", {},\n        h("td", {}, h("strong", {}, s.name.replace(/^AXL-/i, ""))),\n        h("td", {}, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, AXL_STAGES.map(([id, lbl], i) => h("span", { class: `pill ${i <= stageIdx(s) ? "s-applied" : ""}`, title: lbl }, lbl)))),\n        h("td", { class: "muted" }, s.artifacts.map((a) => AXL_ARTIFACT_LABELS[a] || a).join(", ") || "\u2013"),\n        h("td", { class: "muted", style: "white-space:nowrap" }, time(s.modified)),\n        h("td", {}, h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: { session: s.name } }).catch(showError) }, "Open")))))\n      : h("div", { class: "muted" }, x.sessionsDir ? "No sessions yet. They appear here when the lab writes its first artifact." : "Set the folder first."));\n  }\n\n  const remove = h("button", { class: "btn danger", onclick: async () => {\n    if (!confirm(`Remove the project "${w.name}" from gctk? Its tools are taken out of the folder\'s .cursor/mcp.json; the folder and everything in it stay.`)) return;\n    try { const r = await api(axlUrl(w.id), { method: "DELETE" }); state.axlOpen = null; draw(r); } catch (err) { showError(err); }\n  } }, "Remove project");\n\n  return h("div", {},\n    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "\u2190 All projects")),\n    h("div", { class: "row", style: "margin-bottom:12px" }, name, lab ? pill("AXL workshop", "") : null, pill(label, cls), h("span", { class: "spacer" }), remove),\n    usesHarnessUi(w) ? axlHarnessMissing(st, draw) : null,\n    orgPanel, folderPanel, toolsPanel, loadsPanel, cursorPanel, sessionsPanel, lab ? axlGuide(x) : null);\n}\n\n// ----------------------------------------------------------- monitoring\n// Counts of objects in the org next to the org\'s own limits (organizations/limits API). Read-only.\nconst MON_GROUPS = ["Integrations", "Architect", "Routing", "People", "AI and digital", "Other"];\nconst monNumber = (n) => Number(n).toLocaleString();\n\nfunction monCard(m) {\n  const count = m.count === undefined ? "\u2013" : `${monNumber(m.count)}${m.atLeast ? "+" : ""}`;\n  return h("div", { class: `m-${m.level}`, title: m.hint || null },\n    h("div", { class: "muted", style: "font-size:13px" }, m.label),\n    h("div", { class: "n" }, count, m.limit ? h("small", {}, ` / ${monNumber(m.limit)}`) : null),\n    m.note ? h("div", { class: "muted", style: "font-size:12px;overflow-wrap:anywhere" }, m.note) : null,\n    m.error ? h("div", { class: "muted", style: "font-size:12px" }, m.error)\n      : m.limit ? [h("div", { class: "meter" }, h("i", { style: `width:${Math.min(100, Math.max(m.count ? 2 : 0, m.percent))}%` })),\n        h("div", { class: "muted", style: "font-size:12px" }, `${m.percent} % of the limit`)]\n      : h("div", { class: "muted", style: "font-size:12px" }, "No limit in the API"));\n}\n\nasync function viewMonitoring() {\n  const o = state.overview || await api("/api/overview");\n  const usable = o.profiles.filter((p) => !p.error);\n  if (!usable.length) return h("div", { class: "panel empty" }, "Add a profile first.");\n  if (!usable.some((p) => p.name === state.profile)) state.profile = usable[0].name;\n  const select = h("select", { "aria-label": "Org", onchange: () => { state.profile = select.value; render(); } },\n    usable.map((p) => h("option", { value: p.name, selected: p.name === state.profile }, `${p.name} (${p.tier})`)));\n  const body = h("div", {}, h("div", { class: "panel empty" }, "Counting objects in the org\u2026"));\n  const refresh = h("button", { class: "btn" }, "Refresh");\n  const load = async (fresh) => {\n    const profile = state.profile;\n    refresh.disabled = true;\n    try {\n      const r = await api(`/api/monitoring?profile=${encodeURIComponent(profile)}${fresh ? "&refresh=1" : ""}`);\n      if (profile === state.profile && state.view === "monitoring") body.replaceChildren(monReport(r));\n    } catch (err) {\n      body.replaceChildren(h("div", { class: "error" }, err.message));\n    } finally { refresh.disabled = false; }\n  };\n  refresh.addEventListener("click", () => load(true));\n  load(false);\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Monitoring"), h("span", { class: "spacer" }), select, refresh),\n    h("p", { class: "lead" }, "How many objects this org has, next to the limits Genesys Cloud sets for it. The limits come from the org itself, so raised limits show up too. Cards turn amber from 80 % and red from 95 %."),\n    body);\n}\n\nfunction monReport(r) {\n  const close = r.metrics.filter((m) => m.level === "warn" || m.level === "alert").sort((a, b) => b.percent - a.percent);\n  const failed = r.metrics.filter((m) => m.level === "error").length;\n  return h("div", {},\n    h("div", { class: "muted", style: "margin:-6px 0 10px;font-size:12px" }, `${r.profile} \xB7 counted ${time(r.at)}${failed ? ` \xB7 ${failed} not readable` : ""}`),\n    close.length\n      ? h("div", { class: "warn" }, h("strong", {}, "Close to a limit: "), close.map((m, i) => [i ? ", " : "", `${m.label} ${monNumber(m.count)} / ${monNumber(m.limit)} (${m.percent} %)`]))\n      : h("div", { class: "okbox" }, "Everything is below 80 % of its limit."),\n    r.limitErrors.length ? h("div", { class: "warn" }, `Limits not readable for: ${r.limitErrors.join(", ")}. Those cards show the count only.`) : null,\n    MON_GROUPS.map((g) => {\n      const items = r.metrics.filter((m) => m.group === g);\n      return items.length ? [h("h3", {}, g), h("div", { class: "mon" }, items.map(monCard)), g === "Integrations" ? monIntegrations(r) : null] : null;\n    }));\n}\n\nconst MON_TYPES = { "purecloud-data-actions": "Genesys Cloud", "custom-rest-actions": "Web services", "function-data-actions": "Function", "aws-lambda-data-actions": "AWS Lambda",\n  "google-cloud-data-actions": "Google Cloud", "salesforce-datadip": "Salesforce", "microsoft-dynamics-data-actions": "Dynamics 365", "zendesk-datadip": "Zendesk" };\n\n/** Data actions per integration: where the actions are, and which integration is full. */\nfunction monIntegrations(r) {\n  const rows = r.integrations || [];\n  if (!rows.length) return null;\n  const limit = r.metrics.find((m) => m.id === "dataactions-per-integration")?.limit;\n  const cell = (n) => h("td", { style: "text-align:right;white-space:nowrap" }, n ? monNumber(n) : h("span", { class: "muted" }, "\u2013"));\n  const tr = (x) => {\n    const share = limit ? x.custom / limit : 0;\n    const level = share >= 0.95 ? "alert" : share >= 0.8 ? "warn" : "ok";\n    return h("tr", {},\n      h("td", {}, x.name, x.enabled === false ? [" ", pill("disabled")] : null),\n      h("td", { class: "muted" }, MON_TYPES[x.type] || x.type || ""),\n      h("td", { class: `m-${level}`, style: "min-width:150px" },\n        h("div", { class: "row", style: "gap:6px;flex-wrap:nowrap" }, h("strong", {}, monNumber(x.custom)), limit ? h("span", { class: "muted" }, `/ ${monNumber(limit)}`) : null),\n        limit ? h("div", { class: "meter", style: "margin-top:3px" }, h("i", { style: `width:${Math.min(100, Math.max(x.custom ? 2 : 0, share * 100))}%` })) : null),\n      cell(x.builtIn),\n      h("td", { style: "text-align:right;white-space:nowrap" }, x.drafts ? [monNumber(x.drafts), x.newDrafts ? h("span", { class: "muted" }, ` (${x.newDrafts} new)`) : null] : h("span", { class: "muted" }, "\u2013")));\n  };\n  const table = (list) => h("table", {},\n    h("tr", {}, h("th", {}, "Integration"), h("th", {}, "Type"), h("th", {}, limit ? "Custom actions (limit per integration)" : "Custom actions"),\n      h("th", { style: "text-align:right" }, "Built-in"), h("th", { style: "text-align:right" }, "Drafts")),\n    list.map(tr));\n  const shown = 15;\n  return h("div", { class: "panel", style: "margin-top:10px" },\n    h("h3", { style: "margin-top:0" }, `Data actions per integration (${rows.length})`),\n    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "Custom actions count towards the limits. Built-in actions come with integrations such as Salesforce or Dynamics and are not counted. New drafts were never published."),\n    table(rows.slice(0, shown)),\n    rows.length > shown ? h("details", {}, h("summary", {}, `Show ${rows.length - shown} more`), table(rows.slice(shown))) : null);\n}\n\n// ---------------------------------------------------------------- demos\n// Whole demos deployed into an org with one button: prerequisites (checked where possible), deploy\n// and remove (background jobs, the page follows their log), commands the demo needs on this\n// computer (Start / Stop / Log), and the manual steps on the day.\nconst DEMOS_KEY = "gctk-demos";\nconst PREREQ = { ok: ["ready", "s-applied"], missing: ["missing", "s-failed"], manual: ["check yourself", "s-pending"], error: ["could not check", "s-pending"] };\n\nasync function viewDemos() {\n  const data = await api("/api/demos");\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(DEMOS_KEY) || "{}") || {}; } catch {}\n  // pick.demo is the open demo; empty = the catalog. The page always starts in the catalog.\n  // A link may open one demo directly: \u2026#token=\u2026&view=demos&demo=<id>.\n  let linked = "";\n  try { linked = sessionStorage.getItem("gctk-open-demo") || ""; sessionStorage.removeItem("gctk-open-demo"); } catch {}\n  const pick = state.demosPick || (state.demosPick = { demo: linked, profile: saved.profile || "", query: "" });\n  const keep = () => { try { localStorage.setItem(DEMOS_KEY, JSON.stringify({ profile: pick.profile })); } catch {} };\n  const open = (id) => { pick.demo = id; render(); window.scrollTo({ top: 0 }); };\n  const msg = h("div");\n  const demo = data.demos.find((d) => d.id === pick.demo);\n  if (demo) {\n    const back = h("button", { class: "btn", onclick: () => open("") }, "\u2190 All demos");\n    return h("div", {}, h("div", { class: "row", style: "margin-bottom:10px" }, back, h("span", { class: "muted" }, `Demos / ${demo.manifest?.name || demo.folder.split("/").pop()}`)), msg, demoDetail(demo, data, pick, keep, msg));\n  }\n\n  const head = [h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demos"),\n    h("p", { class: "lead" }, "Pick a demo to see what it contains, what the org needs and how to deploy it. A deploy builds the whole demo in an org with one button: queues, case plans, Copilot, knowledge, bot flow, agent scripts.")];\n  if (!data.demos.length) return h("div", {}, head, msg, h("div", { class: "panel empty" }, "This gctk has no demos."));\n\n  const search = h("input", { type: "search", placeholder: "Search demos", value: pick.query || "", style: "min-width:260px" });\n  const grid = h("div", { class: "cards" });\n  const card = (d) => {\n    const m = d.manifest;\n    if (!m) return h("div", { class: "panel" }, h("strong", {}, d.folder.split("/").pop()), h("div", { class: "error" }, d.error || "This demo cannot be read."));\n    const first = ["Digital bot flow", "Inbound message flow", "Copilot assistant", "Case plan", "Agent script", "Knowledge base", "Speech & text analytics program", "Queue"];\n    const rank = (l) => (first.indexOf(l) + 1 || 99);\n    const kinds = (d.snapshot?.contents || []).map((c) => c.label).sort((a, b) => rank(a) - rank(b));\n    return h("div", { class: "panel", style: "cursor:pointer", role: "button", tabindex: "0", onclick: () => open(d.id), onkeydown: (ev) => { if (ev.key === "Enter") open(d.id); } },\n      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" })),\n      m.description ? h("div", { class: "muted", style: "font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" }, m.description) : null,\n      h("div", { style: "font-size:13px" }, d.snapshot ? `${d.snapshot.objects} objects: ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ` and ${kinds.length - 5} more kinds` : ""}` : h("span", { class: "muted" }, "No snapshot yet")),\n      (m.parameters || []).length ? h("div", { class: "muted", style: "font-size:12px" }, `You enter: ${m.parameters.map((p) => p.label.split(" (")[0]).join(" \xB7 ")}`) : null,\n      h("div", { class: "row", style: "margin-top:auto;flex-wrap:wrap;gap:6px" },\n        d.deployments.length ? d.deployments.map((x) => pill(`deployed in ${x.profile}`, "s-applied")) : h("span", { class: "muted", style: "font-size:12px" }, "Not deployed yet"),\n        h("span", { class: "spacer" }),\n        h("button", { class: "btn primary", onclick: (ev) => { ev.stopPropagation(); open(d.id); } }, "Open")));\n  };\n  const draw = () => {\n    const q = (pick.query || "").toLowerCase();\n    const hits = data.demos.filter((d) => !q || `${d.manifest?.name || ""} ${d.manifest?.description || ""} ${(d.snapshot?.contents || []).map((c) => c.label).join(" ")}`.toLowerCase().includes(q));\n    put(grid, hits.length ? hits.map(card) : h("div", { class: "panel empty" }, "No demo matches the search."));\n  };\n  search.oninput = () => { pick.query = search.value; draw(); };\n  draw();\n  return h("div", {}, head, msg, data.demos.length > 3 ? h("div", { class: "row", style: "margin-bottom:12px" }, search) : null, grid);\n}\n\n// The demo story: scenes in stage order (who says or does what, and what it triggers), plus a\n// reference of all triggers read from the demo\'s Copilot, NLU, checklists and analytics topics.\nconst STORY_WHO = { customer: ["Customer types", "#2a5c9c"], bot: ["Bot", "#6b5aa6"], agent: ["Agent writes", "#2f8f43"], you: ["You", "#7a6a50"] };\nfunction storyPanel(d) {\n  const s = d.story;\n  if (!s) return null;\n  const m = d.manifest;\n  const chLabel = (id) => (m.channels || []).find((c) => c.id === id)?.label.replace(/^Lumea /, "") || id;\n  const block = (title, ...body) => h("div", { style: "margin-top:12px" }, h("strong", { style: "font-size:13px" }, title), ...body);\n  const list = (items) => h("ul", { style: "margin:4px 0 0;padding-left:20px;font-size:14px" }, items.map((x) => h("li", {}, x)));\n  const triggerTable = (rows) => h("table", { style: "margin-top:6px;font-size:13px" },\n    h("tr", {}, h("th", { style: "text-align:left;width:38%" }, "When"), h("th", { style: "text-align:left" }, "Then")),\n    rows.map((r) => h("tr", {}, h("td", { style: "vertical-align:top" }, r.when), h("td", { style: "vertical-align:top" }, Array.isArray(r.then) ? r.then.join(" + ") : r.then))));\n  const scene = (sc, i) => h("details", { class: "panel", style: "margin:8px 0 0", open: i === 0 },\n    h("summary", { style: "margin:0" }, h("strong", {}, sc.title), sc.duration ? h("span", { class: "muted" }, ` \xB7 ${sc.duration}`) : null),\n    sc.screen ? h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, `Screen: ${sc.screen}`) : null,\n    (sc.steps || []).map((st) => {\n      const [label, color] = STORY_WHO[st.who] || [st.who, "#666"];\n      return h("div", { style: "display:flex;gap:10px;margin-top:8px;align-items:flex-start" },\n        h("span", { class: "pill", style: `flex:none;min-width:104px;text-align:center;color:#fff;background:${color}` }, label),\n        h("div", { style: "font-size:14px" }, st.channel ? h("span", { class: "pill", style: "margin-right:6px" }, `${chLabel(st.channel)} only`) : null, st.text));\n    }),\n    (sc.triggers || []).length ? block("What triggers what", triggerTable(sc.triggers)) : null,\n    (sc.notes || []).map((n) => h("div", { class: "warn", style: "margin-top:8px;font-size:13px" }, n)));\n  const ref = s.reference;\n  const reference = h("details", { class: "panel", style: "margin:12px 0 0" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Trigger reference"), h("span", { class: "muted" }, " \xB7 read from the demo\'s Copilot, NLU, checklists and analytics")),\n    ref.copilot.length ? block("Copilot rules", triggerTable(ref.copilot)) : null,\n    ref.intents.length ? block("NLU intents and the phrases they are trained on", ref.intents.map((it) => h("details", { style: "margin-top:6px" },\n      h("summary", {}, `${it.name} (${it.phrases.length} phrases)${it.rule ? "" : " \xB7 no rule of its own: falls back to the knowledge search"}`),\n      list(it.phrases)))) : null,\n    ref.checklists.length ? block("Checklist items and when Copilot ticks them", ref.checklists.map((c) => h("div", { style: "margin-top:6px" },\n      h("div", { style: "font-size:13px;font-weight:600" }, c.name),\n      h("table", { style: "font-size:13px;margin-top:4px" }, c.items.map((it) => h("tr", {}, h("td", { style: "vertical-align:top;white-space:nowrap;padding-right:12px" }, it.name), h("td", { class: "muted" }, it.ticksWhen))))))) : null,\n    ref.topics.length ? block("Speech & text analytics topics (marked in the conversation afterwards)", ref.topics.map((tp) => h("div", { style: "font-size:13px;margin-top:4px" }, h("b", {}, tp.name), h("span", { class: "muted" }, `: ${tp.phrases.join(" \xB7 ")}`)))) : null);\n  return h("details", { class: "panel" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Demo story"), h("span", { class: "muted" }, ` \xB7 ${s.scenes.length} scenes${s.duration ? `, ${s.duration}` : ""}`)),\n    s.summary ? h("p", { style: "margin:10px 0 0" }, s.summary) : null,\n    s.persona ? block("Persona", h("div", { style: "font-size:14px" }, s.persona)) : null,\n    (s.rules || []).length ? block("Stage rules", list(s.rules)) : null,\n    (s.before || []).length ? block("Before the demo", list(s.before)) : null,\n    block("Scenes", s.scenes.map(scene)),\n    reference);\n}\n\n// What the org\'s OAuth client needs for this demo, from the API spec. "a | b" means one of them is enough.\nfunction permissionsPanel(d) {\n  const groups = d.permissions || [];\n  if (!groups.length) return null;\n  const total = new Set(groups.flatMap((g) => g.items)).size;\n  const text = groups.map((g) => `${g.title}\\n${g.items.map((x) => `  ${x.split(" | ").join(" or ")}`).join("\\n")}`).join("\\n\\n");\n  return h("details", { class: "panel" },\n    h("summary", { style: "margin:0" }, `Permissions the org\'s OAuth client needs (${total})`),\n    h("p", { class: "muted", style: "font-size:13px" }, "Give the OAuth client of the org (Client Credentials) a role with these permissions. Without them the deploy stops at the first object it may not create. Where it says \\"or\\", one of the two is enough."),\n    h("div", { class: "row", style: "margin-bottom:8px" }, h("button", { class: "btn", onclick: async (ev) => { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; setTimeout(() => (ev.target.textContent = "Copy list"), 1500); } }, "Copy list")),\n    groups.map((g) => h("div", { style: "margin-top:10px" },\n      h("strong", { style: "font-size:13px" }, `${g.title} (${g.items.length})`),\n      h("div", { class: "mono", style: "font-size:12px;columns:2 320px;column-gap:24px;margin-top:4px" }, g.items.map((x) => h("div", {}, x.split(" | ").join(" or ")))))));\n}\n\nfunction demoDetail(d, data, pick, keep, msg) {\n  if (d.error) return h("div", { class: "error" }, d.error);\n  const m = d.manifest;\n  const profiles = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  if (!profiles.some((p) => p.name === pick.profile)) pick.profile = profiles.find((p) => p.name !== d.sourceProfile)?.name || profiles[0]?.name || "";\n  const orgSel = h("select", { onchange: () => { pick.profile = orgSel.value; keep(); render(); } },\n    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier}, ${p.region})${p.name === d.sourceProfile ? " \xB7 the snapshot source" : ""}`)));\n  const deployed = d.deployments.find((x) => x.profile === pick.profile);\n  const prereqBox = h("div", {}, h("div", { class: "muted" }, "Checking the org \u2026"));\n  const divSel = h("select", {}, h("option", {}, "\u2026"));\n  const userSel = h("select", { style: "min-width:240px" }, h("option", {}, "\u2026"));\n  const waSel = h("select", { style: "min-width:240px" }, h("option", { value: "" }, "\u2026"));\n  let whatsapp = [];\n  // Parameters: the presenter\'s own values (e.g. the phone that plays the customer), prefilled from the last deploy into this org.\n  const paramInputs = (m.parameters || []).map((p) => ({ p, el: h("input", { type: p.format === "email" ? "email" : p.format === "phone" ? "tel" : "text", value: deployed?.params?.[p.id] || "", placeholder: p.format === "phone" ? "+4915112345678" : p.format === "email" ? "name@example.com" : "", style: "min-width:240px" }) }));\n  const cmdBox = h("div");\n  const out = h("div");\n\n  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));\n  // Background job: start it, then follow its log until it is done.\n  const follow = async (url, body, title, after) => {\n    const logEl = h("pre", { style: "max-height:300px;white-space:pre-wrap" }, "");\n    put(out, h("div", { class: "panel" }, h("strong", {}, title), logEl));\n    out.scrollIntoView({ behavior: "smooth", block: "nearest" });\n    try {\n      const { job } = await api(url, { method: "POST", body });\n      for (;;) {\n        await new Promise((r) => setTimeout(r, 1500));\n        const j = await api(`/api/demos/jobs/${job}`);\n        logEl.textContent = j.lines.join("\\n");\n        logEl.scrollTop = logEl.scrollHeight;\n        if (j.done) {\n          if (j.error) out.firstChild.append(h("div", { class: "error" }, j.error));\n          else out.firstChild.append(h("div", { class: "okbox" }, after(j.result)));\n          break;\n        }\n      }\n    } catch (err) { out.firstChild.append(h("div", { class: "error" }, err.message)); }\n    const fresh = await api("/api/demos");\n    Object.assign(d, fresh.demos.find((x) => x.id === d.id));\n    drawDeploy();\n  };\n\n  const deployBox = h("div");\n  // Customer channel: preselected from the last deploy into this org, else the demo\'s first channel.\n  const channels = m.channels || [];\n  pick.channel = channels.some((ch) => ch.id === pick.channel) ? pick.channel : (deployed?.channel || channels[0]?.id || "");\n  const routingHere = () => m.messageRouting && (!m.messageRouting.channel || m.messageRouting.channel === pick.channel);\n  const channelLabel = (id) => channels.find((ch) => ch.id === id)?.label || id;\n  const channelPick = () => channels.length ? h("div", { style: "margin-top:10px" },\n    h("div", { style: "font-weight:600;margin-bottom:6px" }, "How does the customer write to you?"),\n    h("div", { class: "grid" }, channels.map((ch) => h("label", { class: "panel", style: `margin:0;cursor:pointer;display:flex;gap:10px;align-items:flex-start;${ch.id === pick.channel ? "border-color:var(--accent)" : ""}` },\n      h("input", { type: "radio", name: `channel-${d.id}`, checked: ch.id === pick.channel, onchange: () => { pick.channel = ch.id; drawDeploy(); }, style: "margin-top:4px" }),\n      h("span", {}, h("strong", {}, ch.label), ch.description ? h("div", { class: "muted", style: "font-size:13px" }, ch.description) : null))))) : null;\n  const drawDeploy = () => {\n    const dep = d.deployments.find((x) => x.profile === pick.profile);\n    put(deployBox,\n      d.snapshot ? null : h("div", { class: "warn" }, d.canSnapshot ? `No snapshot yet: take one from ${d.sourceProfile} under "What the demo contains" first.` : "No snapshot yet, so this demo cannot be deployed. Update gctk to get it."),\n      dep ? h("div", { class: "okbox" }, `Deployed into ${pick.profile} on ${time(dep.at)}: ${dep.created} objects created${dep.reused ? `, ${dep.reused} were already there` : ""}${dep.division ? `, division ${dep.division}` : ""}${dep.presenter ? `, presenter ${dep.presenter}` : ""}${dep.channel ? `, customer channel: ${channelLabel(dep.channel)}` : ""}.${dep.routing ? ` WhatsApp ${dep.routing.integration}${dep.routing.phone ? ` (${dep.routing.phone})` : ""} routes to the demo.` : ""}`) : null,\n      channelPick(),\n      h("div", { class: "grid", style: "margin-top:12px" }, h("label", {}, "Division", divSel), h("label", {}, "Presenter (member of the demo\'s queues)", userSel),\n        routingHere() ? h("label", {}, `WhatsApp number (routed to "${m.messageRouting.flow}")`, waSel) : null,\n        paramInputs.map(({ p, el }) => h("label", {}, `${p.label}${p.optional ? "" : " *"}`, el))),\n      h("div", { class: "row", style: "margin-top:10px" },\n        h("button", { class: "btn primary", disabled: !d.snapshot, onclick: () => {\n          const wa = routingHere() ? whatsapp.find((w) => w.id === waSel.value) : undefined;\n          if (routingHere() && !wa && !confirm("No WhatsApp number is selected, so no message routing changes and the customer cannot write via WhatsApp. Deploy anyway?")) return;\n          const route = wa ? `\\n\\nMessages to WhatsApp ${wa.name}${wa.phone ? ` (${wa.phone})` : ""} then go to "${m.messageRouting.flow}"${wa.flow && wa.flow !== m.messageRouting.flow ? ` instead of "${wa.flow}" (Remove puts "${wa.flow}" back)` : ""}.` : "";\n          const params = Object.fromEntries(paramInputs.map(({ p, el }) => [p.id, el.value.trim()]));\n          const empty = paramInputs.find(({ p, el }) => !p.optional && !el.value.trim());\n          if (empty) { empty.el.focus(); put(msg, h("div", { class: "error" }, `Enter "${empty.p.label}".`)); return; }\n          put(msg);\n          const via = channels.length ? `\\n\\nCustomer channel: ${channelLabel(pick.channel)}.` : "";\n          if (!confirm(`Deploy "${m.name}" into ${pick.profile}?${via} Objects that already exist with the same name are reused; everything else is created.${route}`)) return;\n          follow(`/api/demos/${d.id}/deploy`, { profile: pick.profile, divisionId: divSel.value, presenterId: userSel.value, whatsappIntegrationId: wa ? wa.id : "", channel: pick.channel, params }, `Deploying into ${pick.profile}`, (r) => `Done: ${r.created.length} objects in ${pick.profile}${r.reused.length ? `, ${r.reused.length} were already there` : ""}.`);\n        } }, dep ? "Deploy again (adds what is missing)" : `Deploy into ${pick.profile}`),\n        dep ? h("button", { class: "btn danger", onclick: () => {\n          if (!confirm(`Remove everything this page created in ${pick.profile} (${dep.created} objects)? Objects that were already there stay.`)) return;\n          follow(`/api/demos/${d.id}/remove`, { profile: pick.profile }, `Removing from ${pick.profile}`, (r) => `Removed ${r.removed} objects.${r.failed.length ? ` Not removed: ${r.failed.join("; ")}` : ""}`);\n        } }, "Remove from this org") : null));\n  };\n\n  const drawCommands = (cmds) => put(cmdBox, (cmds || []).length ? cmds.map((c) => {\n    const logEl = h("pre", { style: "max-height:260px;white-space:pre-wrap", hidden: true });\n    const showLog = async () => { logEl.hidden = !logEl.hidden; if (!logEl.hidden) logEl.textContent = (await api(`/api/demos/${d.id}/commands/${c.id}/log`)).log || "(no output yet)"; };\n    const act = async (what) => {\n      try {\n        if (what === "start") await api(`/api/demos/${d.id}/commands/${c.id}/start`, { method: "POST", body: { profile: pick.profile } });\n        else await api(`/api/demos/${d.id}/commands/${c.id}/stop`, { method: "POST", body: {} });\n        setTimeout(async () => drawCommands(await api(`/api/demos/${d.id}/commands`)), what === "start" ? 2500 : 800);\n      } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }\n    };\n    return h("div", { class: "todo-row", style: "flex-wrap:wrap" },\n      h("strong", {}, c.label), c.running ? pill(`running for ${c.profile}`, "s-applied") : pill("stopped", ""),\n      c.running && c.links?.length ? c.links.map((l) => h("a", { href: l.url, target: "_blank", rel: "noopener", style: "margin-right:10px" }, l.label)) : c.running && c.url ? h("a", { href: c.url, target: "_blank", rel: "noopener" }, c.url) : null,\n      h("span", { class: "spacer" }),\n      c.running ? h("button", { class: "btn", onclick: () => act("start") }, "Restart") : h("button", { class: "btn primary", onclick: () => act("start") }, `Start for ${pick.profile}`),\n      c.running ? h("button", { class: "btn danger", onclick: () => act("stop") }, "Stop") : null,\n      h("button", { class: "btn", onclick: showLog }, "Log"),\n      logEl);\n  }) : h("div", { class: "muted" }, "This demo needs nothing running on this computer."));\n\n  if (pick.profile) api(`/api/demos/${d.id}/org?profile=${encodeURIComponent(pick.profile)}`).then((o) => {\n    put(prereqBox, h("div", { class: "prereqs" }, o.prerequisites.map((r) => [\n      h("span", {}, pill(PREREQ[r.state][0], PREREQ[r.state][1])),\n      h("span", {}, r.text, r.detail ? h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${r.detail}`) : null)])));\n    put(divSel, o.divisions.map((x) => h("option", { value: x.id, selected: x.home }, x.name + (x.home ? " (home)" : ""))));\n    const me = (state.overview?.user || "").toLowerCase();\n    put(userSel, h("option", { value: "" }, "Nobody (add members later)"), o.users.map((u) => h("option", { value: u.id, selected: me && (u.email || "").toLowerCase().startsWith(me.replace(/\\./g, ".")) }, u.email ? `${u.name} \xB7 ${u.email}` : u.name)));\n    whatsapp = o.whatsapp || [];\n    put(waSel, h("option", { value: "" }, whatsapp.length ? "Do not change message routing" : "No WhatsApp integration in this org"),\n      whatsapp.map((w, i) => h("option", { value: w.id, selected: i === 0 }, `${w.name}${w.phone ? ` \xB7 ${w.phone}` : ""}${w.flow ? ` \xB7 now \u2192 ${w.flow}` : " \xB7 no flow yet"}`)));\n    drawCommands(o.commands);\n  }).catch((err) => put(prereqBox, h("div", { class: "error" }, err.message)));\n  drawDeploy();\n\n  const snap = d.snapshot;\n  return h("div", {},\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" }), h("label", { class: "row" }, "Org", orgSel)),\n      m.description ? h("p", { class: "muted", style: "margin:6px 0 0" }, m.description) : null),\n    storyPanel(d),\n    step(1, "Prerequisites in the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. The ones it can check show their state; check the others yourself."), prereqBox),\n    permissionsPanel(d),\n    step(2, "Deploy", deployBox),\n    out,\n    step(3, "Run on this computer", cmdBox),\n    m.manual?.length ? step(4, "On the day", h("ul", { style: "margin:0;padding-left:20px" }, m.manual.map((x) => h("li", {}, x)))) : null,\n    h("details", { class: "panel" }, h("summary", { style: "margin:0" }, `What the demo contains${snap ? ` (${snap.objects} objects, ${time(snap.at)})` : ""}`),\n      snap ? h("table", { style: "margin-top:8px" }, snap.contents.map((c) => h("tr", {}, h("td", { style: "white-space:nowrap" }, c.label), h("td", { class: "muted" }, c.names.join(" \xB7 "))))) : h("p", { class: "muted" }, "No snapshot yet."),\n      snap?.unresolved ? h("div", { class: "warn" }, `${snap.unresolved} id(s) point to objects outside the demo; they stay as they are.`) : null,\n      h("div", { class: "row", style: "margin-top:10px" }, d.canSnapshot ? h("button", { class: "btn", onclick: () => {\n        if (!confirm(`Read the demo\'s objects again from ${d.sourceProfile}? The new snapshot replaces snapshot.json in ${d.folder}.`)) return;\n        follow(`/api/demos/${d.id}/snapshot`, {}, `Snapshot from ${d.sourceProfile}`, (r) => `Snapshot taken: ${r.objects.length} objects.`);\n      } }, snap ? `Take snapshot again from ${d.sourceProfile}` : `Take snapshot from ${d.sourceProfile}`) : null,\n        h("span", { class: "muted", style: "font-size:12px" }, "Comes with gctk: everything it needs, pages included, is part of the plugin."))));\n}\n\n// ------------------------------------------------------------ your data\n// Where gctk keeps what on this computer: its folder, the keychain entries (names only), and what\n// it wrote elsewhere. Nothing here leaves the computer.\nconst fmtBytes = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;\n\nasync function viewData() {\n  const d = await api("/api/data");\n  const tilde = (p) => (d.userHome && p.startsWith(d.userHome + "/") ? `~${p.slice(d.userHome.length)}` : p);\n  const msg = h("div");\n  const open = async (key) => { try { await api("/api/data/open", { method: "POST", body: { key } }); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); } };\n  const openBtn = (p) => p.exists ? h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(p.key) }, "Open") : h("span", { class: "muted", style: "font-size:12px" }, "not created yet");\n  const table = (list) => h("table", {}, h("tr", {}, h("th", {}, "What"), h("th", {}, "Where"), h("th", { style: "text-align:right" }, "Size"), h("th", {}, "")),\n    list.map((p) => h("tr", {},\n      h("td", {}, h("strong", {}, p.label), h("div", { class: "muted", style: "font-size:12px" }, p.what)),\n      h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere", title: p.path }, tilde(p.path)),\n      h("td", { class: "muted", style: "text-align:right;white-space:nowrap" }, p.exists ? `${fmtBytes(p.bytes)}${p.items !== undefined ? ` \xB7 ${p.items}` : ""}` : "\u2013"),\n      h("td", {}, openBtn(p)))));\n  const total = d.places.reduce((n, p) => n + p.bytes, 0);\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Your data"),\n    h("p", { class: "lead" }, "Everything gctk keeps stays on this computer: settings and records in one folder, secrets in the keychain. The AI never sees the secrets."),\n    msg,\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", {}, "gctk\'s folder"), h("span", { class: "mono", title: d.home }, tilde(d.home)), h("span", { class: "muted" }, fmtBytes(total)), h("span", { class: "spacer" }),\n        h("button", { class: "btn primary", onclick: () => open("home") }, "Open in Finder")),\n      d.homeFromEnv ? h("div", { class: "muted", style: "font-size:13px;margin-top:4px" }, "Set by GCTK_HOME for this UI.") : null,\n      h("div", { style: "margin-top:10px" }, table(d.places))),\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", {}, "Secrets"), h("span", { class: "muted" }, `${d.keychain}, service "gctk"`)),\n      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, other server secrets on the Cursor setup page."),\n      h("table", {}, h("tr", {}, h("th", {}, "Entry"), h("th", {}, "What it is"), h("th", {}, "")),\n        d.secrets.map((x) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, x.account), h("td", {}, x.what), h("td", {}, x.stored ? pill("stored", "s-applied") : pill("missing", "s-failed")))))),\n    d.elsewhere.length ? h("div", { class: "panel" },\n      h("strong", {}, "Written outside gctk\'s folder"),\n      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and Cursor config files whose entries the Cursor setup page changed."),\n      table(d.elsewhere)) : null);\n}\n\n// ------------------------------------------------------------- AI setup\n// The MCP servers and skills of the user\'s editors, read from their config files by the gctk server.\n// Secrets arrive masked; the fix buttons change the user\'s config files (server side).\n// Cursor setup (page id ai-setup; decision 2026-10-06: Cursor only, no skills). What Cursor loads in\n// every folder, the org each Genesys server works on, and one-click fixes. A folder\'s own servers and\n// org belong to the Projects page; folders with their own config are offered as projects.\nconst CREDS = {\n  none: ["no credentials", ""],\n  plain: ["secret in plain text in the file", "s-failed"],\n  reference: ["secret from a variable", ""],\n  keychain: ["secret in a keychain entry of its own", "s-pending"],\n  org: ["org on the Orgs page", "s-applied"],\n  "gctk-profile": ["gctk orgs (keychain)", "s-applied"],\n  axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],\n  project: ["project org (keychain, through gctk)", "s-applied"],\n};\nconst FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };\n/** Plain names for the Genesys tools people meet most. */\nconst TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };\nconst RELOAD_HINT = "Restart the server in Cursor so it picks up the change: Settings \u2192 MCP, switch it off and on.";\nconst projName = (p) => (p ? p.split(/[\\\\/]/).filter(Boolean).pop() : "");\nconst whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";\nconst sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || whereText(a).localeCompare(whereText(b)));\n\nasync function viewAiSetup() {\n  const msg = h("div");\n  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading Cursor\'s config files\u2026"));\n  const refresh = h("button", { class: "btn" }, "Refresh");\n  let projects = [];\n  const draw = (s) => put(body, aiSetupReport(s, msg, draw, projects));\n  const load = async () => {\n    refresh.disabled = true;\n    try {\n      const [s, axl] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);\n      projects = axl.workshops.map((x) => x.workshop);\n      draw(s);\n    } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }\n  };\n  refresh.addEventListener("click", () => { msg.replaceChildren(); load(); });\n  load();\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Cursor setup"), h("span", { class: "spacer" }), refresh),\n    h("p", { class: "lead" }, "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder\'s own servers and org are set on the Projects page."),\n    msg, body);\n}\n\nfunction aiSetupReport(s, msg, draw, projects) {\n  const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINT)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };\n  const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };\n  const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });\n  const ctx = {\n    msg, draw,\n    async fix(x, kind) {\n      const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");\n      const ask = {\n        keychain: `Move ${names} of "${x.name}" (${whereText(x)}) into the keychain? The secret is then no longer in\\n${x.file}\\n\\nScripts that read the secret from this file themselves stop working (a demo started from the Demos page gets it from gctk).`,\n        restore: `Write the secret of "${x.name}" back into\\n${x.file}\\nin plain text?`,\n        remove: `Remove the server "${x.name}" from\\n${x.file}?`,\n        "clean-env": `Remove the old variable from "${x.name}"?`,\n        repair: `Point "${x.name}" (${whereText(x)}) to the copy of gctk that stays across plugin updates?\\n${x.file}`,\n      }[kind];\n      if (!confirm(ask)) return;\n      try { done(`Done: ${FIX_LABELS[kind].toLowerCase()} (${x.name}).`, await post(x, kind)); } catch (err) { failed(err); }\n    },\n    async restoreSkill(r) {\n      try { done(`Restored ${r.name} to ${r.from}.`, await api("/api/ai-setup/skills/restore", { method: "POST", body: { id: r.id } })); } catch (err) { failed(err); }\n    },\n    /** Links x to an org on the Orgs page; asks once when x\'s secret differs from the org\'s. */\n    async link(x, body) {\n      const call = (extra) => api("/api/ai-setup/link", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body, ...extra } });\n      try {\n        let r;\n        try { r = await call({}); }\n        catch (err) {\n          if (err.code !== "SECRET_DIFFERS") throw err;\n          if (!confirm(`${err.message.replace(/^[A-Z_]+: /, "")}\\n\\nUse the org\'s secret? The one ${x.credentials === "plain" ? "in the file" : "in its own keychain entry"} is dropped. (If the org\'s is the old one, cancel and store the new secret on the Orgs page first.)`)) return;\n          r = await call({ useOrgSecret: true });\n        }\n        await refreshOverview();\n        done(r.linked.created ? `Added the org ${r.linked.profile} on the Orgs page and linked ${x.name} to it.` : `Linked ${x.name} to the org ${r.linked.profile}.`, r);\n      } catch (err) { failed(err); }\n    },\n    async setCredentials(x, body) {\n      try { done(`Saved the new credentials of ${x.name}.`, await api("/api/ai-setup/credentials", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body } })); } catch (err) { failed(err); }\n    },\n    async fixAll(list, kind, what) {\n      if (!confirm(`${what}?\\n\\n${list.map((x) => `\u2022 ${x.name} (${whereText(x)})`).join("\\n")}`)) return;\n      let next;\n      try { for (const x of list) next = await post(x, kind); done(`Done for ${list.length} entries.`, next); } catch (err) { failed(err); if (next) draw(next); }\n    },\n  };\n  const found = s.files.filter((f) => f.exists);\n  const managed = s.secrets;\n  const details = h("details", { class: "panel", style: "margin-top:14px" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Details"), h("span", { class: "muted", style: "font-size:13px" }, ` \xB7 every entry, secrets in the keychain, ${found.length} config files`)),\n    h("div", { style: "margin-top:10px" },\n      h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Every entry"),\n      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "Open an entry for its file, command and variables (secrets masked) and the fixes for it."),\n      sortServers(s.servers).map((x) => serverRow(x, ctx)),\n      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,\n      s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),\n        s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,\n      filesPanel(s, msg, draw)));\n  return [todoPanel(s, ctx), aiOverview(s, ctx), folderPanel(s, projects), details];\n}\n\n/**\n * Moves a server\'s credentials to the Orgs page: link to the org with the same OAuth client, or add\n * them as a new org (region from the entry), or pick another org.\n */\nfunction linkControl(x, ctx) {\n  const L = x.linkOrg;\n  if (!L) return null;\n  if (L.match) return h("button", { class: "btn primary", title: `Its OAuth client is the one of ${L.match}; the secret then comes from the Orgs page.`, onclick: () => {\n    if (confirm(`Link "${x.name}" (${whereText(x)}) to the org ${L.match}?\\n\\nIts client ID and secret then come from the Orgs page; ${x.credentials === "plain" ? "the secret leaves the file" : "its own keychain entry is deleted"}.`)) ctx.link(x, { profile: L.match });\n  } }, `Link to ${L.match}`);\n  const orgsNow = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  if (x.credentials === "org") {\n    // Linked to an org that is gone: only another org can take over (no secret left to add).\n    const sel = h("select", { "aria-label": "Org" }, h("option", { value: "" }, orgsNow.length ? "Link to another org\u2026" : "no org on the Orgs page"), orgsNow.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`)));\n    sel.addEventListener("change", () => { if (sel.value) ctx.link(x, { profile: sel.value, useOrgSecret: true }); });\n    return sel;\n  }\n  const box = h("div", { style: "flex-basis:100%;display:none" });\n  const name = h("input", { placeholder: "e.g. dach-sandbox", style: "min-width:180px", "aria-label": "Org name" });\n  const tier = h("select", { "aria-label": "Tier" }, h("option", { value: "" }, "tier\u2026"), ["sandbox", "dev", "test", "production"].map((t) => h("option", { value: t }, t)));\n  const region = h("input", { value: L.region || "", placeholder: "region, e.g. mypurecloud.de", style: "min-width:200px", "aria-label": "Region" });\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const other = orgs.length ? h("select", { "aria-label": "Existing org" }, h("option", { value: "" }, "or use one of your orgs\u2026"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`))) : null;\n  other?.addEventListener("change", () => { if (other.value && confirm(`Let "${x.name}" work on ${other.value} instead? Its own client ID and secret are dropped.`)) ctx.link(x, { profile: other.value }); else other.value = ""; });\n  put(box, h("div", { class: "row", style: "margin:6px 0 2px" }, name, tier, region,\n    h("button", { class: "btn primary", onclick: () => {\n      if (!name.value.trim() || !tier.value) { alert("Give the org a name and choose its tier."); return; }\n      ctx.link(x, { newOrg: { name: name.value.trim(), tier: tier.value, region: region.value } });\n    } }, "Add org and link"), other),\n    h("div", { class: "muted", style: "font-size:12px" }, "The client ID and secret it has now become this org on the Orgs page; the server then takes them from there."));\n  const open = h("button", { class: "btn primary", onclick: () => { box.style.display = box.style.display === "none" ? "" : "none"; } }, "Add as an org");\n  return [open, box];\n}\n\n/** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */\nfunction todoPanel(s, ctx) {\n  const having = (kind) => s.servers.filter((x) => x.problems.some((p) => p.kind === kind));\n  const fixable = (kind, fix) => having(kind).filter((x) => x.problems.some((p) => p.kind === kind && p.fix === fix));\n  const SAYS_MORE = ["missing-command", "launch-invalid"];\n  const row = (x, kind, btn) => h("div", { class: "todo-row" },\n    h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)),\n    SAYS_MORE.includes(kind) ? h("span", { class: "muted", style: "font-size:12px;flex-basis:100%" }, x.problems.filter((p) => p.kind === kind).map((p) => p.text).join(" ")) : null,\n    h("span", { class: "spacer" }), btn);\n  let first = true;\n  const group = (title, why, rows, all) => {\n    if (!rows.length) return null;\n    const open = first;\n    first = false;\n    return h("details", { class: "todo-group", open },\n      h("summary", {}, h("strong", {}, title), pill(String(rows.length), "s-pending"), why ? h("span", { class: "muted", style: "font-size:13px" }, why) : null),\n      all ? h("div", { class: "row", style: "margin:4px 0 6px" }, all) : null, rows);\n  };\n  const secrets = having("plain-secret");\n  const canMove = fixable("plain-secret", "keychain");\n  const shared = secrets.some((x) => x.problems.some((p) => p.kind === "same-secret"));\n  const broken = [...having("missing-command"), ...having("launch-invalid")];\n  const removable = broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair"));\n  const groups = [\n    group("Secrets in plain text", `Anyone who can read these files can use the secret. Move it to the Orgs page: gctk keeps it in the keychain, and you see there which OAuth clients you have.${shared ? " Several entries share one secret; as an org it is kept once." : ""}`,\n      secrets.map((x) => row(x, "plain-secret", x.linkOrg ? linkControl(x, ctx) : canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null))),\n    group("Credentials not on the Orgs page", "Each has a keychain entry of its own, so the Orgs page does not show it. Link it to an org: one place for every OAuth client, and a new secret is entered once.",\n      having("not-linked").map((x) => row(x, "not-linked", linkControl(x, ctx)))),\n    group("Entries that cannot start", "The program or script they point to is gone, so Cursor shows an error for them.",\n      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "link") ? linkControl({ ...x, linkOrg: x.linkOrg || {} }, ctx) : x.problems.some((p) => p.fix === "repair")\n        ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")\n        : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),\n      removable.length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(removable, "remove", `Remove ${removable.length} entries that cannot start`) }, "Remove all") : null),\n    group("Older gctk entries", "They load gctk as github:\u2026, which needs git and starts slowly. Repair switches them to the download link.",\n      having("old-package").map((x) => row(x, "old-package", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),\n    group("Entries that only work on this computer", "They start gctk from a development checkout or a plugin version an update deletes. Repair points them to the copy every computer with gctk has.",\n      having("unstable-path").map((x) => row(x, "unstable-path", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),\n    group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),\n    group("Secrets in headers", "Remote servers: gctk cannot move these. Use Cursor\'s variables (for example ${env:NAME}) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),\n    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),\n  ].filter(Boolean);\n  return groups.length\n    ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)\n    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, and every entry can start.");\n}\n\n/** One server as a compact line; the details open on click. */\nfunction serverRow(x, ctx) {\n  const [credText, credCls] = CREDS[x.credentials] || [x.credentials, ""];\n  const issues = x.problems.filter((p) => p.level === "warn" && p.kind !== "plain-secret" && p.kind !== "same-secret").length;\n  const restore = x.credentials === "keychain" && x.launch?.valid && x.editable;\n  const vars = [...x.env, ...x.headers.map((v) => ({ ...v, name: `header ${v.name}` }))];\n  const org = x.org;\n  return h("details", { class: "srv" },\n    h("summary", {}, h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)), x.disabled ? pill("switched off") : null,\n      h("span", { class: "spacer" }), issues ? pill(`${issues} to fix`, "s-failed") : null, pill(credText, credCls)),\n    h("div", { class: "body" },\n      h("dl", { class: "kv" },\n        h("dt", {}, "File"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.file),\n        h("dt", {}, "Org"), h("dd", {}, org?.profile ? org.profile : org?.clientId ? "not one of your gctk orgs" : x.credentials === "gctk-profile" ? "needs no org" : "\u2014"),\n        org?.region ? [h("dt", {}, "Region"), h("dd", { class: "mono" }, org.region)] : null,\n        org?.clientId ? [h("dt", {}, "OAuth client"), h("dd", { class: "mono" }, org.clientId)] : null,\n        h("dt", {}, x.transport === "http" ? "URL" : "Starts"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.transport === "http" ? x.url : [x.command, ...x.args].join(" "))),\n      vars.length ? h("table", {}, vars.map((v) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, v.name), h("td", { class: "v" }, v.value, v.plain ? [" ", pill("plain text", "s-failed")] : "")))) : null,\n      x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,\n      x.credentialKeys ? credentialsForm(x, ctx)\n        : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the Projects page.") : null,\n      x.editable ? h("div", { class: "row" },\n        x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,\n        x.problems.some((p) => p.fix === "repair") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, FIX_LABELS.repair) : null,\n        x.problems.some((p) => p.fix === "clean-env") ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, FIX_LABELS["clean-env"]) : null,\n        restore ? h("button", { class: "btn", onclick: () => ctx.fix(x, "restore") }, FIX_LABELS.restore) : null,\n        h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, FIX_LABELS.remove))\n        : h("div", { class: "muted", style: "font-size:12px" }, x.scope === "plugin" ? "Comes with a plugin; change it there." : "gctk does not change this file.")));\n}\n\n/** New client ID, secret or region for a Genesys server, or those of one of the user\'s gctk orgs. */\nfunction credentialsForm(x, ctx) {\n  const keys = x.credentialKeys;\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const org = h("select", {}, h("option", { value: "" }, "Enter them below"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier}, ${p.region})`)));\n  const clientId = keys.clientId ? h("input", { placeholder: x.org?.clientId ? `now ${x.org.clientId}` : "Client ID", autocomplete: "off", style: "min-width:280px" }) : null;\n  const secret = keys.secret ? h("input", { type: "password", placeholder: "Client secret (empty: keep the current one)", autocomplete: "new-password", style: "min-width:280px" }) : null;\n  const region = keys.region || keys.habitat ? h("input", { placeholder: x.org?.region ? `now ${x.org.region}` : "Region, e.g. mypurecloud.de", style: "min-width:200px" }) : null;\n  const plain = x.credentials !== "keychain";\n  const keychain = h("input", { type: "checkbox", checked: true });\n  const typed = [clientId, secret, region].filter(Boolean);\n  org.addEventListener("change", () => { for (const el of typed) el.disabled = Boolean(org.value); });\n  const save = () => ctx.setCredentials(x, org.value\n    ? { profile: org.value, keychain: plain ? keychain.checked : true }\n    : { clientId: clientId?.value || "", secret: secret?.value || "", region: region?.value || "", keychain: plain ? keychain.checked : true });\n  const field = (label, el) => el ? h("label", {}, label, el) : null;\n  return h("details", { class: "creds" },\n    h("summary", {}, "Change credentials"),\n    h("div", { class: "grid", style: "margin-top:6px" },\n      h("label", {}, "Take them from an org", org),\n      field(`Client ID (${keys.clientId})`, clientId), field(`Secret (${keys.secret})`, secret), field(`Region (${[keys.region, keys.habitat].filter(Boolean).join(", ")})`, region)),\n    plain && keys.secret ? h("label", { class: "row", style: "margin-top:8px;color:var(--text)" }, keychain, "Keep the secret in the keychain, not in the file") : null,\n    h("div", { class: "row", style: "margin-top:8px" }, h("button", { class: "btn primary", onclick: save }, "Save credentials"),\n      h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));\n}\n\n/** What Cursor loads in every folder: the Genesys tools with their org and status, then the rest. */\nfunction aiOverview(s, ctx) {\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;\n  const everywhere = s.servers.filter((x) => x.scope !== "project");\n  const orgOf = (x) => {\n    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");\n    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null); }\n    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);\n    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");\n    return h("span", { class: "muted" }, "no org set");\n  };\n  const status = (x) => {\n    const warn = x.problems.filter((p) => p.level === "warn");\n    if (x.disabled) return pill("switched off", "");\n    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");\n    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");\n    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");\n    return pill("ready", "s-applied");\n  };\n  const useOrg = (x) => {\n    if (!x.credentialKeys || !x.editable || !orgs.length) return null;\n    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org\u2026" : "Use one of your orgs\u2026"),\n      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));\n    sel.addEventListener("change", () => {\n      const o = sel.value;\n      if (!o) return;\n      if (!confirm(`Let "${x.name}" (${whereText(x)}) work on ${o}?\\n\\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\\n${x.file}`)) { sel.value = ""; return; }\n      ctx.setCredentials(x, { profile: o, keychain: true });\n    });\n    return sel;\n  };\n  const toolRow = (x) => h("div", { class: "todo-row" },\n    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : "~/.cursor/mcp.json"),\n    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)), status(x), useOrg(x));\n  const genesys = everywhere.filter((x) => x.genesys);\n  const others = everywhere.filter((x) => !x.genesys);\n  const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));\n  return h("div", { class: "panel" },\n    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "In every folder"),\n      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ~/.cursor/mcp.json and plugins` : "no Genesys tools")),\n    genesys.length ? names.map((n) => {\n      const [title, what] = TOOL_NAMES[n] || [n, ""];\n      return h("div", { style: "margin-top:10px" },\n        h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `\xB7 ${what}`) : null),\n        sortServers(genesys.filter((x) => x.name === n)).map(toolRow));\n    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),\n    others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);\n}\n\n/** Folders with their own .cursor/mcp.json: the ones that are projects open there, the others can become one. */\nfunction folderPanel(s, projects) {\n  const folders = [...new Set(s.servers.filter((x) => x.scope === "project").map((x) => x.project))].sort((a, b) => projName(a).localeCompare(projName(b)));\n  if (!folders.length) return null;\n  const open = (id) => { state.axlOpen = id; go("axl"); };\n  const make = async (folder) => {\n    try {\n      const r = await api("/api/axl/workshops", { method: "POST", body: { name: projName(folder), folder, lab: false } });\n      open(r.id);\n    } catch (err) { showError(err); }\n  };\n  return h("div", { class: "panel" },\n    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Folders with their own servers"), h("span", { class: "muted" }, "Cursor loads these only in that folder, next to the ones above")),\n    folders.map((f) => {\n      const here = s.servers.filter((x) => x.project === f);\n      const p = projects.find((w) => w.folder === f);\n      const bad = here.some((x) => x.problems.some((q) => q.level === "warn"));\n      return h("div", { class: "todo-row" },\n        h("span", { style: "flex:1;min-width:220px" }, h("strong", {}, projName(f)), p ? [" ", pill(p.lab === false ? "project" : "AXL workshop", "")] : null,\n          h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, f)),\n        h("span", { class: "muted", style: "font-size:13px;min-width:200px" }, here.map((x) => toolTitle(x.name)).join(", ")),\n        bad ? pill("needs a look", "s-failed") : null,\n        p ? h("button", { class: "btn", onclick: () => open(p.id) }, "Open project") : h("button", { class: "btn", title: "Choose its org and Genesys tools on the Projects page", onclick: () => make(f) }, "Make it a project"));\n    }));\n}\n\n/** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */\nfunction secretCard(m, msg, draw) {\n  const inputs = m.names.map((n) => [n, h("input", { type: "password", autocomplete: "new-password", placeholder: "new value", style: "flex:1;min-width:220px" })]);\n  const save = async () => {\n    try {\n      const next = await api(`/api/ai-setup/secrets/${encodeURIComponent(m.account)}`, { method: "PUT", body: { values: Object.fromEntries(inputs.map(([n, el]) => [n, el.value])) } });\n      put(msg, h("div", { class: "okbox" }, `Saved the new secret for ${m.usedBy.map((u) => u.server).join(", ")}. `, RELOAD_HINT));\n      draw(next);\n    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "keybox" },\n    h("div", { class: "row" }, "\u{1F511}", h("strong", {}, `Secret in the keychain: ${m.names.join(", ")}`), m.profile ? h("span", { class: "muted" }, `org ${m.profile}`) : null, m.stored ? null : pill("missing in the keychain", "s-failed"),\n      h("span", { class: "muted", style: "font-size:13px" }, `used by ${m.usedBy.length} entr${m.usedBy.length > 1 ? "ies" : "y"}`)),\n    h("details", {}, h("summary", {}, "Enter a new secret (after rotating it in Genesys Cloud)"),\n      inputs.map(([n, el]) => h("div", { class: "row", style: "margin:6px 0" }, h("span", { class: "mono", style: "min-width:220px" }, n), el)),\n      h("button", { class: "btn primary", onclick: save }, "Save in the keychain")));\n}\n\nfunction filesPanel(s, msg, draw) {\n  const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/.cursor/mcp.json", style: "flex:1;min-width:280px" });\n  const call = async (url, body) => {\n    try { draw(await api(url, { method: "POST", body })); msg.replaceChildren(); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }\n  };\n  const status = (f) => !f.exists ? h("span", { class: "muted" }, "not there") : f.error ? h("span", { class: "muted" }, f.error) : f.scope === "plugin" ? h("span", { class: "muted" }, "read-only (plugin)") : pill("found", "s-applied");\n  const added = s.locations.filter((l) => !s.files.some((f) => f.path === l && f.added));\n  return h("div", { style: "margin-top:16px" },\n    h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Config files"),\n    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk reads ~/.cursor/mcp.json, Cursor\'s plugins and the .cursor/mcp.json of the folders Cursor knows (its recent folders and your projects). Add a folder or file that is somewhere else."),\n    h("table", {}, h("tr", {}, h("th", {}, "File"), h("th", {}, "For"), h("th", {}, "")),\n      s.files.map((f) => h("tr", {},\n        h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, f.path),\n        h("td", { class: "muted" }, f.scope === "plugin" ? `plugin ${f.plugin}` : f.scope === "project" ? "one folder" : "every folder"),\n        h("td", { style: "white-space:nowrap" }, status(f), f.added ? [" ", h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: f.path }) }, "Remove")] : null)))),\n    added.length ? h("div", { style: "margin-top:10px" }, h("strong", { style: "font-size:13px" }, "Added folders"), added.map((l) => h("div", { class: "row", style: "margin-top:4px" }, h("span", { class: "mono", style: "font-size:12px;flex:1" }, l),\n      h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: l }) }, "Remove")))) : null,\n    h("div", { class: "row", style: "margin-top:12px" }, input, h("button", { class: "btn primary", onclick: () => input.value.trim() && call("/api/ai-setup/locations", { path: input.value }) }, "Add")));\n}\n\n// ---------------------------------------------------------------- start\n(async () => {\n  if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "No session token. Ask the AI to open the gctk UI again, or run `gctk ui`.")); return; }\n  try {\n    await refreshOverview();\n    // A page this tab remembers that no longer exists opens Orgs.\n    if (![...VIEWS, ...MINOR_VIEWS].some(([id]) => id === state.view)) {\n      state.view = "profiles";\n      try { sessionStorage.setItem("gctk-view", "profiles"); } catch {}\n    }\n    await render();\n  }\n  catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); return; }\n})();\n</script>\n</body>\n</html>\n';
+var ui_default = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>gctk \xB7 Genesys Cloud Toolkit</title>\n<style nonce="__NONCE__">\n:root {\n  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #e2e6ec;\n  --accent: #ff4f1f; --accent-ink: #ffffff;\n  --ok: #1a7f4b; --ok-bg: #e5f5ec; --warn: #9a6200; --warn-bg: #fff4de; --bad: #b42318; --bad-bg: #fde8e6;\n  --info: #1f5fbf; --info-bg: #e7effb; --neutral-bg: #eef0f3;\n  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;\n  color-scheme: light;\n}\n/* Dark: the system setting, unless the user picked light in the top bar; or picked dark explicitly. */\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n    --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;\n    --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;\n    --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;\n    color-scheme: dark;\n  }\n}\n:root[data-theme="dark"] {\n  --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323d;\n  --ok: #5fd39b; --ok-bg: #173226; --warn: #f5c16c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;\n  --info: #8db8ff; --info-bg: #182a44; --neutral-bg: #252b35;\n  color-scheme: dark;\n}\n.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }\n.theme button { background: none; border: 0; padding: 3px 10px; font: inherit; font-size: 12px; color: var(--muted); cursor: pointer; }\n.theme button[aria-pressed="true"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }\n* { box-sizing: border-box; }\nbody { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }\nheader { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }\n.hbar { display: flex; align-items: center; gap: 14px; padding: 10px 20px 4px; flex-wrap: wrap; }\nheader h1 { font-size: 16px; margin: 0; white-space: nowrap; }\nheader h1 span { color: var(--accent); }\n.org { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }\n.org select { padding: 3px 6px; font-size: 13px; }\nnav { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; padding: 0 14px 6px; }\nnav button { background: none; border: 0; padding: 6px 12px; border-radius: 6px; color: var(--muted); font: inherit; cursor: pointer; }\nnav button[aria-current="page"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }\nnav .sep { flex: 1; min-width: 12px; }\nnav .minor button { font-size: 13px; padding: 6px 9px; }\n.count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; text-align: center; }\n.who { margin-left: auto; color: var(--muted); font-size: 12px; }\nmain { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }\nh2 { font-size: 18px; margin: 8px 0 12px; }\nh3 { font-size: 15px; margin: 18px 0 8px; }\n.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }\n.muted { color: var(--muted); }\na { color: var(--info); }\n.mono { font-family: var(--mono); font-size: 12.5px; }\n.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }\n.spacer { flex: 1; }\n.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--neutral-bg); }\n.t-production, .r-high, .s-rejected, .s-failed, .s-stale { background: var(--bad-bg); color: var(--bad); }\n.t-test, .r-medium, .s-pending { background: var(--warn-bg); color: var(--warn); }\n.t-dev, .s-approved { background: var(--info-bg); color: var(--info); }\n.r-low, .s-applied, .a-granted { background: var(--ok-bg); color: var(--ok); }\n.a-missing { background: var(--bad-bg); color: var(--bad); }\ntable { width: 100%; border-collapse: collapse; }\nth, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }\nth { font-size: 12px; color: var(--muted); font-weight: 600; }\ntd.v { font-family: var(--mono); font-size: 12px; word-break: break-word; max-width: 380px; }\n.d-added td:first-child::before { content: "+ "; color: var(--ok); font-weight: 700; }\n.d-removed td:first-child::before { content: "\u2212 "; color: var(--bad); font-weight: 700; }\n.d-changed td:first-child::before { content: "~ "; color: var(--warn); font-weight: 700; }\n.warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }\n.warn li { margin: 2px 0; }\n.error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; margin: 10px 0; white-space: pre-wrap; }\n.okbox { background: var(--ok-bg); color: var(--ok); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }\nbutton.btn { font: inherit; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }\nbutton.btn:hover { border-color: var(--muted); }\nbutton.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }\nbutton.danger { color: var(--bad); }\nbutton:disabled { opacity: .5; cursor: not-allowed; }\ninput, select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }\ntextarea { width: 100%; min-height: 80px; font-family: var(--mono); font-size: 12.5px; }\nlabel { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }\n.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }\ndetails summary { cursor: pointer; color: var(--muted); margin: 8px 0; }\npre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 360px; font-size: 12px; }\n.empty { text-align: center; padding: 30px; color: var(--muted); }\nmain.wide { max-width: 1500px; padding-bottom: 16px; }\n.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; margin-bottom: 14px; }\n.cards .panel { margin: 0; display: flex; flex-direction: column; gap: 8px; }\n.lead { font-size: 15px; color: var(--muted); margin: 0 0 16px; max-width: 820px; }\n.kv { display: grid; grid-template-columns: minmax(90px, 38%) minmax(0, 1fr); gap: 2px 10px; font-size: 13px; }\n.kv dt { color: var(--muted); }\n.kv dd { margin: 0; }\n[hidden] { display: none !important; }\n/* ---- Monitoring: one card per object kind, count against the org\'s limit. */\n.mon { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 8px; }\n.mon > div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }\n.mon .n { font-size: 22px; font-weight: 700; line-height: 1.2; }\n.mon .n small { font-size: 13px; font-weight: 400; color: var(--muted); }\n.meter { height: 6px; border-radius: 3px; background: var(--neutral-bg); overflow: hidden; }\n.meter i { display: block; height: 100%; background: var(--ok); }\n.m-warn .meter i { background: var(--warn); }\n.m-alert .meter i { background: var(--bad); }\n.mon > .m-alert { border-color: var(--bad); }\n.mon > .m-error .n { color: var(--muted); }\n.ws-opts { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }\n.ws-opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; cursor: pointer; }\n.ws-opt:hover { border-color: var(--muted); }\n.ws-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }\n.ws-opt .mark { flex: none; width: 16px; height: 16px; margin-top: 2px; border: 2px solid var(--muted); border-radius: 50%; }\n.ws-opt.multi .mark { border-radius: 4px; }\n.ws-opt[aria-pressed="true"] .mark { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px var(--bg); }\n.ws-opt small { display: block; color: var(--muted); font-size: 12px; }\n.srv { border-top: 1px solid var(--line); }\n.srv > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; cursor: pointer; padding: 8px 4px; margin: 0; color: var(--text); }\n.srv > summary::-webkit-details-marker { display: none; }\n.srv > summary::before { content: "\u25B8"; color: var(--muted); width: 12px; }\n.srv[open] > summary::before { content: "\u25BE"; }\n.srv > summary:hover { background: var(--neutral-bg); border-radius: 6px; }\n.srv .body { padding: 0 4px 12px 24px; display: grid; gap: 8px; }\n.grp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }\n.sub-head { font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); margin: 4px 0 2px; }\n.sub-head .mono { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; }\n.skill-group > summary { margin: 8px 0 2px; }\n.todo-group { border-top: 1px solid var(--line); padding: 10px 0; }\n.todo-group:first-of-type { border-top: 0; padding-top: 0; }\n.todo-group > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--text); }\n.todo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }\n.skill-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 4px; border-top: 1px solid var(--line); font-size: 13px; }\n.creds > summary { color: var(--info); margin: 0; }\n.twin { padding: 4px 0 8px; }\n.twin .todo-row { flex-wrap: nowrap; }\n.twin-path { flex: 1; min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }\n.twin + .twin { border-top: 1px dashed var(--line); padding-top: 8px; }\n.skill-row > .row { justify-content: flex-end; }\n.prereqs { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 10px; align-items: baseline; }\n.keybox { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--bg); }\n.chat { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }\n.dtabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 0 0 14px; }\n.dtabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }\n.dtabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }\n.dtabs button:disabled { cursor: default; opacity: .55; }\n.dtabs small { font-size: 10px; margin-left: 4px; text-transform: uppercase; letter-spacing: .04em; }\n.dblock { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }\n.dblock.live { border-left: 4px solid var(--ok); }\n.dblock.setup { border-left: 4px solid var(--accent); }\n.dblock-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }\n.dblock-head strong { font-size: 15px; }\n.dstep { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px; }\n.dstep b { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 13px; }\n.dstep h3 { margin: 0; font-size: 17px; }\n.dcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }\n.dcard { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }\n.dcard:hover { border-color: var(--muted); }\n.dcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }\n.dcard strong { font-size: 15px; }\n.dcard .what { color: var(--muted); font-size: 13px; }\n.dcard .st { margin-top: auto; font-size: 13px; display: flex; align-items: center; gap: 6px; }\n.dcard .st::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--line); }\n.dcard .st.ok { color: var(--ok); } .dcard .st.ok::before { background: var(--ok); }\n.dcard .st.todo { color: var(--warn); } .dcard .st.todo::before { background: var(--warn); }\n.dcard .st.bad { color: var(--bad); } .dcard .st.bad::before { background: var(--bad); }\n.dblock input, .dblock select, .dblock textarea, .panel select { max-width: 100%; box-sizing: border-box; }\n.dtools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }\n</style>\n</head>\n<body>\n<header>\n  <div class="hbar">\n    <h1><span>gctk</span> Genesys Cloud Toolkit</h1>\n    <div class="org" id="org"></div>\n    <div class="who" id="who"></div>\n    <div class="theme" id="theme" role="group" aria-label="Colour theme"></div>\n  </div>\n  <nav id="nav" aria-label="Pages"></nav>\n</header>\n<main id="main"><div class="empty">Loading\u2026</div></main>\n<script nonce="__NONCE__">\n"use strict";\n// Colour theme: follows the system until the user picks light or dark in the top bar (remembered\n// in this browser). Set before the first render so the page does not flash.\nconst THEME_KEY = "gctk-theme";\nfunction currentTheme() {\n  const t = document.documentElement.dataset.theme;\n  return t === "light" || t === "dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\nfunction setTheme(t) {\n  document.documentElement.dataset.theme = t;\n  try { localStorage.setItem(THEME_KEY, t); } catch {}\n  renderThemeToggle();\n}\nfunction renderThemeToggle() {\n  const box = document.getElementById("theme");\n  const now = currentTheme();\n  box.replaceChildren(...[["light", "\u2600 Light"], ["dark", "\u263E Dark"]].map(([t, label]) => {\n    const b = document.createElement("button");\n    b.type = "button";\n    b.textContent = label;\n    b.setAttribute("aria-pressed", String(now === t));\n    b.addEventListener("click", () => setTheme(t));\n    return b;\n  }));\n}\n(() => {\n  let saved = null;\n  try { saved = localStorage.getItem(THEME_KEY); } catch {}\n  if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;\n  renderThemeToggle();\n  // Without an explicit choice, follow system changes live.\n  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!document.documentElement.dataset.theme) renderThemeToggle(); });\n})();\n// Token arrives in the URL fragment; keep it for this tab only and remove it from the address bar.\nconst TOKEN = (() => {\n  const m = location.hash.match(/token=([\\w-]+)/);\n  if (m) {\n    const view = location.hash.match(/view=([\\w-]+)/);\n    const demo = location.hash.match(/[#&]demo=([\\w-]+)/);\n    try {\n      sessionStorage.setItem("gctk-token", m[1]);\n      if (view) sessionStorage.setItem("gctk-view", view[1]);\n      if (demo) sessionStorage.setItem("gctk-open-demo", demo[1]);\n    } catch {}\n    history.replaceState(null, "", "/");\n    return m[1];\n  }\n  try { return sessionStorage.getItem("gctk-token") || ""; } catch { return ""; }\n})();\n\nasync function api(path, opts = {}) {\n  const method = opts.method || "GET";\n  // Every write is JSON (the server refuses anything else, which also stops cross-site form posts).\n  const body = method === "GET" ? undefined : JSON.stringify(opts.body ?? {});\n  const res = await fetch(path, {\n    method,\n    headers: { "x-gctk-token": TOKEN, ...(body ? { "content-type": "application/json" } : {}) },\n    body,\n  });\n  const data = await res.json().catch(() => ({}));\n  if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.code });\n  return data;\n}\n\n// DOM builder: all dynamic content goes through text nodes, never parsed as HTML.\nfunction h(tag, attrs, ...children) {\n  const el = document.createElement(tag);\n  for (const [k, v] of Object.entries(attrs || {})) {\n    if (v === undefined || v === null || v === false) continue;\n    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);\n    else if (k === "class") el.className = v;\n    else el.setAttribute(k, v === true ? "" : String(v));\n  }\n  for (const c of children.flat(Infinity)) {\n    if (c === undefined || c === null || c === false) continue;\n    el.append(c instanceof Node ? c : document.createTextNode(String(c)));\n  }\n  return el;\n}\nconst pill = (text, cls) => h("span", { class: `pill ${cls || ""}` }, text);\nconst fmt = (v) => v === undefined ? "" : (typeof v === "string" ? JSON.stringify(v) : JSON.stringify(v, null, 0));\nconst short = (s, n = 160) => (s = fmt(s), s.length > n ? s.slice(0, n - 1) + "\u2026" : s);\nconst time = (iso) => iso ? new Date(iso).toLocaleString() : "";\n\nconst state = { view: (() => { try { return sessionStorage.getItem("gctk-view") || "profiles"; } catch { return "profiles"; } })(), overview: null, profile: null };\n// Main pages follow a solution consultant\'s demo prep; setup and control pages sit on the right.\n// The ids are the page names the agent opens with gc_ui (UI_PAGES), so they stay as they are.\nconst VIEWS = [\n  ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],\n  ["ai-setup", "Cursor setup", "The MCP servers Cursor loads in every folder: which org each one works on, and fixes"],\n  ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],\n  ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],\n  ["site", "Website", "A customer website for the industry, in the customer\'s brand, with your Messenger on it"],\n  ["demo", "Demo ready", "Fill the agent\'s home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],\n];\nconst MINOR_VIEWS = [\n  ["monitoring", "Monitoring", "How many queues, flows, data actions \u2026 an org has, next to its limits"],\n  ["data", "Your data", "Where gctk keeps your orgs, settings and records on this computer"],\n];\n\nfunction renderNav() {\n  const nav = document.getElementById("nav");\n  const btn = ([id, label, title]) => h("button", { "aria-current": state.view === id ? "page" : null, title, onclick: () => go(id) }, label);\n  nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));\n  const o = state.overview;\n  document.getElementById("who").replaceChildren(o ? `${o.user} \xB7 gctk ${o.version}` : "",\n    o?.persistent ? h("button", { class: "btn", style: "padding:2px 8px;font-size:12px;margin-left:8px", title: "Stops the background UI; the AI or `gctk ui` starts it again", onclick: stopUi }, "Stop UI") : "");\n  renderOrg();\n}\n\n/** The org the AI works on by default (in Cursor or Claude Code), switchable in the top bar. */\nfunction renderOrg() {\n  const box = document.getElementById("org");\n  const o = state.overview;\n  if (!o) return box.replaceChildren();\n  const usable = o.profiles.filter((p) => !p.error);\n  if (!usable.length) return box.replaceChildren(h("button", { class: "btn primary", style: "padding:3px 10px;font-size:12px", onclick: () => go("profiles") }, "Connect an org"));\n  const active = usable.find((p) => p.name === o.activeProfile);\n  const sel = h("select", { title: "The org the AI works on unless you name another one.", "aria-label": "Org the AI works on" },\n    active ? null : h("option", { value: "" }, "choose\u2026"),\n    usable.map((p) => h("option", { value: p.name, selected: p.name === o.activeProfile }, `${p.name} \xB7 ${p.tier}${p.credentialsStored ? "" : " \xB7 no credentials"}`)));\n  sel.addEventListener("change", async () => {\n    const next = usable.find((p) => p.name === sel.value);\n    if (!next) return;\n    if (next.tier === "production" && !confirm(`Work on the production org "${next.name}" by default?`)) { sel.value = o.activeProfile || ""; return; }\n    try {\n      await api(`/api/profiles/${encodeURIComponent(next.name)}/activate`, { method: "POST", body: {} });\n      state.profile = next.name;\n      await refreshOverview();\n      await render();\n    } catch (err) { sel.value = o.activeProfile || ""; showError(err); }\n  });\n  box.replaceChildren(...[h("span", {}, "Working on"), sel, active ? pill(active.tier, `t-${active.tier}`) : null].filter(Boolean));\n}\n\nasync function refreshOverview() {\n  state.overview = await api("/api/overview");\n  if (!state.profile) state.profile = state.overview.activeProfile || state.overview.profiles[0]?.name || null;\n  renderNav();\n}\n\nfunction go(view) {\n  state.view = view;\n  try { sessionStorage.setItem("gctk-view", view); } catch {}\n  render();\n}\nconst main = () => document.getElementById("main");\nasync function stopUi() {\n  if (!confirm("Stop the gctk UI? The AI can open it again any time.")) return;\n  try { await api("/api/shutdown", { method: "POST", body: {} }); main().replaceChildren(h("div", { class: "panel empty" }, "The gctk UI was stopped. Ask the AI to open it again, or run `gctk ui`.")); }\n  catch (err) { showError(err); }\n}\nfunction showError(err) { main().prepend(h("div", { class: "error" }, err.message || String(err))); }\n\nasync function render() {\n  renderNav();\n  state.cleanup?.();\n  state.cleanup = null;\n  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;\n  try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }\n}\n\n// ----------------------------------------------------------------- home\nfunction copyButton(text) {\n  const btn = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");\n  btn.addEventListener("click", () => { try { navigator.clipboard.writeText(text); btn.textContent = "Copied"; setTimeout(() => (btn.textContent = "Copy"), 1200); } catch {} });\n  return btn;\n}\nconst navLink = (view, text) => h("a", { href: "#", onclick: (e) => { e.preventDefault(); go(view); } }, text);\n\n// -------------------------------------------------------------- website\n// The customer\'s side of the demo: a fake website on its own origin (site.gctk.localhost) with the\n// org\'s Web Messenger. Choices are remembered in this browser.\nconst SITE_KEY = "gctk-site";\nasync function viewSite() {\n  const meta = state.siteMeta || (state.siteMeta = await api("/api/site"));\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(SITE_KEY) || "{}") || {}; } catch {}\n  const industryOf = (id) => meta.industries.find((i) => i.id === id) || meta.industries[0];\n  const cfg = { industry: industryOf(saved.industry).id, lang: saved.lang === "de" ? "de" : "en", phone: saved.phone || "+49 30 1234 5678", logo: saved.logo || "", deploymentId: saved.deploymentId || "", domain: saved.domain || meta.defaultDomain };\n  cfg.brand = saved.brand || industryOf(cfg.industry).brand;\n  cfg.color = saved.color || industryOf(cfg.industry).color;\n  if (!meta.regions.some((r) => r.domain === cfg.domain)) cfg.domain = meta.defaultDomain;\n  const save = () => { try { localStorage.setItem(SITE_KEY, JSON.stringify(cfg)); } catch {} drawLink(); };\n  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;\n\n  // 1. Industry\n  const cards = h("div", { class: "cards", style: "grid-template-columns:repeat(auto-fill,minmax(200px,1fr))" });\n  const drawIndustries = () => cards.replaceChildren(...meta.industries.map((i) => h("button", {\n    class: "ws-opt", "aria-pressed": String(cfg.industry === i.id), style: "flex-direction:column;gap:6px",\n    onclick: () => {\n      const before = industryOf(cfg.industry);\n      // Brand and colour follow the industry until the user has typed their own.\n      if (cfg.brand === before.brand) { cfg.brand = i.brand; brand.value = i.brand; }\n      if (cfg.color === before.color) { cfg.color = i.color; color.value = i.color; }\n      cfg.industry = i.id; drawIndustries(); save();\n    },\n  }, h("span", { class: "row", style: "flex-wrap:nowrap" }, h("span", { style: `width:18px;height:18px;border-radius:5px;background:${/^#[0-9a-f]{6}$/i.test(i.color) ? i.color : "#888"};flex:none` }), h("strong", {}, i.label[cfg.lang] || i.label.en)),\n    h("small", {}, i.headline))));\n\n  // 2. Brand\n  const brand = h("input", { value: cfg.brand, maxlength: 60 });\n  brand.addEventListener("input", () => { cfg.brand = brand.value.trim(); save(); });\n  const color = h("input", { type: "color", value: cfg.color, style: "height:36px;padding:2px" });\n  color.addEventListener("input", () => { cfg.color = color.value; save(); });\n  const lang = h("select", {}, [["en", "English"], ["de", "Deutsch"]].map(([v, t]) => h("option", { value: v, selected: v === cfg.lang }, t)));\n  lang.addEventListener("change", () => { cfg.lang = lang.value; drawIndustries(); save(); });\n  const phone = h("input", { value: cfg.phone, maxlength: 30 });\n  phone.addEventListener("input", () => { cfg.phone = phone.value; save(); });\n  const logoMsg = h("span", { class: "muted", style: "font-size:12px" }, cfg.logo ? "Logo uploaded." : "No logo: the initials are shown.");\n  const picker = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp", hidden: true });\n  picker.addEventListener("change", async () => {\n    const f = picker.files?.[0];\n    picker.value = "";\n    if (!f) return;\n    try {\n      const data = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = fail; r.readAsDataURL(f); });\n      cfg.logo = (await api("/api/site/files", { method: "POST", body: { data } })).logo;\n      logoMsg.textContent = `${f.name} uploaded.`;\n      save();\n    } catch (err) { logoMsg.textContent = err.message; }\n  });\n  const logoRow = h("div", { class: "row" }, h("button", { class: "btn", onclick: () => picker.click() }, "Upload logo\u2026"),\n    h("button", { class: "btn", onclick: () => { cfg.logo = ""; logoMsg.textContent = "No logo: the initials are shown."; save(); } }, "Remove"), logoMsg, picker);\n\n  // 3. Chat: the deployment ID (Admin \u2192 Message \u2192 Messenger Deployments), or the whole snippet pasted.\n  const depInput = h("input", { value: cfg.deploymentId, placeholder: "e.g. 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60, or paste the snippet", style: "width:100%", spellcheck: "false" });\n  const regionSel = h("select", {}, meta.regions.map((r) => h("option", { value: r.domain, selected: r.domain === cfg.domain }, `${r.domain} (${r.key})`)));\n  const depInfo = h("div", { style: "font-size:13px;margin-top:6px" });\n  const drawDep = () => {\n    const raw = depInput.value.trim();\n    put(depInfo, !raw ? h("div", { class: "muted" }, "Without a deployment ID the website shows a note instead of the chat.")\n      : cfg.deploymentId ? h("div", { class: "muted" }, `The site loads deployment ${cfg.deploymentId} from apps.${cfg.domain}. In Genesys Cloud, the deployment must allow the domain ${meta.host} (or all domains).`)\n        : h("div", { class: "error" }, "That is not a deployment ID: it looks like 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60."));\n  };\n  depInput.addEventListener("input", () => {\n    const raw = depInput.value;\n    cfg.deploymentId = (raw.match(UUID) || [""])[0].toLowerCase();\n    // A pasted snippet also names the region.\n    const host = raw.match(/https:\\/\\/apps\\.([a-z0-9.-]+)\\/genesys-bootstrap/i)?.[1];\n    if (host && meta.regions.some((r) => r.domain === host)) { cfg.domain = host; regionSel.value = host; }\n    if (/^\\s*</.test(raw) && cfg.deploymentId) depInput.value = cfg.deploymentId;\n    drawDep(); save();\n  });\n  regionSel.addEventListener("change", () => { cfg.domain = regionSel.value; drawDep(); save(); });\n\n  // 4. Open\n  const link = h("div");\n  const drawLink = () => {\n    const q = new URLSearchParams({ industry: cfg.industry, lang: cfg.lang, brand: cfg.brand, color: cfg.color, phone: cfg.phone, ...(cfg.logo ? { logo: cfg.logo } : {}), ...(cfg.deploymentId ? { deployment: cfg.deploymentId, domain: cfg.domain } : {}) });\n    const url = `http://${meta.host}:${location.port}/site?${q}`;\n    put(link, h("div", { class: "row" },\n      h("button", { class: "btn primary", onclick: () => window.open(url, "_blank", "noopener") }, "Open website"),\n      h("span", { class: "mono muted", style: "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" }, url), copyButton(url)));\n  };\n  drawIndustries();\n  drawLink();\n  drawDep();\n  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Customer website"),\n    h("p", { class: "lead" }, "The customer\'s side of the demo: a website for their industry, in their brand, with your Genesys Messenger on it. Chat from it like a real customer while the agent desktop is on the other screen."),\n    step(1, "Industry", cards),\n    step(2, "Brand",\n      h("div", { class: "grid" }, h("label", {}, "Brand name", brand), h("label", {}, "Brand colour", color), h("label", {}, "Language", lang), h("label", {}, "Phone number on the site", phone)),\n      h("div", { style: "margin-top:10px" }, logoRow)),\n    step(3, "Chat",\n      h("div", { class: "grid", style: "grid-template-columns:minmax(0,2fr) minmax(0,1fr)" }, h("label", {}, "Messenger deployment ID", depInput), h("label", {}, "Region of the org", regionSel)),\n      depInfo,\n      h("p", { class: "muted", style: "font-size:13px;margin-bottom:0" }, "Find the ID in Genesys Cloud under Admin \u2192 Message \u2192 Messenger Deployments (open the deployment; the ID is in its snippet). No deployment yet? Create one there with an inbound message flow to your queue, or ask the AI to help you.")),\n    step(4, "Open", link));\n}\n\n// ----------------------------------------------------------- demo ready\n// Fills one agent\'s home screen with demo data, one section per component. A button writes to the\n// org right away; the server records what it did, so Clean up removes exactly that.\nconst DEMO_KEY = "gctk-demo-pick";\n/** replaceChildren that skips empty parts and flattens lists (DOM would print null and arrays as text). */\nconst put = (el, ...kids) => el.replaceChildren(...kids.flat(Infinity).filter((k) => k !== null && k !== undefined && k !== false));\nfunction demoPick() {\n  if (state.demoPick) return state.demoPick;\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(DEMO_KEY) || "{}") || {}; } catch {}\n  return (state.demoPick = { profile: saved.profile || "", userId: saved.userId || "", userName: saved.userName || "" });\n}\nfunction saveDemoPick() { try { localStorage.setItem(DEMO_KEY, JSON.stringify(state.demoPick)); } catch {} }\n\n/** The n-th working day from today at a local time, for template dates. */\nfunction workday(offset, time) {\n  const d = new Date();\n  for (let n = 0; n < offset;) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n++; }\n  const [hh, mm] = time.split(":").map(Number);\n  d.setHours(hh, mm, 0, 0);\n  return d;\n}\nconst localInput = (d) => { const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };\n\nasync function demoUsers(profile) {\n  state.demoUsers ??= {};\n  return (state.demoUsers[profile] ??= api(`/api/demo/users?profile=${encodeURIComponent(profile)}`).catch((err) => { delete state.demoUsers[profile]; throw err; }));\n}\n\n/** Result of a run: what was applied, notes. */\nfunction demoResult(r, onRetry) {\n  const failed = r.applied.filter((a) => a.status !== "applied");\n  return h("div", {},\n    r.applied.length ? h("ul", { style: "margin:8px 0;padding-left:20px" }, r.applied.map((a) =>\n      h("li", {}, a.status === "applied" ? "\u2713 " : "\u2717 ", a.title.replace(/^Demo ready \\([^)]*\\): /, ""), a.error ? h("div", { class: "error", style: "margin:4px 0" }, a.error) : null))) : null,\n    r.busy && onRetry ? h("div", { class: "warn row" }, h("span", { style: "flex:1" }, "Genesys Cloud is still working on the last step. Continue in a minute to do the rest."),\n      h("button", { class: "btn primary", onclick: onRetry }, "Continue")) : null,\n    r.notes.map((n) => h("div", { class: "muted", style: "font-size:13px" }, n)),\n    r.done && !failed.length ? h("div", { class: "okbox" }, r.applied.length ? "Done. The agent sees the changes on the Genesys Cloud home screen (reload it there)." : "Nothing to change: everything is already there.") : null);\n}\n\n/** run(input, button): runs a section and shows the result in out. */\nfunction demoRunner(section, base, out, reload) {\n  let last = null;\n  const run = async (input, btn) => {\n    if (input) last = input;\n    if (!last) return;\n    if (btn) btn.disabled = true;\n    out.replaceChildren(h("div", { class: "muted" }, "Working\u2026"));\n    try {\n      const r = await api(`/api/demo/${section}/run`, { method: "POST", body: { ...base, input: last } });\n      out.replaceChildren(demoResult(r, () => run(last)));\n      reload();\n      state.demoChanged?.();\n    } catch (err) { out.replaceChildren(h("div", { class: "error" }, err.message)); }\n    if (btn) btn.disabled = false;\n  };\n  return run;\n}\n\n/**\n * The two areas of a section: what the agent has in the org now (live) and what can be added\n * (suggestions and templates, created only when the user presses the button).\n */\nfunction demoBlock(kind, title, note, ...children) {\n  return h("div", { class: `dblock ${kind}` },\n    h("div", { class: "dblock-head" }, h("strong", {}, title),\n      h("span", { class: "muted", style: "font-size:12px" }, kind === "live" ? "in Genesys Cloud now" : note || "nothing changes until you press the button")),\n    ...children);\n}\n\n/** One line per area for the overview cards: [state, text]; state ok (done), todo or bad. */\nconst DEMO_STATUS = {\n  coaching: (s) => {\n    const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= Date.now() && a.status !== "Completed").length;\n    return upcoming ? ["ok", `${upcoming} upcoming appointment${upcoming > 1 ? "s" : ""}`] : s.appointments.length ? ["todo", "Only past appointments"] : ["todo", "No appointments yet"];\n  },\n  learning: (s) => s.assignments.length ? ["ok", `${s.assignments.length} module${s.assignments.length > 1 ? "s" : ""} assigned`] : ["todo", "Nothing assigned yet"],\n  sta: (s) => {\n    const q = s.agentQueues.find((id) => s.queuePrograms[id]);\n    if (q && s.settings.text) return ["ok", `${s.queues.find((x) => x.id === q)?.name || "Queue"} is analysed`];\n    return s.agentQueues.length ? ["todo", "Not set up yet"] : ["todo", "The agent is in no queue yet"];\n  },\n  evaluations: (s) => {\n    const evals = Array.isArray(s.evaluations) ? s.evaluations : [];\n    const convs = Array.isArray(s.conversations) ? s.conversations : [];\n    if (evals.length) return ["ok", `${evals.length} evaluation${evals.length > 1 ? "s" : ""}`];\n    return convs.length ? ["todo", `Not set up yet \xB7 ${convs.length} conversation${convs.length > 1 ? "s" : ""} to evaluate`] : ["bad", "Needs handled conversations first"];\n  },\n  scorecard: (s) => {\n    const p = s.gamification.active && s.profiles.find((x) => x.id === s.currentProfile);\n    return p ? ["ok", `In profile ${p.name}`] : ["todo", s.gamification.active ? "The agent is in no profile yet" : "Not set up yet"];\n  },\n  schedule: (s) => s.current && s.schedules.some((x) => x.published) ? ["ok", "Published schedule"] : ["todo", "No schedule yet"],\n};\nconst DEMO_TAB_KEY = "gctk-demo-tab";\n\nasync function viewDemo() {\n  const meta = state.demoMeta || (state.demoMeta = await api("/api/demo"));\n  const profiles = state.overview?.profiles.filter((p) => !p.error && p.credentialsStored) || [];\n  const pick = demoPick();\n  if (!profiles.some((p) => p.name === pick.profile)) { pick.profile = state.profile && profiles.some((p) => p.name === state.profile) ? state.profile : profiles[0]?.name || ""; pick.userId = ""; pick.userName = ""; }\n  const prof = profiles.find((p) => p.name === pick.profile);\n\n  const profileSel = h("select", { onchange: (e) => { pick.profile = e.target.value; pick.userId = ""; pick.userName = ""; saveDemoPick(); render(); } },\n    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier})`)));\n  const agentSel = h("select", { disabled: true, style: "min-width:min(260px,100%);max-width:100%" }, h("option", { value: "" }, "Loading users\u2026"));\n  const filter = h("input", { type: "search", placeholder: "Search by name or email", disabled: true, style: "min-width:200px" });\n  const msg = h("div");\n  const sections = h("div");\n  let users = [];\n  const fill = () => {\n    const q = filter.value.trim().toLowerCase();\n    const shown = users.filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || u.id === pick.userId);\n    agentSel.replaceChildren(h("option", { value: "" }, shown.length ? "Choose the agent\u2026" : "Nobody matches the search"), ...shown.map((u) => h("option", { value: u.id, selected: u.id === pick.userId }, u.email ? `${u.name} \xB7 ${u.email}` : u.name)));\n  };\n  filter.addEventListener("input", fill);\n  agentSel.addEventListener("change", () => {\n    const u = users.find((x) => x.id === agentSel.value);\n    pick.userId = u?.id || ""; pick.userName = u?.name || ""; saveDemoPick();\n    drawSections();\n  });\n  // An overview of the agent\'s home screen (one card per area, with what is there now) opens one\n  // area at a time; Refresh dates and Clean up are tools below it. The choice is remembered here.\n  const VIEWS_BY_ID = { coaching: () => demoCoaching(prof, pick, users), learning: () => demoLearning(pick), sta: () => demoSta(pick), evaluations: () => demoEvaluations(pick, users), scorecard: () => demoScorecard(pick), schedule: () => demoSchedule(pick), refresh: () => demoRefresh(pick), cleanup: () => demoCleanup(pick) };\n  const SHORT = { coaching: "1:1s and coaching sessions in the agent\'s calendar", learning: "Training modules the agent has to complete", sta: "Transcripts, sentiment and topics for the agent\'s conversations", evaluations: "Quality evaluations of the agent\'s conversations", scorecard: "Scorecard and leaderboard values", schedule: "This week\'s shifts, breaks and training" };\n  const ORDER = ["coaching", "learning", "evaluations", "scorecard", "schedule", "sta"];\n  const areas = ORDER.map((id) => meta.sections.find((x) => x.id === id)).filter((x) => x && x.ready && VIEWS_BY_ID[x.id])\n    .map((x) => ({ id: x.id, title: x.id === "sta" ? "Speech & text analytics" : x.title, what: SHORT[x.id] || x.what }));\n  let tab = (() => { try { return localStorage.getItem(DEMO_TAB_KEY) || ""; } catch { return ""; } })();\n  if (![...areas.map((a) => a.id), "refresh", "cleanup"].includes(tab)) tab = areas[0]?.id || "cleanup";\n  const open = (id) => { tab = id; try { localStorage.setItem(DEMO_TAB_KEY, tab); } catch {} drawSections(); };\n\n  const drawSections = () => {\n    state.demoChanged = null;\n    if (!pick.userId) { sections.replaceChildren(h("div", { class: "panel empty" }, "Choose the agent you will log in as during the demo. The page then shows what their home screen has and what is missing.")); return; }\n    const q = `profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`;\n    const stEls = {};\n    const cards = h("div", { class: "dcards" }, areas.map((a) => {\n      stEls[a.id] = h("span", { class: "st" }, "Checking\u2026");\n      return h("button", { class: "dcard", "aria-pressed": a.id === tab ? "true" : "false", onclick: () => open(a.id) }, h("strong", {}, a.title), h("span", { class: "what" }, a.what), stEls[a.id]);\n    }));\n    const loadStatus = () => {\n      for (const a of areas) {\n        api(`/api/demo/${a.id}/status?${q}`).then((s) => {\n          const [cls, text] = DEMO_STATUS[a.id](s);\n          stEls[a.id].className = `st ${cls}`; stEls[a.id].textContent = text;\n        }).catch(() => { stEls[a.id].className = "st bad"; stEls[a.id].textContent = "Could not be read"; });\n      }\n    };\n    loadStatus();\n    state.demoChanged = loadStatus;\n    // Demo data ages: say so above everything, with a way to the refresh.\n    const stale = h("div");\n    if (tab !== "refresh") {\n      api(`/api/demo/refresh/status?${q}`).then((st) => {\n        if (st.stale) put(stale, h("div", { class: "warn row" }, h("span", { style: "flex:1" }, `${st.stale} date${st.stale > 1 ? "s" : ""} on ${pick.userName || "the agent"}\'s home screen ${st.stale > 1 ? "lie" : "lies"} in the past, so the demo looks stale.`),\n          h("button", { class: "btn primary", onclick: () => open("refresh") }, "Refresh dates")));\n      }).catch(() => {});\n    }\n    const tool = (id, label, note) => h("button", { class: "btn", "aria-pressed": id === tab ? "true" : "false", style: id === tab ? "border-color:var(--accent)" : "", title: note, onclick: () => open(id) }, label);\n    sections.replaceChildren(\n      stale,\n      h("div", { class: "dstep" }, h("b", {}, "2"), h("h3", {}, `What ${pick.userName || "the agent"}\'s home screen shows`)),\n      h("p", { class: "muted", style: "margin:0 0 10px;font-size:13px" }, "Green is ready for the demo. Open an area to see the details and fill what is missing."),\n      cards,\n      h("div", { class: "dtools" }, h("span", { class: "muted", style: "font-size:13px" }, "Later:"),\n        tool("refresh", "Refresh dates", "A week later the demo data lies in the past: move it forward"),\n        tool("cleanup", "Clean up after the demo", "Remove everything this page created for the agent")),\n      h("div", { class: "dstep" }, h("b", {}, "3"), h("h3", {}, tab === "refresh" ? "Refresh dates" : tab === "cleanup" ? "Clean up" : areas.find((a) => a.id === tab)?.title || "")),\n      VIEWS_BY_ID[tab]());\n  };\n\n  if (pick.profile) {\n    demoUsers(pick.profile).then((list) => {\n      users = list;\n      agentSel.disabled = filter.disabled = false;\n      fill();\n      msg.replaceChildren();\n      if (pick.userId && !users.some((u) => u.id === pick.userId)) { pick.userId = ""; pick.userName = ""; }\n      drawSections();\n    }).catch((err) => msg.replaceChildren(h("div", { class: "error" }, err.message)));\n  }\n\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demo ready"),\n    h("p", { class: "lead" }, "Make an agent\'s Genesys Cloud home screen look lived-in before a demo. Choose the agent, then fill what is still empty. Nothing changes in Genesys Cloud until you press a button, and Clean up removes it all again afterwards."),\n    profiles.length ? [\n      h("div", { class: "dstep" }, h("b", {}, "1"), h("h3", {}, "The demo agent")),\n      h("div", { class: "panel" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "Org", profileSel), h("label", { class: "row", style: "min-width:0;max-width:100%" }, "Agent", agentSel), filter),\n        prof ? h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, `The user you log in as during the demo. Changes go to ${prof.name} (${prof.tier}).`) : null,\n        msg)] : h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first."),\n    sections);\n}\n\nfunction demoCoaching(prof, pick, users) {\n  const templates = state.demoMeta.coachingTemplates;\n  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading appointments\u2026"));\n  const out = h("div");\n  const base = { profile: pick.profile, userId: pick.userId, agentName: pick.userName };\n\n  const facilitator = h("select", {}, h("option", { value: "" }, "No facilitator"),\n    users.filter((u) => u.id !== pick.userId).map((u) => h("option", { value: u.id }, u.name)));\n  const rows = h("div", { style: "display:grid;gap:10px" });\n  const addRow = (t) => {\n    const r = {\n      use: h("input", { type: "checkbox", checked: true, title: "Include" }),\n      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),\n      when: h("input", { type: "datetime-local", value: localInput(t.date) }),\n      length: h("input", { type: "number", min: 5, max: 480, step: 5, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),\n      completed: h("input", { type: "checkbox", checked: Boolean(t.completed) }),\n      description: h("input", { value: t.description, style: "width:100%" }),\n      state: h("span"),\n    };\n    const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n      h("div", { class: "row" }, r.use, r.name, r.when, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min"),\n        h("label", { class: "row", style: "font-size:12px", title: "Created, then set to completed. Completed appointments cannot be deleted later." }, r.completed, "completed"),\n        r.state,\n        h("button", { class: "btn", style: "padding:2px 8px", title: "Remove row", onclick: () => el.remove() }, "\xD7")),\n      r.description);\n    el.demo = r;\n    for (const f of [r.name, r.when]) f.addEventListener("change", () => mark(r, false));\n    rows.append(el);\n    mark(r, true);\n  };\n\n  // Marks suggestions the agent already has (same name and start: nothing would be created).\n  let known = null;\n  const mark = (r, uncheck) => {\n    if (!known) return;\n    const at = new Date(r.when.value).getTime();\n    const same = known.find((a) => a.name === r.name.value && Math.abs(Date.parse(a.dateStart) - at) < 60_000);\n    const named = known.find((a) => a.name === r.name.value);\n    if (same && uncheck) r.use.checked = false;\n    r.state.replaceChildren(same ? pill("already in the org", "s-applied") : named ? h("span", { class: "muted", style: "font-size:12px" }, `same name on ${new Date(named.dateStart).toLocaleDateString()}`) : pill("new", ""));\n  };\n  for (const t of templates) addRow({ ...t, date: workday(t.workdayOffset, t.time) });\n\n  const run = demoRunner("coaching", base, out, () => load());\n\n  const createBtn = h("button", { class: "btn primary" }, "Add to the agent\'s calendar");\n  createBtn.addEventListener("click", () => {\n    const chosen = [...rows.children].map((el) => el.demo).filter((r) => r.use.checked);\n    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one appointment.")); return; }\n    if (chosen.some((r) => !r.when.value)) { out.replaceChildren(h("div", { class: "error" }, "Every appointment needs a start.")); return; }\n    if (chosen.some((r) => r.completed.checked) && !confirm("Appointments marked completed cannot be deleted afterwards (Genesys Cloud keeps them). Continue?")) return;\n    run({ appointments: chosen.map((r) => ({\n      name: r.name.value, description: r.description.value, dateStart: new Date(r.when.value).toISOString(),\n      lengthInMinutes: Number(r.length.value), completed: r.completed.checked, ...(facilitator.value ? { facilitatorId: facilitator.value } : {}),\n    })) }, createBtn);\n  });\n\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/coaching/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const now = Date.now();\n      const upcoming = s.appointments.filter((a) => Date.parse(a.dateStart) >= now && a.status !== "Completed").length;\n      known = s.appointments;\n      for (const el of rows.children) mark(el.demo, true);\n      put(list, \n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.appointments.length} appointment${s.appointments.length === 1 ? "" : "s"}`),\n          h("span", { class: "muted" }, `(last 60 and next 90 days; ${upcoming} upcoming)`)),\n        !s.appointments.length ? h("div", { class: "muted" }, "The agent has no coaching appointments yet.") : null,\n        s.appointments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["When", "Appointment", "Length", "Facilitator", "Status", ""].map((t) => h("th", {}, t))),\n          s.appointments.map((a) => h("tr", {},\n            h("td", { style: "white-space:nowrap" }, time(a.dateStart)),\n            h("td", {}, a.name),\n            h("td", {}, a.lengthInMinutes ? `${a.lengthInMinutes} min` : ""),\n            h("td", {}, nameOf(a.facilitatorId)),\n            h("td", {}, pill(a.status || "?", a.status === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),\n            h("td", {}, a.status === "Scheduled" ? h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {\n              if (confirm(`Delete "${a.name}"?`)) run({ appointments: [], remove: [a.id] }, e.target);\n            } }, "Delete") : null))))) : null);\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Appointments show up in the agent\'s calendar and Development view. Genesys Cloud only accepts appointments in the future; tick completed for a session that is already done."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s appointments`, "", list),\n    demoBlock("setup", "Suggested appointments", "change anything you like; nothing is created until you press the button",\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row", title: "The facilitator and the agent need the permission coaching:appointment:participate." }, "Facilitator (optional)", facilitator)),\n      rows,\n      h("div", { class: "row", style: "margin-top:10px" },\n        h("button", { class: "btn", onclick: () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }) }, "+ Appointment"),\n        h("span", { class: "spacer" }), createBtn)),\n    out);\n}\n\nconst dateInput = (d) => localInput(d).slice(0, 10);\n/** A due date from a date input: that day, 17:00 local time. */\nconst dueIso = (v) => { const d = new Date(`${v}T17:00`); return isNaN(d) ? "" : d.toISOString(); };\n\nfunction demoLearning(pick) {\n  const templates = state.demoMeta.learningTemplates;\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading learning\u2026"));\n  const pickBox = h("div");\n  const out = h("div");\n  const run = demoRunner("learning", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  let rows = [];\n\n  const newRow = (t, checked) => {\n    const r = {\n      kind: "new",\n      use: h("input", { type: "checkbox", checked }),\n      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),\n      due: h("input", { type: "date", value: dateInput(workday(t.dueWorkdays, "17:00")) }),\n      length: h("input", { type: "number", min: 15, max: 480, step: 15, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),\n      description: h("input", { value: t.description, style: "width:100%" }),\n      content: h("textarea", { style: "min-height:70px;font-family:inherit;font-size:13px" }, t.content),\n    };\n    r.el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n      h("div", { class: "row" }, r.use, r.name, h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min")),\n      r.description, r.content);\n    return r;\n  };\n\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/learning/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const assigned = new Set(s.assignments.map((a) => a.moduleId));\n      const open = s.assignments.filter((a) => a.state !== "Completed").length;\n      put(list, \n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${s.assignments.length} assigned module${s.assignments.length === 1 ? "" : "s"}`),\n          h("span", { class: "muted" }, `(${open} open)`)),\n        !s.assignments.length ? h("div", { class: "muted" }, "The agent has no learning assignments yet.") : null,\n        s.assignments.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["Module", "Due", "Progress", "State", ""].map((t) => h("th", {}, t))),\n          s.assignments.map((a) => h("tr", {},\n            h("td", {}, a.moduleName),\n            h("td", { style: "white-space:nowrap" }, a.dueDate ? new Date(a.dueDate).toLocaleDateString() : ""),\n            h("td", {}, `${Math.round(a.completionPercentage || 0)} %`),\n            h("td", {}, pill(a.isOverdue ? "overdue" : a.state || "?", a.state === "Completed" ? "s-applied" : a.isOverdue ? "s-failed" : "s-approved")),\n            h("td", {}, h("button", { class: "btn danger", style: "padding:2px 10px", onclick: (e) => {\n              if (confirm(`Remove "${a.moduleName}" from the agent?`)) run({ assignments: [], remove: [a.id] }, e.target);\n            } }, "Remove")))))) : null);\n\n      // What can be assigned: published modules of the org that the agent does not have yet, and new ones.\n      const available = s.modules.filter((m) => m.isPublished && !assigned.has(m.id));\n      const filter = h("input", { placeholder: "Filter modules", style: "min-width:200px" });\n      const orgRows = available.map((m, i) => {\n        const r = { kind: "org", id: m.id, name: m.name, use: h("input", { type: "checkbox", checked: i < 3 }), due: h("input", { type: "date", value: dateInput(workday(3 + 2 * Math.min(i, 5), "17:00")) }) };\n        r.el = h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:4px 0" }, r.use,\n          h("span", { style: "flex:1;min-width:220px" }, m.name, m.source === "GenesysBeyond" ? h("span", { class: "muted", style: "font-size:12px" }, " \xB7 Genesys Beyond") : null,\n            m.lengthInMinutes ? h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${m.lengthInMinutes} min`) : null),\n          h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due);\n        return r;\n      });\n      filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const r of orgRows) r.el.style.display = !q || r.name.toLowerCase().includes(q) ? "" : "none"; });\n      const existingNames = new Set(s.modules.map((m) => m.name));\n      const newRows = templates.filter((t) => !existingNames.has(t.name)).map((t) => newRow(t, !available.length));\n      const newBox = h("div", { style: "display:grid;gap:10px" }, newRows.map((r) => r.el));\n      rows = [...orgRows, ...newRows];\n      put(pickBox, \n        h("strong", { style: "display:block;margin-bottom:6px" }, "Modules that already exist in the org"),\n        available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, `${available.length} published module${available.length === 1 ? "" : "s"} the agent does not have yet`)),\n          h("div", { style: "max-height:260px;overflow:auto" }, orgRows.map((r) => r.el)))\n          : h("div", { class: "muted" }, s.modules.some((m) => m.isPublished) ? "The agent already has every published module." : "The org has no published learning modules yet; create some below."),\n        h("strong", { style: "display:block;margin:14px 0 2px" }, "Or new modules"),\n        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Created in the org with the text below, then assigned."),\n        newBox,\n        h("div", { class: "row", style: "margin-top:10px" },\n          h("button", { class: "btn", onclick: () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); } }, "+ New module"),\n          h("span", { class: "spacer" }), assignBtn));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n\n  const assignBtn = h("button", { class: "btn primary" }, "Assign to the agent");\n  assignBtn.addEventListener("click", () => {\n    const chosen = rows.filter((r) => r.use.checked);\n    if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one module.")); return; }\n    if (chosen.some((r) => !dueIso(r.due.value))) { out.replaceChildren(h("div", { class: "error" }, "Every module needs a due date.")); return; }\n    run({ assignments: chosen.map((r) => r.kind === "org"\n      ? { moduleId: r.id, dueDate: dueIso(r.due.value) }\n      : { newModule: { name: r.name.value, description: r.description.value, content: r.content.value, lengthInMinutes: Number(r.length.value) }, dueDate: dueIso(r.due.value) }) }, assignBtn);\n  });\n  load();\n\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up on the home screen and in the Development view. To show a completed one, open it once as the agent: only the agent can complete a module."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s learning`, "", list),\n    demoBlock("setup", "Assign modules", "nothing changes until you press the button", pickBox),\n    out);\n}\n\nfunction demoSta(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading speech and text analytics\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("sta", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const onOff = (v) => pill(v ? "on" : "off", v ? "s-applied" : "s-pending");\n  const TRANSCRIPTION = { EnabledQueueFlow: "on for queues and flows that enable it", EnabledGlobally: "on for all interactions", Disabled: "off" };\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/sta/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const programName = (id) => s.programs.find((p) => p.id === id)?.name || (id ? "another program" : "");\n      put(info, \n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Text analytics"), h("dd", {}, onOff(s.settings.text), " sentiment ", onOff(s.settings.sentiment), " agent empathy ", onOff(s.settings.empathy)),\n          h("dt", {}, "Expected dialects"), h("dd", {}, s.settings.dialects.length ? s.settings.dialects.join(", ") : h("span", { class: "muted" }, "none")),\n          h("dt", {}, "Voice transcription"), h("dd", {}, TRANSCRIPTION[s.transcription] || s.transcription),\n          h("dt", {}, "Agent\'s queues"), h("dd", {}, s.agentQueues.length ? s.agentQueues.map((id) => {\n            const q = s.queues.find((x) => x.id === id);\n            const prog = programName(s.queuePrograms[id]);\n            return h("div", {}, q?.name || id, h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${prog ? `program ${prog}` : "in no program"} \xB7 transcription ${s.transcribed[id] ? "on" : "off"}`));\n          }) : h("span", { class: "muted" }, "none"))));\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const agentQs = s.queues.filter((q) => s.agentQueues.includes(q.id));\n    const otherQs = s.queues.filter((q) => !s.agentQueues.includes(q.id));\n    const queueSel = h("select", {},\n      agentQs.length ? h("optgroup", { label: "The agent\'s queues" }, agentQs.map((q) => h("option", { value: q.id }, q.name))) : null,\n      otherQs.length ? h("optgroup", { label: "Other queues" }, otherQs.map((q) => h("option", { value: q.id }, q.name))) : null);\n    const addAgent = h("input", { type: "checkbox", checked: true });\n    const addAgentRow = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, addAgent, "Add the agent to this queue");\n    const analytics = h("input", { type: "checkbox", checked: true });\n    const dialect = h("select", {}, h("option", { value: "" }, "keep the expected dialects"), s.dialects.map((d) => h("option", { value: d, selected: !s.settings.dialects.length && d === "en-US" }, d)));\n    const transcription = h("input", { type: "checkbox", checked: true });\n    const byName = s.programs.find((p) => p.name === s.defaults.program);\n    const programSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New program\u2026"),\n      s.programs.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.id === s.settings.defaultProgram ? " (default program)" : ""}${p.published ? "" : " (not published)"}`)));\n    const programName = h("input", { value: s.defaults.program, style: "min-width:220px" });\n    const filter = h("input", { placeholder: "Filter topics", style: "min-width:200px" });\n    const topicBoxes = s.topics.map((t) => {\n      const box = h("input", { type: "checkbox", checked: s.defaults.topics.includes(t.name) });\n      const el = h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, box, t.name, t.dialect ? h("span", { class: "muted", style: "font-size:11px" }, t.dialect) : null);\n      return { t, box, el };\n    });\n    filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const b of topicBoxes) b.el.style.display = !q || b.t.name.toLowerCase().includes(q) ? "" : "none"; });\n    const topicsWrap = h("div", {},\n      h("div", { class: "row", style: "margin:8px 0 4px" }, h("span", { class: "muted", style: "font-size:12px" }, "Topics of the new program: these exist in the org (published); tick the ones the program should use"), filter),\n      h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px;max-height:220px;overflow:auto" }, topicBoxes.map((b) => b.el)));\n    // Own topics, for when the org\'s topics do not fit.\n    const topicRows = h("div", { style: "display:grid;gap:10px" });\n    const addTopic = (t) => {\n      const r = {\n        name: h("input", { value: t.name, placeholder: "Topic name, e.g. Parcel not delivered", style: "flex:1;min-width:220px" }),\n        dialect: h("select", {}, s.dialects.map((d) => h("option", { value: d, selected: d === t.dialect }, d))),\n        strictness: h("select", { title: "How closely the conversation must match a phrase" }, [["1", "1 \xB7 loose"], ["55", "55"], ["65", "65"], ["72", "72 \xB7 default"], ["85", "85"], ["90", "90 \xB7 strict"]].map(([v, l]) => h("option", { value: v, selected: v === "72" }, l))),\n        description: h("input", { value: t.description || "", placeholder: "Description (optional)", style: "width:100%" }),\n        phrases: h("textarea", { placeholder: "One phrase per line, the way customers or agents say it", style: "min-height:70px;font-family:inherit;font-size:13px" }, (t.phrases || []).join("\\n")),\n      };\n      const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },\n        h("div", { class: "row" }, r.name, r.dialect, h("label", { class: "row" }, "Strictness", r.strictness), h("span", { class: "spacer" }),\n          h("button", { class: "btn", style: "padding:2px 8px", title: "Remove topic", onclick: () => el.remove() }, "\xD7")),\n        r.description, r.phrases);\n      el.demo = r;\n      topicRows.append(el);\n    };\n    const defaultDialect = () => dialect.value || s.settings.dialects[0] || "en-US";\n    const newTopicsWrap = h("div", {},\n      h("div", { class: "row", style: "margin:8px 0 4px" }, h("strong", { style: "font-size:13px" }, "New topics"),\n        h("span", { class: "muted", style: "font-size:12px" }, "when the org\'s topics do not fit: created, published and added to the program (also to an existing one); Clean up deletes them again")),\n      topicRows,\n      h("div", { style: "margin-top:6px" }, h("button", { class: "btn", onclick: () => addTopic({ name: "", dialect: defaultDialect(), phrases: [] }) }, "+ Topic")));\n    const queueInfo = h("div", { class: "muted", style: "font-size:13px" });\n    const sync = () => {\n      const inQueue = s.agentQueues.includes(queueSel.value);\n      addAgentRow.style.display = inQueue ? "none" : "";\n      const now = s.queuePrograms[queueSel.value];\n      const target = programSel.value;\n      queueInfo.textContent = now && now !== target\n        ? `The queue is in program "${s.programs.find((p) => p.id === now)?.name || now}" now; a queue belongs to one program, so it moves (Clean up moves it back).`\n        : now === target ? "The queue is in this program already." : "";\n      programName.style.display = topicsWrap.style.display = target === NEW ? "" : "none";\n    };\n    queueSel.addEventListener("change", sync);\n    programSel.addEventListener("change", sync);\n    const btn = h("button", { class: "btn primary" }, "Set up speech and text analytics");\n    btn.addEventListener("click", () => {\n      if (!queueSel.value) { out.replaceChildren(h("div", { class: "error" }, "Choose a queue.")); return; }\n      run({\n        queueId: queueSel.value,\n        addAgent: addAgent.checked && !s.agentQueues.includes(queueSel.value),\n        analytics: analytics.checked,\n        dialect: dialect.value,\n        transcription: transcription.checked,\n        program: programSel.value === NEW ? { name: programName.value, topicIds: topicBoxes.filter((b) => b.box.checked).map((b) => b.t.id) } : { id: programSel.value },\n        newTopics: [...topicRows.children].map((el) => el.demo).filter((r) => r.name.value.trim() || r.phrases.value.trim()).map((r) => ({\n          name: r.name.value, dialect: r.dialect.value, strictness: r.strictness.value, description: r.description.value, phrases: r.phrases.value.split("\\n"),\n        })),\n      }, btn);\n    });\n    put(form, \n      s.queues.length ? h("div", { style: "display:grid;gap:8px" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "The agent\'s queue", queueSel), addAgentRow),\n        queueInfo,\n        h("details", {}, h("summary", {}, "More options: language, program and topics"),\n          h("div", { style: "display:grid;gap:8px" },\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, analytics, "Text analytics, sentiment and agent empathy (org-wide)"),\n            h("div", { class: "row" }, h("label", { class: "row" }, "Language of the calls", dialect)),\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, transcription, "Voice transcription for this queue"),\n            h("div", { class: "row" }, h("label", { class: "row" }, "Program", programSel), programName),\n            topicsWrap, newTopicsWrap)),\n        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn))\n        : h("div", { class: "warn" }, "The org has no queues yet."));\n    sync();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Gives the agent\'s calls and messages transcripts, sentiment, empathy and topics. Calls also need to be recorded (the default in Genesys Cloud)."),\n    demoBlock("live", "Now in the org", "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoEvaluations(pick, users) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading evaluations\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("evaluations", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(true));\n  const nameOf = (id) => users.find((u) => u.id === id)?.name || "";\n  const MEDIA = { email: "Email", message: "Message", voice: "Call", callback: "Callback", chat: "Chat" };\n  const RESULTS = [["strong", "strong"], ["mixed", "mixed"], ["weak", "needs work"]];\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/evaluations/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const failed = (v) => v && !Array.isArray(v);\n      const evals = failed(s.evaluations) ? [] : s.evaluations;\n      const convs = failed(s.conversations) ? [] : s.conversations;\n      const formName = (id) => s.forms.find((f) => f.id === id)?.name || "a form";\n      const evaluated = new Set(evals.map((e) => e.conversationId));\n      put(info,\n        h("div", { class: "row", style: "margin-bottom:6px" }, h("strong", {}, `${evals.length} evaluation${evals.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 90 days)")),\n        failed(s.evaluations) ? h("div", { class: "error" }, s.evaluations.error) : null,\n        evals.length ? h("div", { style: "overflow-x:auto" }, h("table", {},\n          h("tr", {}, ["Created", "Conversation", "Form", "Score", "Evaluator", "Agent sees it"].map((t) => h("th", {}, t))),\n          evals.map((e) => h("tr", {},\n            h("td", { style: "white-space:nowrap" }, time(e.createdDate)),\n            h("td", { class: "mono" }, (e.conversationId || "").slice(0, 8)),\n            h("td", {}, formName(e.formId)),\n            h("td", {}, e.score !== undefined ? pill(`${Math.round(e.score)} %`, e.score >= 80 ? "s-applied" : e.score >= 50 ? "s-pending" : "s-failed") : ""),\n            h("td", {}, nameOf(e.evaluatorId)),\n            h("td", {}, e.released ? pill("released", "s-applied") : pill("not released", "s-pending")))))) : h("div", { class: "muted" }, "The agent has no evaluations yet."),\n        h("div", { class: "row", style: "margin:12px 0 6px" }, h("strong", {}, `${convs.length} handled conversation${convs.length === 1 ? "" : "s"}`), h("span", { class: "muted" }, "(last 4 weeks)")),\n        failed(s.conversations) ? h("div", { class: "error" }, s.conversations.error) : null,\n        !convs.length && !failed(s.conversations) ? h("div", { class: "muted" }, "None in the last 4 weeks.") : null);\n      if (withForm) drawForm(s, convs.filter((c) => !evaluated.has(c.id)));\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s, open) => {\n    const NEW = "__new__";\n    if (!open.length) {\n      put(form, h("div", { class: "warn" }, `Nothing to evaluate yet. Log in as ${pick.userName || "the agent"}, handle a few calls, chats or emails, then come back here.`));\n      return;\n    }\n    const formSel = h("select", {}, h("option", { value: NEW }, "New form from the template\u2026"), s.forms.map((f, i) => h("option", { value: f.id, selected: i === 0 }, f.name)));\n    const formName = h("input", { value: s.defaults.form, style: "min-width:240px" });\n    const syncForm = () => { formName.style.display = formSel.value === NEW ? "" : "none"; };\n    formSel.addEventListener("change", syncForm);\n    const candidates = users.filter((u) => s.evaluators.includes(u.id));\n    const evaluator = h("select", {}, candidates.map((u) => h("option", { value: u.id }, u.name)));\n    const rows = open.map((c, i) => {\n      const result = h("select", {}, RESULTS.map(([v, l]) => h("option", { value: v, selected: v === ["strong", "mixed", "strong", "weak"][i % 4] }, l)));\n      const comment = h("input", { value: s.defaults.comments[result.value], style: "flex:1;min-width:260px" });\n      let edited = false;\n      comment.addEventListener("input", () => { edited = true; });\n      result.addEventListener("change", () => { if (!edited) comment.value = s.defaults.comments[result.value]; });\n      const use = h("input", { type: "checkbox", checked: i < 3 });\n      return { c, use, result, comment, el: h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:6px 0" }, use,\n        h("span", { style: "min-width:230px" }, time(c.start), h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${MEDIA[c.mediaType] || c.mediaType || ""}${c.customer ? ` \xB7 ${c.customer}` : ""}`)),\n        result, comment) };\n    });\n    const btn = h("button", { class: "btn primary", disabled: !rows.length || !candidates.length }, "Create evaluations");\n    btn.addEventListener("click", () => {\n      const chosen = rows.filter((r) => r.use.checked);\n      if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one conversation.")); return; }\n      run({\n        form: formSel.value === NEW ? { name: formName.value } : { id: formSel.value },\n        evaluatorId: evaluator.value,\n        evaluations: chosen.map((r) => ({ conversationId: r.c.id, result: r.result.value, comment: r.comment.value })),\n      }, btn);\n    });\n    put(form,\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Form", formSel), formName,\n        h("span", { class: "muted", style: "font-size:12px" }, "existing forms are published forms of the org; a new form is created from the template and published (published forms stay in the org)")),\n      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Evaluator", evaluator),\n        candidates.length ? h("span", { class: "muted", style: "font-size:12px" }, "users who may score evaluations (quality:evaluation:edit)") : h("span", { class: "error", style: "margin:0" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),),\n      h("div", { class: "muted", style: "font-size:13px;margin:6px 0" }, "Tick the conversations to evaluate and choose how the agent did. The agent sees the evaluation right away."),\n      h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)),\n      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));\n    syncForm();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Evaluations show up in the agent\'s performance views and feed the quality score on the scorecard. Genesys Cloud only evaluates real conversations, so the agent needs a few handled ones first."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s evaluations and conversations`, "", info),\n    demoBlock("setup", "Evaluate conversations", "nothing is created until you press the button", form),\n    out);\n}\n\nfunction demoSchedule(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading workforce management\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("schedule", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/schedule/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const bu = s.current && s.businessUnits.find((b) => b.id === s.current.businessUnitId);\n      const mu = bu && bu.managementUnits.find((m) => m.id === s.current.id);\n      put(info,\n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Management unit"), h("dd", {}, mu ? `${mu.name} (business unit ${bu.name})` : h("span", { class: "muted" }, "none: the agent has no schedule")),\n          s.week ? [h("dt", {}, "This week"), h("dd", {}, `from ${s.week}`)] : null),\n        s.schedules.length ? h("table", {},\n          h("tr", {}, ["Schedule", "Weeks", "Published", "Agent\'s shifts"].map((t) => h("th", {}, t))),\n          s.schedules.map((x) => h("tr", {}, h("td", {}, x.description || x.id), h("td", {}, x.weekCount ?? ""), h("td", {}, pill(x.published ? "published" : "not published", x.published ? "s-applied" : "s-pending")), h("td", {}, x.shifts ?? "\u2014"))))\n          : mu ? h("div", { class: "muted" }, "No schedule for this week in the business unit.") : null,\n        !s.businessUnits.length ? h("div", { class: "muted", style: "margin-top:6px" }, "The org has no business unit yet.") : null);\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const buSel = h("select", {}, h("option", { value: NEW }, "New business unit\u2026"), s.businessUnits.map((b) => h("option", { value: b.id, selected: b.name === s.defaults.businessUnit || b.id === s.current?.businessUnitId }, b.name)));\n    const buName = h("input", { value: s.defaults.businessUnit, style: "min-width:200px" });\n    const tz = h("input", { value: Intl.DateTimeFormat().resolvedOptions().timeZone || s.defaults.timeZone, title: "Time zone of the business unit, e.g. Europe/London", style: "min-width:160px" });\n    const muSel = h("select");\n    const muName = h("input", { value: s.defaults.managementUnit, style: "min-width:200px" });\n    const syncBu = () => {\n      const bu = s.businessUnits.find((b) => b.id === buSel.value);\n      buName.style.display = tz.style.display = bu ? "none" : "";\n      muSel.replaceChildren(h("option", { value: NEW }, "New management unit\u2026"), ...(bu?.managementUnits ?? []).map((m) => h("option", { value: m.id, selected: m.name === s.defaults.managementUnit || m.id === s.current?.id }, m.name)));\n      syncMu();\n    };\n    const syncMu = () => { muName.style.display = muSel.value === NEW ? "" : "none"; };\n    buSel.addEventListener("change", syncBu);\n    muSel.addEventListener("change", syncMu);\n    const weeks = h("select", {}, [1, 2, 3, 4].map((n) => h("option", { value: n, selected: n === 2 }, `${n} week${n > 1 ? "s" : ""}`)));\n    const start = h("input", { type: "time", value: "09:00" });\n    const length = h("select", {}, [6, 7, 7.5, 8, 9].map((n) => h("option", { value: n * 60, selected: n === 8 }, `${n} h`)));\n    const DAYS = [["Mon", 1], ["Tue", 2], ["Wed", 3], ["Thu", 4], ["Fri", 5], ["Sat", 6], ["Sun", 0]];\n    const days = DAYS.map(([l, d]) => ({ d, box: h("input", { type: "checkbox", checked: d >= 1 && d <= 5 }), l }));\n    const training = h("input", { type: "checkbox", checked: true });\n    const btn = h("button", { class: "btn primary" }, "Set up the schedule");\n    btn.addEventListener("click", () => run({\n      businessUnit: buSel.value === NEW ? { name: buName.value, timeZone: tz.value } : { id: buSel.value },\n      managementUnit: muSel.value === NEW ? { name: muName.value } : { id: muSel.value },\n      weeks: Number(weeks.value),\n      pattern: { start: start.value, lengthMinutes: Number(length.value), days: days.filter((x) => x.box.checked).map((x) => x.d), training: training.checked },\n    }, btn));\n    put(form,\n      h("div", { style: "display:grid;gap:8px" },\n        h("div", { class: "row" }, h("label", { class: "row" }, "Business unit", buSel), buName, tz),\n        h("div", { class: "row" }, h("label", { class: "row" }, "Management unit", muSel), muName,\n          h("span", { class: "muted", style: "font-size:12px" }, "the agent moves into it")),\n        h("details", {}, h("summary", {}, "Change the shifts (default: 2 weeks from this week, Monday to Friday from 09:00, 8 hours)"),\n          h("div", { style: "display:grid;gap:8px" },\n            h("div", { class: "row" }, h("label", { class: "row" }, "Schedule", weeks), h("span", { class: "muted", style: "font-size:12px" }, "from this week"),\n              h("label", { class: "row" }, "Start", start), h("label", { class: "row" }, "Shift", length)),\n            h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:12px" }, "Working days"), days.map((x) => h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, x.box, x.l))),\n            h("label", { class: "row", style: "font-size:13px;color:var(--text)" }, training, "Training hour on Wednesdays (besides two breaks and lunch every day)"),\n            h("div", { class: "muted", style: "font-size:12px" }, "Weeks that already have a schedule stay as they are."))),\n        h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "spacer" }), btn)));\n    syncBu();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "A published schedule shows up on the home screen and in the schedule view. A new business unit takes Genesys Cloud a minute or two to set up."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s schedule`, "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoScorecard(pick) {\n  const info = h("div", {}, h("div", { class: "muted" }, "Loading gamification\u2026"));\n  const form = h("div");\n  const out = h("div");\n  const run = demoRunner("scorecard", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load(false));\n  const load = async (withForm) => {\n    try {\n      const s = await api(`/api/demo/scorecard/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const current = s.profiles.find((p) => p.id === s.currentProfile);\n      put(info, \n        h("dl", { class: "kv", style: "margin:0 0 8px" },\n          h("dt", {}, "Gamification"), h("dd", {}, s.gamification.active ? [pill("on", "s-applied"), h("span", { class: "muted" }, ` since ${s.gamification.dateStart}`)] : pill("off", "s-pending")),\n          h("dt", {}, "Agent\'s profile"), h("dd", {}, current ? [current.name, current.active === false ? h("span", { class: "muted" }, " (inactive)") : null] : h("span", { class: "muted" }, "none")),\n          current ? [h("dt", {}, "Metrics"), h("dd", {}, s.currentMetrics.length ? s.currentMetrics.join(", ") : h("span", { class: "muted" }, "none"))] : null),\n        s.gamification.active && current ? h("div", { class: "muted", style: "font-size:13px" }, "Scorecard values come from the agent\'s real activity and are calculated by Genesys Cloud a few times a day, so new data can take a while to show.") : null);\n      if (withForm) drawForm(s);\n    } catch (e) { put(info, h("div", { class: "error" }, e.message)); }\n  };\n  const drawForm = (s) => {\n    const NEW = "__new__";\n    const byName = s.profiles.find((p) => p.name === s.defaults.profile);\n    const profileSel = h("select", {}, h("option", { value: NEW, selected: !byName }, "New profile\u2026"),\n      s.profiles.map((p) => h("option", { value: p.id, selected: byName?.id === p.id }, `${p.name}${p.active === false ? " (inactive)" : ""} \xB7 ${p.memberCount ?? 0} member${p.memberCount === 1 ? "" : "s"}`)));\n    const profileName = h("input", { value: s.defaults.profile, style: "min-width:220px" });\n    const activate = h("input", { type: "checkbox", checked: true });\n    const boxes = s.definitions.map((d) => ({ d, box: h("input", { type: "checkbox", checked: s.defaults.metrics.includes(d.name) }), tag: h("span", { class: "muted", style: "font-size:11px;white-space:nowrap" }) }));\n    const metricsBox = h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px" },\n      boxes.map(({ d, box, tag }) => h("label", { class: "row", style: "font-size:13px;color:var(--text);flex-wrap:nowrap" }, box, d.label, tag)));\n    // Metrics the agent\'s current profile has already: shown as such, not as suggestions.\n    const markMetrics = () => {\n      const has = profileSel.value === s.currentProfile ? new Set(s.currentMetrics) : new Set();\n      for (const b of boxes) {\n        const inProfile = has.has(b.d.label);\n        b.box.disabled = inProfile;\n        if (inProfile) b.box.checked = true;\n        b.tag.textContent = inProfile ? "already in the profile" : "";\n      }\n    };\n    const own = (id) => s.own.includes(id);\n    const sync = () => {\n      const editable = profileSel.value === NEW || own(profileSel.value);\n      profileName.style.display = profileSel.value === NEW ? "" : "none";\n      metricsWrap.style.display = editable ? "" : "none";\n      existingNote.style.display = editable ? "none" : "";\n      markMetrics();\n    };\n    const metricsWrap = h("div", {}, h("div", { class: "muted", style: "font-size:12px;margin:8px 0 4px" }, "Metrics of the profile (objectives start today; Genesys Cloud does not accept earlier dates)"), metricsBox);\n    const existingNote = h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, "An existing profile keeps its metrics; only the agent becomes a member.");\n    profileSel.addEventListener("change", sync);\n    const btn = h("button", { class: "btn primary" }, "Set up the scorecard");\n    btn.addEventListener("click", () => run({\n      activate: activate.checked,\n      profile: profileSel.value === NEW ? { name: profileName.value } : { id: profileSel.value },\n      metrics: boxes.filter((b) => b.box.checked).map((b) => b.d.id),\n    }, btn));\n    put(form, \n      !s.gamification.active ? h("label", { class: "row", style: "font-size:13px;color:var(--text);margin-bottom:8px" }, activate, "Switch gamification on for the org (from today)") : null,\n      h("div", { class: "row" }, h("label", { class: "row" }, "Performance profile", profileSel), profileName),\n      metricsWrap, existingNote,\n      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));\n    sync();\n  };\n  load(true);\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Puts the agent into a performance profile, so the scorecard and leaderboard show values. Genesys Cloud calculates them a few times a day."),\n    demoBlock("live", `${pick.userName || "The agent"}\'s scorecard`, "", info),\n    demoBlock("setup", "Set up", "", form),\n    out);\n}\n\nfunction demoRefresh(pick) {\n  const list = h("div", {}, h("div", { class: "muted" }, "Checking the dates\u2026"));\n  const out = h("div");\n  const run = demoRunner("refresh", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  const day = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/refresh/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const box = (on, label, note) => { const b = h("input", { type: "checkbox", checked: on, disabled: !on }); return [b, h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600;margin-top:10px" }, b, label, h("span", { class: "muted", style: "font-weight:400" }, note))]; };\n      const [coaching, coachingLabel] = box(s.appointments.length > 0, "Coaching", s.appointments.length ? `${s.appointments.length} appointment${s.appointments.length > 1 ? "s" : ""} in the past` : "all ahead");\n      const [learning, learningLabel] = box(s.assignments.length > 0, "Learning", s.assignments.length ? `${s.assignments.length} due date${s.assignments.length > 1 ? "s" : ""} in the past` : "all ahead");\n      const sch = s.schedule;\n      const [schedule, scheduleLabel] = box(sch.state === "stale", "Schedule",\n        sch.state === "stale" ? `nothing for the week of ${sch.week}` : sch.state === "current" ? "covers this week" : "Demo ready has not made a schedule for this agent");\n      const move = (rows) => rows.length ? h("table", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "Now"), h("th", {}, "After the refresh")),\n        rows.map((r) => h("tr", {}, h("td", {}, r.name || r.moduleName), h("td", { class: "muted" }, day(r.dateStart || r.dueDate)), h("td", {}, day(r.newDate))))) : null;\n      const btn = h("button", { class: "btn primary", disabled: !s.stale }, "Refresh");\n      btn.addEventListener("click", () => run({ coaching: coaching.checked, learning: learning.checked, schedule: schedule.checked }, btn));\n      put(list,\n        s.stale ? null : h("div", { class: "okbox" }, "Everything Demo ready created for this agent lies ahead. Nothing to refresh."),\n        coachingLabel, move(s.appointments),\n        learningLabel, move(s.assignments),\n        scheduleLabel, sch.state === "stale" ? h("div", { class: "muted", style: "font-size:13px" }, `A new ${Math.max(2, sch.weeks || 2)}-week schedule from ${sch.week} in "${sch.businessUnit.name}", with the default shifts (09:00, 8 hours, Monday to Friday).`) : null,\n        h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "spacer" }), btn));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "A week later the appointments and due dates lie in the past and the schedule has run out. This moves what the page created forward by whole weeks (same weekday and time) and publishes a new schedule."),\n    list, out);\n}\n\nfunction demoCleanup(pick) {\n  const list = h("div", {}, h("div", { class: "muted" }, "Loading what Demo ready created\u2026"));\n  const out = h("div");\n  const run = demoRunner("cleanup", { profile: pick.profile, userId: pick.userId, agentName: pick.userName }, out, () => load());\n  const TITLES = { coaching: "Coaching", learning: "Learning", sta: "Speech and text analytics", evaluations: "Evaluations", scorecard: "Scorecard", schedule: "Schedule" };\n  const STATE = { remove: ["will be removed", "s-pending"], restore: ["will be restored", "s-pending"], gone: ["already removed", "s-applied"], kept: ["cannot be removed", "s-failed"] };\n  const load = async () => {\n    try {\n      const s = await api(`/api/demo/cleanup/status?profile=${encodeURIComponent(pick.profile)}&userId=${encodeURIComponent(pick.userId)}`);\n      const open = s.items.filter((i) => i.state === "remove" || i.state === "restore");\n      const boxes = {};\n      const sections = Object.keys(TITLES).filter((k) => s.items.some((i) => i.section === k));\n      const btn = h("button", { class: "btn danger", disabled: !open.length }, "Remove the ticked areas");\n      btn.addEventListener("click", () => {\n        const chosen = sections.filter((k) => boxes[k]?.checked);\n        if (!chosen.length) { out.replaceChildren(h("div", { class: "error" }, "Choose at least one section.")); return; }\n        const n = open.filter((i) => chosen.includes(i.section)).length;\n        if (!confirm(`Remove or restore ${n} thing${n === 1 ? "" : "s"} Demo ready created for ${pick.userName || "this agent"} in ${pick.profile}?`)) return;\n        run({ sections: chosen }, btn);\n      });\n      put(list, \n        s.items.length ? h("div", {},\n          sections.map((k) => {\n            const its = s.items.filter((i) => i.section === k);\n            const todo = its.filter((i) => i.state === "remove" || i.state === "restore").length;\n            boxes[k] = h("input", { type: "checkbox", checked: todo > 0, disabled: !todo });\n            const row = (i) => h("tr", {}, h("td", {}, i.label), h("td", { style: "white-space:nowrap" }, pill(STATE[i.state][0], STATE[i.state][1])), h("td", { class: "muted", style: "font-size:12px" }, i.reason || ""));\n            const gone = its.filter((i) => i.state === "gone");\n            return h("div", { style: "margin-bottom:10px" },\n              h("label", { class: "row", style: "font-size:14px;color:var(--text);font-weight:600" }, boxes[k], TITLES[k], h("span", { class: "muted", style: "font-weight:400" }, todo ? `${todo} to remove or restore` : "nothing left")),\n              h("table", {}, its.filter((i) => i.state !== "gone").map(row)),\n              gone.length ? h("details", {}, h("summary", { style: "font-size:12px" }, `${gone.length} already removed`), h("table", {}, gone.map(row))) : null);\n          }),\n          h("div", { class: "row" }, h("span", { class: "spacer" }), btn))\n          : h("div", { class: "muted" }, "Demo ready has not created anything for this agent in this org yet."),\n        s.notRemovable.map((n) => h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, n)));\n    } catch (err) { put(list, h("div", { class: "error" }, err.message)); }\n  };\n  load();\n  return h("div", { class: "panel" },\n    h("p", { class: "muted", style: "margin-top:0" }, "Removes what this page created for the agent and puts back what it changed. What was already in the org stays as it is."),\n    list, out);\n}\n\n// ------------------------------------------------------------- profiles\nasync function viewProfiles() {\n  const o = state.overview || await api("/api/overview");\n  // Where each org is used: Cursor servers linked to it, projects and AXL workshops. Read once per visit.\n  state.orgUse = {};\n  Promise.all([api("/api/ai-setup").catch(() => ({ servers: [] })), api("/api/axl").catch(() => ({ workshops: [] }))]).then(([s, axl]) => {\n    const use = {};\n    const add = (name, text) => (use[name] ||= []).push(text);\n    for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} (${whereText(x)})`);\n    for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "project" : "AXL workshop"} ${w.name}`);\n    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" \xB7 ")] : h("span", { class: "muted" }, "Not used by Cursor or a project yet."));\n    state.orgUse = use;\n  });\n  state.orgUseEls = {};\n  return h("div", {},\n    h("h2", {}, "Orgs"),\n    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; Cursor\'s servers and your projects use them from here."),\n    h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),\n    o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),\n    addProfileForm(o));\n}\n\nfunction profileCard(p) {\n  if (p.error) return h("div", { class: "panel error" }, `${p.name}: ${p.error}`);\n  const msg = h("div");\n  const cid = h("input", { placeholder: "Client ID", autocomplete: "off" });\n  const csec = h("input", { placeholder: "Client secret", type: "password", autocomplete: "off" });\n  const run = async (fn, okText) => {\n    msg.replaceChildren();\n    try { const r = await fn(); await refreshOverview(); msg.replaceChildren(h("div", { class: r && r.verified === false ? "error" : "okbox" }, r && r.verified === false ? `Stored, but verification failed: ${r.error}` : okText(r))); }\n    catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "panel" },\n    h("div", { class: "row" }, h("strong", {}, p.name), pill(p.tier, `t-${p.tier}`), h("span", { class: "muted" }, p.region),\n      p.active ? pill("working on", "") : null, h("span", { class: "spacer" }),\n      p.credentialsStored ? pill("credentials ok", "a-granted") : pill("no credentials", "a-missing")),\n    p.description ? h("div", { class: "muted" }, p.description) : null,\n    (state.orgUseEls[p.name] = h("div", { style: "font-size:13px;margin-top:4px" }, h("span", { class: "muted" }, "Checking where it is used\u2026"))),\n    h("details", {}, h("summary", {}, "Credentials"),\n      h("div", { class: "row" }, cid, csec, h("button", { class: "btn", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Store & verify"))),\n    h("div", { class: "row", style: "margin-top:8px" },\n      !p.active ? h("button", { class: "btn", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Work on this org") : null,\n      h("span", { class: "spacer" }),\n      h("button", { class: "btn danger", onclick: () => { const used = (state.orgUse || {})[p.name] || []; if (confirm(`Delete the org ${p.name} and its stored credentials?${used.length ? `\\n\\nThese then stop working:\\n\u2022 ${used.join("\\n\u2022 ")}` : ""}`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),\n    msg);\n}\n\nfunction addProfileForm(o) {\n  const f = {\n    name: h("input", { placeholder: "prod-de" }), region: h("input", { placeholder: "mypurecloud.de" }),\n    tier: h("select", {}, o.tiers.map((t) => h("option", { value: t }, t))), description: h("input", { placeholder: "Customer X production" }),\n    clientId: h("input", { placeholder: "Client ID", autocomplete: "off" }), clientSecret: h("input", { type: "password", placeholder: "Client secret", autocomplete: "off" }),\n  };\n  const msg = h("div");\n  const submit = async () => {\n    msg.replaceChildren();\n    try {\n      const r = await api("/api/profiles", { method: "POST", body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) });\n      f.clientSecret.value = "";\n      await refreshOverview();\n      await render();\n      if (r.verified === false) showError(new Error(`Profile created, credentials stored, but verification failed: ${r.error}`));\n    } catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "Connect an org"),\n    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "Region / domain", f.region), h("label", {}, "Tier", f.tier), h("label", {}, "Description", f.description),\n      h("label", {}, "OAuth client ID (Client Credentials)", f.clientId), h("label", {}, "Client secret", f.clientSecret)),\n    h("p", { class: "muted" }, "Name: short, e.g. demo-emea. Region: the domain you log in with, e.g. mypurecloud.de. Tier: sandbox for a personal demo org. Use a dedicated OAuth client (Client Credentials) per org; the secret is stored in the OS keychain and never shown again."),\n    h("button", { class: "btn primary", onclick: submit }, "Connect org"), msg);\n}\n\n// ------------------------------------------------------------------ axl\n// AXL workshops run in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list\n// of workshops here, each with the org the harness works on and the folder opened in Cursor.\n// Everything shown is local state; names and paths are the user\'s text (text nodes only).\nconst AXL_STAGES = [["research", "Research"], ["discovery", "Discovery"], ["build", "Build & test"], ["readout", "Readout"]];\nconst AXL_ARTIFACT_LABELS = { pov: "POV deck", spec: "Spec", run: "Run", readout: "Readout" };\nconst axlUrl = (id, rest = "") => `/api/axl/workshops/${encodeURIComponent(id)}${rest}`;\n\n/** One word for where a workshop stands, for the overview and the detail view. */\nfunction axlHarnessState(x) {\n  const w = x.workshop, f = x.folder;\n  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];\n  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];\n  if (!f.connected || f.stale) return [f.connected ? "out of date" : "not set up", "s-pending", "Press Set up folder."];\n  if (x.lastStart?.sinceSetup) return ["running", "s-applied", `Cursor started the harness ${time(x.lastStart.at)} (${x.lastStart.detail}).`];\n  return ["not started in Cursor", "s-pending", "Switch on this project\'s ava-harness in Cursor (Settings \u2192 MCP)."];\n}\n\nfunction axlOpenInCursor(id, small) {\n  return h("button", { class: "btn", style: small ? "padding:2px 10px;font-size:12px" : null, onclick: async () => {\n    try { const r = await api(axlUrl(id, "/open-cursor"), { method: "POST", body: {} }); if (!r.opened) showError(new Error("Could not open Cursor. Open the folder in Cursor yourself.")); } catch (err) { showError(err); }\n  } }, "Open in Cursor");\n}\n\nasync function viewAxl() {\n  const [st, templates] = await Promise.all([api("/api/axl"), api("/api/axl/tool-templates").catch(() => [])]);\n  state.toolTemplates = templates;\n  const box = h("div", {});\n  const draw = (next) => {\n    const open = state.axlOpen;\n    const x = open && open !== "new" ? next.workshops.find((y) => y.workshop.id === open) : null;\n    if (open && open !== "new" && !x) state.axlOpen = null;\n    box.replaceChildren(state.axlOpen === "new" ? axlNew(next, draw) : x ? axlDetail(next, x, draw) : axlOverview(next, draw));\n  };\n  draw(st);\n  return box;\n}\n\nconst isLabProject = (w) => w.lab !== false;\nconst usesHarnessUi = (w) => isLabProject(w) || w.harness === true;\nconst toolTitle = (n) => (TOOL_NAMES[n] || [n])[0];\n/** The tools a project\'s folder gets, in plain names. */\nconst projectTools = (w) => [...(usesHarnessUi(w) ? ["AVA harness"] : []), ...(w.tools || []).map((t) => toolTitle(t.name))];\n\n/** Where a project stands: workshops by their harness, projects by their folder\'s tools. */\nfunction projectState(x) {\n  const w = x.workshop, f = x.folder;\n  if (isLabProject(w)) return axlHarnessState(x);\n  if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];\n  if (x.org?.problem) return ["problem", "s-failed", x.org.problem];\n  if (!projectTools(w).length) return ["no tools", "s-pending", "Pick the Genesys tools for this folder."];\n  if (!f.exists || f.stale || (!f.connected && !(f.tools || []).some((t) => t.connected))) return [f.stale ? "out of date" : "not set up", "s-pending", "Press Set up folder."];\n  const started = Object.keys(x.toolStarts || {}).length || x.lastStart;\n  return started ? ["running", "s-applied", "Cursor has started the tools of this folder."] : ["set up", "s-applied", "Open the folder in Cursor and switch its tools on (Settings \u2192 MCP)."];\n}\n\nfunction axlHarnessMissing(st, draw) {\n  if (st.harnessInstalled) return null;\n  const cmd = h("input", { value: "", placeholder: st.harnessCommand, style: "flex:1;min-width:280px", "aria-label": "Path of ava-mcp" });\n  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "AVA harness not found"),\n    h("p", { class: "muted", style: "font-size:13px" }, `gctk starts the harness (ava-mcp from genesys-ava-skills) from ${st.harnessCommand}, but there is nothing there. Install it, or enter where it is.`),\n    h("div", { class: "row" }, cmd, h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl/settings", { method: "PUT", body: { harnessCommand: cmd.value } })); } catch (err) { showError(err); } } }, "Save")));\n}\n\nfunction axlOverview(st, draw) {\n  const open = (id) => { state.axlOpen = id; draw(st); };\n  const rows = st.workshops.map((x) => {\n    const w = x.workshop;\n    const [label, cls, hint] = projectState(x);\n    const latest = x.sessions[0];\n    return h("tr", {},\n      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), isLabProject(w) ? [" ", pill("AXL workshop", "")] : null,\n        h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),\n      h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),\n      h("td", {}, projectTools(w).join(", ") || h("span", { class: "muted" }, "\u2013"),\n        isLabProject(w) && x.sessions.length ? h("div", { class: "muted", style: "font-size:12px" }, `${x.sessions.length} session${x.sessions.length > 1 ? "s" : ""} \xB7 ${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`) : null),\n      h("td", { title: hint }, pill(label, cls)),\n      h("td", { style: "white-space:nowrap;text-align:right" }, x.folder.exists ? axlOpenInCursor(w.id, true) : null, " ", h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(w.id) }, "Settings")));\n  });\n  const harnessUsers = st.workshops.filter((x) => usesHarnessUi(x.workshop));\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Projects"), h("span", { class: "spacer" }),\n      h("button", { class: "btn" , onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"),\n      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New project")),\n    h("p", { class: "lead" }, "A project is a folder you build a demo in with the AI in Cursor. Each project has its own org: gctk gives the folder the Genesys tools you pick, started with that org\'s credentials from the keychain, and nothing changes in your other folders. An AXL workshop is a project with the lab guide."),\n    harnessUsers.length ? axlHarnessMissing(st, draw) : null,\n    st.globalHarness.present && harnessUsers.length ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a project\'s, so switch it off in each project folder (Settings \u2192 MCP).`) : null,\n    st.workshops.length\n      ? h("div", { class: "panel", style: "overflow-x:auto" }, h("table", {}, h("tr", {}, h("th", {}, "Project"), h("th", {}, "Org"), h("th", {}, "Tools"), h("th", {}, "Status"), h("th", {}, "")), rows))\n      : h("div", { class: "panel empty" }, "No projects yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Create the first one"), "."));\n}\n\n/** Orgs for a project (any, production marked) or a workshop (sandbox and dev only). */\nfunction projectOrgSelect(st, value, lab) {\n  const list = lab ? st.choices : st.orgs;\n  return h("select", { "aria-label": "Org" },\n    h("option", { value: "" }, list.length ? "choose\u2026" : lab ? "no sandbox or dev org" : "no org yet: add one on the Orgs page"),\n    list.map((c) => h("option", { value: c.name, selected: c.name === value }, `${c.name} \xB7 ${c.tier} \xB7 ${c.region}${c.tier === "production" ? " \xB7 PRODUCTION" : ""}`)));\n}\n/** Asks once before a project works on a production org; true when the org is fine to use. */\nfunction confirmOrg(st, name) {\n  const o = st.orgs.find((x) => x.name === name);\n  if (!o || o.tier !== "production") return { ok: true };\n  return { ok: confirm(`${name} is a PRODUCTION org.\\n\\nThe AI tools in this folder would read and change it directly, with that org\'s credentials. Use a sandbox or dev org for demos where you can.\\n\\nLet this project work on ${name}?`), confirmProduction: true };\n}\n\n/** Checkboxes for the AVA harness and the Genesys tools found in the user\'s configs. */\nfunction toolPicker(w, st) {\n  const lab = isLabProject(w);\n  const templates = state.toolTemplates || [];\n  const harness = h("input", { type: "checkbox", checked: usesHarnessUi(w) ? true : null, disabled: lab ? true : null, style: "width:auto" });\n  const stored = w.tools || [];\n  const boxes = [];\n  const line = (box, title, sub) => h("label", { style: "display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:14px" }, box, h("span", {}, h("strong", {}, title), sub ? h("div", { class: "muted", style: "font-size:12px" }, sub) : null));\n  const rows = [line(harness, "AVA harness", lab ? "always on for an AXL workshop" : `builds and tests AI agents \xB7 starts ${st.harnessCommand}${st.harnessInstalled ? "" : " (not installed yet)"}`)];\n  for (const t of templates) {\n    const has = stored.some((x) => x.name === t.name);\n    const box = h("input", { type: "checkbox", checked: has ? true : null, style: "width:auto" });\n    boxes.push([box, t.id]);\n    rows.push(line(box, toolTitle(t.name), `${t.name !== toolTitle(t.name) ? `${t.name} \xB7 ` : ""}as in ${t.from.replace(/^\\/Users\\/[^/]+/, "~")}`));\n  }\n  for (const x of stored.filter((x) => !templates.some((t) => t.name === x.name))) {\n    const box = h("input", { type: "checkbox", checked: true, style: "width:auto" });\n    boxes.push([box, `keep:${x.name}`]);\n    rows.push(line(box, toolTitle(x.name), "set up earlier; no longer found in your editor configs"));\n  }\n  if (!templates.length && !stored.length) rows.push(h("div", { class: "muted", style: "font-size:13px" }, "Other Genesys tools appear here once you have them in one of your editor configs (for example the Architect MCP server); gctk copies the program and settings, never the credentials."));\n  return { el: h("div", { style: "display:grid;gap:8px" }, rows), read: () => ({ ...(lab ? {} : { harness: harness.checked }), tools: boxes.filter(([b]) => b.checked).map(([, id]) => id) }) };\n}\n\nfunction axlNew(st, draw) {\n  const back = () => { state.axlOpen = null; draw(st); };\n  let lab = false;\n  const name = h("input", { placeholder: "e.g. Acme Bank", style: "min-width:260px", "aria-label": "Project name" });\n  const folder = h("input", { placeholder: "~/Demos/Acme Bank", style: "flex:1;min-width:320px", "aria-label": "Project folder" });\n  let folderTouched = false;\n  folder.addEventListener("input", () => { folderTouched = true; });\n  name.addEventListener("input", () => { if (!folderTouched) folder.value = name.value.trim() ? `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}` : ""; });\n  const orgBox = h("div");\n  const toolsBox = h("div");\n  let org, picker;\n  const drawType = () => {\n    org = projectOrgSelect(st, org?.value, lab);\n    put(orgBox, h("label", {}, lab ? "Org the lab builds in (sandbox or dev)" : "Org the AI works on in this folder", org));\n    picker = toolPicker({ lab: lab ? undefined : false, harness: false }, st);\n    put(toolsBox, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:6px" }, "Genesys tools for this folder"), picker.el);\n    if (!folderTouched && name.value.trim()) folder.value = `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}`;\n  };\n  const kind = (value, title, sub) => h("button", { class: "ws-opt", "aria-pressed": String(lab === value), onclick: (e) => { lab = value; for (const b of e.currentTarget.parentElement.children) b.setAttribute("aria-pressed", String(b === e.currentTarget)); drawType(); } },\n    h("span", { class: "mark" }), h("span", {}, h("strong", {}, title), h("small", {}, sub)));\n  drawType();\n  const create = async () => {\n    const c = confirmOrg(st, org.value);\n    if (!c.ok) return;\n    try {\n      const r = await api("/api/axl/workshops", { method: "POST", body: { name: name.value, profile: org.value, folder: folder.value, lab, ...(c.confirmProduction ? { confirmProduction: true } : {}), ...picker.read() } });\n      state.axlOpen = r.id;\n      draw(r);\n    } catch (err) { showError(err); }\n  };\n  return h("div", {},\n    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "\u2190 All projects")),\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New project"),\n    h("div", { class: "panel" },\n      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:12px" },\n        h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px" },\n          kind(false, "Demo project", "A folder for building a demo with the AI, on any of your orgs."),\n          kind(true, "AXL workshop", "An AI Agent eXperience Lab: AVA harness, lab guide and sessions; sandbox or dev orgs only.")),\n        h("label", {}, "Name (usually the customer)", name),\n        orgBox,\n        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder),\n        toolsBox),\n      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder and writes the chosen tools into its .cursor/mcp.json, each started through gctk with this org\'s credentials from the keychain. No secret goes into the folder."),\n      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create project"), h("button", { class: "btn", onclick: back }, "Cancel"))));\n}\n\n// A condensed AXL Session Field Guide (2026-09-24): what to do in each step, the prompts to paste\n// into the Cursor agent, and what comes out. `done` names the session artifact that shows the step\n// is finished. Keep it in step with the field guide when that changes. The facilitator skill never\n// loads by itself (disable-model-invocation), so every prompt that starts a job names it; follow-ups\n// in the same chat do not.\nconst AXL_GUIDE = [\n  { id: "before", title: "Before the session", when: "days before", done: "spec",\n    todo: [\n      "Log the session in Salesforce as soon as it is agreed: SE/SA Task, Activity Type \\"Agentic Experience Lab\\".",\n      "Six gates green: CX Activate sandbox org (recording and Architect execution history on), SDD role, SDD OAuth client, coding agent ready (current wheel, axl-lab-facilitator and axl-capsule installed, model: latest Opus, medium effort), SMS/WhatsApp number if needed, the right people incl. an executive sponsor.",\n      "Verify the org connection in this workshop folder, then have the agent read something back from the org.",\n      "Run the research job in the Cursor agent you will keep for the whole engagement. Review the assumptions and the customer\'s language (45\u201360 min).",\n      "Nothing gets pre-built in Genesys Cloud.",\n    ],\n    prompts: [\n      { text: "Confirm which Genesys Cloud org you are connected to and show me its name and id.", note: "Check the org (in this workshop folder)" },\n      { dynamic: "research", note: "Job 1: research \u2013 starts the agent you keep. Built from the form above." },\n      { text: "Ignore the previous sessions in this workspace and follow the skill instructions for this customer from scratch.", note: "Follow-up, only if the workspace has earlier sessions" },\n    ],\n    out: "Spec artifact (spec-artifact.md, plus the version you present)" },\n  { id: "frame", title: "1 \xB7 Frame & point of view", when: "0:00\u20130:20",\n    todo: [\n      "Set the stage (5 min): AXL Intro Slides, example artifacts to hand. Say that most of the middle is a coding agent working, and that something will break and you will fix it live.",\n      "Reconfirm the six gates, present the spec artifact (intent, success criteria, tools), explain spec-driven building and the anatomy of an AVA.",\n      "Decide: keep the use case (Path A, also with changes) or start from scratch (Path B).",\n    ],\n    out: "Expectations set, gates green, scope agreed" },\n  { id: "discovery", title: "2 \xB7 Discovery", when: "0:20\u20131:00",\n    todo: [\n      "Path A: write the customer\'s changes in their words at the end of the spec artifact, read them back, get a yes.",\n      "Path B: pick the option to build a new use case during discovery and author it live (costs ~45 min).",\n      "Agree about four success criteria, the happy path and the escalation. One intent, voice-first, at most 6 tools.",\n    ],\n    prompts: [{ text: "/axl-lab-facilitator Let\'s continue with the <use case>", note: "Job 2: discovery on the chosen use case (Path B: pick the new use case option it offers)" }],\n    out: "Agreed spec artifact and signed-off success criteria" },\n  { id: "build", title: "3 \xB7 Create & test the AVA", when: "1:00\u20132:30", done: "run",\n    todo: [\n      "Hand the build over with the Job 3 prompt; it runs design, build, test, evaluate and critique (30\u201380 min). Stop it past 90 min and take the best version.",\n      "Don\'t spectate: work Track 1 in this order \u2013 custom summary configuration, DID, inbound and bot flow (After Contact AI on, Deepgram Flux), escalation queue with your own user, wrap-up codes with descriptions, ElevenLabs voice, test end to end.",\n      "Track 2 only when Track 1 is green, one topic (Copilot with knowledge in a second Cursor window, or AI scoring).",\n    ],\n    prompts: [\n      { dynamic: "build", note: "Job 3: build and test, once the plan is confirmed. Test strategy from the form in \\"Before the session\\"." },\n      { text: "Refine, retest and iterate until all tests are passed.", note: "Follow-up, if it stops on failing tests" },\n    ],\n    out: "Published AVA, run artifact (run-artifact.html), end-to-end path wired" },\n  { id: "review", title: "4 \xB7 Review, test manually & refine", when: "2:30\u20133:10",\n    todo: [\n      "Walk the run artifact with the customer and agree the UAT shortlist from the success criteria.",\n      "With four or more people, split into groups: happy path, guardrails, edge cases & escalation, voice & language quality. Log everything, 5-minute readback, one refine pass.",\n    ],\n    out: "Independently validated AVA and agreed follow-up fixes" },\n  { id: "polish", title: "5 \xB7 Polish & dry-run", when: "3:10\u20133:40", done: "readout",\n    todo: [\n      "One clean rehearsal: real number \u2192 Architect \u2192 AVA \u2192 escalation with summary.",\n      "Then generate the readout artifact (after the last refine) and read it through for overstated claims.",\n    ],\n    prompts: [{ text: "/axl-lab-facilitator The build is complete. Create the readout artifact for this session.", note: "Job 4: readout, after the last refine" }],\n    out: "Showcase-ready AVA and the readout artifact (readout-artifact.html)" },\n  { id: "showcase", title: "6 \xB7 Live showcase & readout", when: "3:40\u20134:00",\n    todo: [\n      "Open with the readout artifact. Show in order: self-service on a real call, seamless escalation, the custom summary and wrap-up code, the scorecard \u2013 each tied to a KPI.",\n      "Close with commitment: what happens to the prototype, who owns it and by when, what would need to be true to go live.",\n    ],\n    out: "A committed next step with a named owner and a date" },\n  { id: "after", title: "After the session", when: "same day",\n    todo: [\n      "Send the readout artifact as PDF (never the HTML) with the next steps at the top.",\n      "Package with axl-capsule if the customer continues (always on Kiro Crew, before the instance expires).",\n      "Rotate the SDD OAuth client\'s secret.",\n    ],\n    prompts: [{ text: "/axl-capsule Package this AXL session so the customer can continue it\\nin <their coding agent>.", note: "Only runs when named; after the readout is final" }],\n    out: "Capsule for the customer (if they continue), secret rotated" },\n];\n\nconst AXL_BRIEF_DEFAULTS = { moreUseCases: 2, language: (navigator.language || "").startsWith("de") ? "de" : "en", functionPath: true, runsPerCase: 1, threshold: 80, afterThreshold: "decide", maxVersions: 5, parallel: 2 };\n\n/** The research (Job 1) and build (Job 3) prompts from a workshop\'s brief, in the session language. */\nfunction axlPrompts(w, brief) {\n  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...brief };\n  const de = b.language === "de";\n  const lines = [];\n  const add = (text) => { if (text) lines.push(text); };\n  const runs = b.runsPerCase === 1 ? (de ? "einmal" : "once") : (de ? `${b.runsPerCase}-mal` : `${b.runsPerCase} times`);\n  const after = {\n    decide: de ? "entscheide ich, ob wir weitermachen oder diese L\xF6sung in die UATs \xFCbergeben" : "I decide whether we continue or hand this solution over to the UATs",\n    uat: de ? "\xFCbergib die L\xF6sung in die UATs" : "hand the solution over to the UATs",\n    continue: de ? `iteriere weiter, bis alle Testcases bestanden sind, h\xF6chstens bis Version ${b.maxVersions}` : `keep iterating until all test cases pass, up to version ${b.maxVersions} at most`,\n  }[b.afterThreshold];\n  const testing = de\n    ? `Das Testing soll sp\xE4ter nach folgendem Ziel ablaufen: Nach dem Erstellen der Test Cases soll jeder Testcase pro Iteration ${runs} durchlaufen werden. Wenn mindestens ${b.threshold} % der Testcases bestanden sind, ${after}.`\n    : `Testing later follows this goal: once the test cases are created, run each test case ${runs} per iteration. When at least ${b.threshold}% of the test cases pass, ${after}.`;\n  const parallel = b.parallel > 1\n    ? (de ? `Versuche das Testing mit ${b.parallel} parallelen Testcase Runs. Wenn Rate Limits erreicht werden, gehe zur\xFCck auf eine parallele Session.` : `Try testing with ${b.parallel} parallel test case runs. If you hit rate limits, fall back to one session at a time.`)\n    : (de ? "F\xFChre die Testcase Runs nacheinander aus." : "Run the test cases one at a time.");\n\n  add(de ? `/axl-lab-facilitator Recherchiere f\xFCr eine AXL Session mit ${b.customer} als Kunden.` : `/axl-lab-facilitator Research ${b.customer} for an upcoming AXL session.`);\n  add(b.useCase);\n  if (b.moreUseCases > 0) add(b.useCase\n    ? (de ? `Entwickle au\xDFerdem ${b.moreUseCases} weitere m\xF6gliche Use Cases als Entscheidungsgrundlage.` : `Also develop ${b.moreUseCases} further possible use cases as a basis for the decision.`)\n    : (de ? `Schlage ${b.moreUseCases} m\xF6gliche Use Cases als Entscheidungsgrundlage vor.` : `Propose ${b.moreUseCases} possible use cases as a basis for the decision.`));\n  if (b.knowledge) add(de ? `Au\xDFerdem soll es Wissen zu folgenden Themen geben: ${b.knowledge}` : `The agent should also have knowledge about: ${b.knowledge}`);\n  if (b.persona) add(de ? `Der Agentic Agent soll den Namen ${b.persona} tragen.` : `The agentic agent should be called ${b.persona}.`);\n  add(de ? "Alle Assets und diese Session sollen auf Deutsch stattfinden." : "All assets and this session are in English.");\n  if (b.functionPath) add(de ? "Alle Tools sollen soweit m\xF6glich den Function Path nutzen und nicht den Echo Path." : "All tools should use the function path rather than the echo path wherever possible.");\n  add(testing);\n  add(parallel);\n  const research = lines.join("\\n");\n\n  const build = [\n    de ? "/axl-lab-facilitator Job 3: Baue und teste den AVA." : "/axl-lab-facilitator Job 3: Build and test the AVA.",\n    de ? `H\xF6chstens 10 Testcases; jeder Testcase l\xE4uft pro Iteration ${runs}. Wenn mindestens ${b.threshold} % bestanden sind, ${after}. Sonst verfeinere und iteriere, h\xF6chstens bis Version ${b.maxVersions}.`\n       : `At most 10 test cases; run each test case ${runs} per iteration. When at least ${b.threshold}% pass, ${after}. Otherwise refine and iterate, up to version ${b.maxVersions} at most.`,\n    parallel,\n  ].join("\\n");\n  return { research, build };\n}\n\n/** The form behind the research prompt; saved with the workshop (the user\'s text, shown as text only). */\nfunction axlBriefForm(w, onChange) {\n  const b = { ...AXL_BRIEF_DEFAULTS, customer: w.name, ...(w.brief || {}) };\n  const field = (label, el, wide) => h("label", { style: wide ? "grid-column:1/-1" : null }, label, el);\n  const input = (key, attrs = {}) => h("input", { value: b[key] ?? "", ...attrs });\n  const area = (key, placeholder) => h("textarea", { placeholder, style: "min-height:70px;font-family:inherit;font-size:13.5px" }, b[key] ?? "");\n  const num = (key, min, max) => h("input", { type: "number", min, max, value: b[key], style: "width:80px" });\n  const select = (key, opts) => h("select", {}, opts.map(([v, l]) => h("option", { value: v, selected: String(b[key]) === v }, l)));\n  const els = {\n    customer: input("customer", { placeholder: w.name }),\n    useCase: area("useCase", "What the agent should do, e.g. a central reservation line: ask for date, tent, lunch or evening, number of tables (10 people each), point out the prices."),\n    moreUseCases: num("moreUseCases", 0, 5),\n    knowledge: area("knowledge", "Optional, e.g. which beer is served where, opening hours"),\n    persona: input("persona", { placeholder: "e.g. Johann" }),\n    language: select("language", [["de", "Deutsch"], ["en", "English"]]),\n    functionPath: h("input", { type: "checkbox", checked: b.functionPath ? true : null, style: "width:auto" }),\n    runsPerCase: num("runsPerCase", 1, 5),\n    threshold: num("threshold", 50, 100),\n    afterThreshold: select("afterThreshold", [["decide", "I decide: continue or hand over to UATs"], ["uat", "hand over to UATs"], ["continue", "keep iterating up to the max version"]]),\n    maxVersions: num("maxVersions", 1, 10),\n    parallel: num("parallel", 1, 4),\n  };\n  const read = () => {\n    const out = {};\n    for (const [k, el] of Object.entries(els)) out[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;\n    return out;\n  };\n  for (const el of Object.values(els)) {\n    el.addEventListener("input", () => onChange(read(), false));\n    el.addEventListener("change", () => onChange(read(), true));\n  }\n  return h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 0" },\n    field("Customer", els.customer),\n    field("Session and assets in", els.language),\n    field("Persona name of the agent", els.persona),\n    field("Use case", els.useCase, true),\n    field("Further use cases to propose", els.moreUseCases),\n    field("Knowledge", els.knowledge, true),\n    h("label", { style: "display:flex;gap:8px;align-items:center;grid-column:1/-1" }, els.functionPath, "Tools use the function path where possible (a tool with a failure path, e.g. for the escalation, still needs the echo path)"),\n    field("Runs per test case and iteration", els.runsPerCase),\n    field("Pass threshold (%)", els.threshold),\n    field("When reached", els.afterThreshold),\n    field("Max version", els.maxVersions),\n    field("Parallel test runs (falls back to 1 on rate limits)", els.parallel));\n}\n\n/** The field guide for one workshop; steps whose artifact exists in the latest session are ticked. */\nfunction axlGuide(x) {\n  const w = x.workshop;\n  let brief = w.brief || {};\n  const dyn = {};\n  const refresh = () => {\n    const p = axlPrompts(w, brief);\n    for (const [k, el] of Object.entries(dyn)) el.pre.textContent = p[k];\n  };\n  const onChange = (next, persist) => {\n    brief = next;\n    refresh();\n    if (persist) api(axlUrl(w.id), { method: "PUT", body: { brief: next } }).then((r) => { const y = r.workshops.find((z) => z.workshop.id === w.id); if (y) w.brief = y.workshop.brief; }).catch(showError);\n  };\n  const latest = x.sessions[0];\n  const have = new Set(latest ? latest.artifacts : []);\n  const doneIdx = AXL_GUIDE.reduce((n, g, i) => (g.done && have.has(g.done) ? i : n), -1);\n  const fill = (text) => text.replaceAll("<customer>", x.workshop.name);\n  const panel = h("div", { class: "panel" },\n    h("h3", { style: "margin-top:0" }, "Running the workshop"),\n    h("p", { class: "muted", style: "font-size:13px;margin:0 0 8px" }, latest\n      ? `Progress from the latest session, ${latest.name.replace(/^AXL-/i, "")}. Prompts go into the Cursor agent you started for the research; keep that one agent for the whole engagement.`\n      : "Condensed from the AXL Session Field Guide. Prompts go into the Cursor agent you start for the research; keep that one agent for the whole engagement."),\n    AXL_GUIDE.map((g, i) => {\n      const done = i <= doneIdx;\n      return h("details", { style: "border-top:1px solid var(--line);padding:4px 0", open: i === doneIdx + 1 ? true : null },\n        h("summary", { style: "color:var(--text)" }, done ? "\u2713 " : "", h("strong", {}, g.title), h("span", { class: "muted" }, `  ${g.when}`)),\n        h("ul", { style: "margin:4px 0 8px;padding-left:20px;font-size:13.5px" }, g.todo.map((t) => h("li", {}, t))),\n        g.id === "before" ? axlBriefForm(w, onChange) : null,\n        (g.prompts || []).map((pr) => {\n          const pre = h("pre", { style: "flex:1;margin:0;white-space:pre-wrap" }, pr.dynamic ? "" : fill(pr.text));\n          if (pr.dynamic) dyn[pr.dynamic] = { pre };\n          const copy = h("button", { class: "btn", style: "padding:2px 10px;font-size:12px" }, "Copy");\n          copy.addEventListener("click", () => { try { navigator.clipboard.writeText(pre.textContent); copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy"), 1200); } catch {} });\n          return h("div", { style: "margin:6px 0" },\n            h("div", { class: "muted", style: "font-size:12px;margin-bottom:2px" }, pr.note),\n            h("div", { class: "row", style: "align-items:flex-start;flex-wrap:nowrap" }, pre, copy));\n        }),\n        h("div", { style: "font-size:13px;margin:4px 0 6px" }, h("span", { class: "muted" }, "Comes out: "), g.out));\n    }));\n  refresh();\n  return panel;\n}\n\n/** What the AI in Cursor gets in this folder: its own servers, your global ones and plugins. */\nfunction folderServers(w) {\n  const box = h("div", {}, h("div", { class: "muted" }, "Reading your Cursor configs\u2026"));\n  if (!w.folder) { put(box, h("div", { class: "muted" }, "Set the folder first.")); return box; }\n  api("/api/ai-setup").then((s) => {\n    const list = s.servers.filter((x) => x.editor === "cursor" && (x.scope === "user" || x.scope === "plugin" || x.project === w.folder));\n    const own = new Set(list.filter((x) => x.project === w.folder).map((x) => x.name));\n    const from = (x) => x.project === w.folder ? "this folder" : x.scope === "plugin" ? `plugin ${x.plugin}` : "all projects (~/.cursor/mcp.json)";\n    const org = (x) => x.credentials === "gctk-profile" ? "needs no org" : x.org?.profile || (x.org?.clientId ? "an OAuth client gctk does not know" : x.genesys ? "org not known" : "\u2013");\n    put(box, list.length ? h("table", {}, h("tr", {}, h("th", {}, "Server"), h("th", {}, "From"), h("th", {}, "Org"), h("th", {}, "")),\n      [...list].sort((a, b) => (a.project === w.folder ? 0 : 1) - (b.project === w.folder ? 0 : 1) || a.name.localeCompare(b.name)).map((x) => h("tr", {},\n        h("td", {}, h("strong", {}, toolTitle(x.name)), x.name !== toolTitle(x.name) ? h("div", { class: "muted mono", style: "font-size:11.5px" }, x.name) : null),\n        h("td", { class: "muted" }, from(x)),\n        h("td", {}, org(x), x.org?.profile && w.profile && x.genesys && x.org.profile !== w.profile && x.project !== w.folder ? [" ", pill("another org", "s-pending")] : null),\n        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder\'s: switch this one off here (Settings \u2192 MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on Cursor setup", "s-failed") : null))))\n      : h("div", { class: "muted" }, "Cursor loads no MCP servers in this folder yet."));\n  }).catch((err) => put(box, h("div", { class: "error" }, err.message)));\n  return box;\n}\n\nfunction axlDetail(st, x, draw) {\n  const w = x.workshop, f = x.folder, org = x.org;\n  const lab = isLabProject(w);\n  const back = () => { state.axlOpen = null; draw(st); };\n  const put2 = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };\n  let n = 0;\n  const step = (title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${++n}. ${title}`), ...body);\n  const note = (text) => h("p", { class: "muted", style: "font-size:13px;margin:8px 0" }, text);\n  const setupBtn = () => h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder");\n\n  const name = h("input", { value: w.name, style: "font-size:18px;font-weight:600;min-width:260px", "aria-label": "Project name" });\n  name.addEventListener("change", () => put2({ name: name.value }));\n\n  // Org\n  const sel = projectOrgSelect(st, w.profile, lab);\n  sel.addEventListener("change", () => {\n    const c = confirmOrg(st, sel.value);\n    if (!c.ok) { sel.value = w.profile || ""; return; }\n    put2({ profile: sel.value, ...(c.confirmProduction ? { confirmProduction: true } : {}) });\n  });\n  const orgPanel = step(lab ? "Org for the workshop" : "Org for this folder",\n    h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat && usesHarnessUi(w) ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),\n    note(lab ? "Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the folder right away; restart the tools in Cursor afterwards."\n      : "The org every Genesys tool in this folder works on. A new org goes into the folder right away; restart the tools in Cursor afterwards (switch them off and on under Settings \u2192 MCP)."),\n    org?.tier === "production" && !lab ? h("div", { class: "warn" }, "A production org: the AI tools in this folder change it directly.") : null,\n    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The folder\'s tools now work on ${w.profile}. Restart them in Cursor so it takes effect.`) : null,\n    org?.problem ? h("div", { class: "error" }, org.problem) : null,\n    org && !org.credentialsStored ? h("div", { class: "warn" }, "No credentials stored for this org. Enter them on the Orgs page.") : null);\n\n  // Folder\n  const dir = h("input", { value: w.folder || "", placeholder: "~/Demos/customer", style: "flex:1;min-width:280px", "aria-label": "Project folder" });\n  const folderState = !w.folder ? null\n    : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; Set up folder creates it.")\n    : f.stale ? h("div", { class: "warn" }, "The folder\'s tools are out of date. Press Set up folder.")\n    : (f.connected || (f.tools || []).some((t) => t.connected)) ? h("div", { class: "okbox" }, `Set up: the folder starts ${projectTools(w).join(", ")} with ${w.profile}.`)\n    : h("div", { class: "warn" }, "Not set up yet.");\n  const folderPanel = step("Folder",\n    h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put2({ folder: dir.value }) }, "Save")),\n    note(lab ? `The folder you open in Cursor for this workshop. The lab keeps each customer\'s session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server into the folder\'s .cursor/mcp.json (your other entries there stay).`\n      : "The folder you open in Cursor for this demo. gctk writes the tools into its .cursor/mcp.json; your own entries there stay."),\n    folderState,\n    w.folder ? h("div", { class: "row", style: "margin-top:8px" },\n      f.exists && !f.stale && (f.connected || (f.tools || []).some((t) => t.connected)) ? null : setupBtn(),\n      f.exists ? h("button", { class: "btn", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: {} }).catch(showError) }, "Show in Finder") : null) : null);\n\n  // Tools (projects only; a workshop always has the harness)\n  let toolsPanel = null;\n  if (!lab) {\n    const picker = toolPicker(w, st);\n    toolsPanel = step("Genesys tools in this folder",\n      note("Each tool starts through gctk with the org above; its credentials come from the keychain, never from the folder."),\n      picker.el,\n      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save tools")));\n  }\n\n  // What Cursor loads here\n  const loadsPanel = step("What the AI gets in this folder",\n    note("Every MCP server Cursor loads when this folder is open: the folder\'s own, your global ones and plugins. A global server with the same name as one of the folder\'s runs next to it; switch it off for this folder in Cursor."),\n    folderServers(w));\n\n  // Cursor\n  const [label, cls, hint] = projectState(x);\n  const cursorPanel = step("In Cursor",\n    h("div", { class: cls === "s-applied" ? "okbox" : "warn" }, pill(label, cls), " ", hint),\n    h("ol", { style: "margin:8px 0;padding-left:20px;font-size:13.5px" },\n      h("li", {}, "Open the folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),\n      h("li", {}, "Settings \u2192 MCP: switch on this folder\'s tools. Cursor never starts a new project server by itself; after an org change, switch them off and on again."),\n      st.globalHarness.present && usesHarnessUi(w) ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other folders.") : null,\n      h("li", {}, lab ? "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator." : "Ask the AI to confirm the org: \\"Which Genesys Cloud org are you connected to?\\" Then start building.")),\n    h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"));\n\n  // Sessions (workshops)\n  let sessionsPanel = null;\n  if (lab) {\n    const stageIdx = (s) => AXL_STAGES.findIndex(([id]) => id === s.stage);\n    sessionsPanel = step("Sessions", x.sessions.length ? h("table", {},\n      h("tr", {}, h("th", {}, "Session"), h("th", {}, "Reached"), h("th", {}, "Artifacts"), h("th", {}, "Changed"), h("th", {}, "")),\n      x.sessions.map((s) => h("tr", {},\n        h("td", {}, h("strong", {}, s.name.replace(/^AXL-/i, ""))),\n        h("td", {}, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, AXL_STAGES.map(([id, lbl], i) => h("span", { class: `pill ${i <= stageIdx(s) ? "s-applied" : ""}`, title: lbl }, lbl)))),\n        h("td", { class: "muted" }, s.artifacts.map((a) => AXL_ARTIFACT_LABELS[a] || a).join(", ") || "\u2013"),\n        h("td", { class: "muted", style: "white-space:nowrap" }, time(s.modified)),\n        h("td", {}, h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: { session: s.name } }).catch(showError) }, "Open")))))\n      : h("div", { class: "muted" }, x.sessionsDir ? "No sessions yet. They appear here when the lab writes its first artifact." : "Set the folder first."));\n  }\n\n  const remove = h("button", { class: "btn danger", onclick: async () => {\n    if (!confirm(`Remove the project "${w.name}" from gctk? Its tools are taken out of the folder\'s .cursor/mcp.json; the folder and everything in it stay.`)) return;\n    try { const r = await api(axlUrl(w.id), { method: "DELETE" }); state.axlOpen = null; draw(r); } catch (err) { showError(err); }\n  } }, "Remove project");\n\n  return h("div", {},\n    h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "\u2190 All projects")),\n    h("div", { class: "row", style: "margin-bottom:12px" }, name, lab ? pill("AXL workshop", "") : null, pill(label, cls), h("span", { class: "spacer" }), remove),\n    usesHarnessUi(w) ? axlHarnessMissing(st, draw) : null,\n    orgPanel, folderPanel, toolsPanel, loadsPanel, cursorPanel, sessionsPanel, lab ? axlGuide(x) : null);\n}\n\n// ----------------------------------------------------------- monitoring\n// Counts of objects in the org next to the org\'s own limits (organizations/limits API). Read-only.\nconst MON_GROUPS = ["Integrations", "Architect", "Routing", "People", "AI and digital", "Other"];\nconst monNumber = (n) => Number(n).toLocaleString();\n\nfunction monCard(m) {\n  const count = m.count === undefined ? "\u2013" : `${monNumber(m.count)}${m.atLeast ? "+" : ""}`;\n  return h("div", { class: `m-${m.level}`, title: m.hint || null },\n    h("div", { class: "muted", style: "font-size:13px" }, m.label),\n    h("div", { class: "n" }, count, m.limit ? h("small", {}, ` / ${monNumber(m.limit)}`) : null),\n    m.note ? h("div", { class: "muted", style: "font-size:12px;overflow-wrap:anywhere" }, m.note) : null,\n    m.error ? h("div", { class: "muted", style: "font-size:12px" }, m.error)\n      : m.limit ? [h("div", { class: "meter" }, h("i", { style: `width:${Math.min(100, Math.max(m.count ? 2 : 0, m.percent))}%` })),\n        h("div", { class: "muted", style: "font-size:12px" }, `${m.percent} % of the limit`)]\n      : h("div", { class: "muted", style: "font-size:12px" }, "No limit in the API"));\n}\n\nasync function viewMonitoring() {\n  const o = state.overview || await api("/api/overview");\n  const usable = o.profiles.filter((p) => !p.error);\n  if (!usable.length) return h("div", { class: "panel empty" }, "Add a profile first.");\n  if (!usable.some((p) => p.name === state.profile)) state.profile = usable[0].name;\n  const select = h("select", { "aria-label": "Org", onchange: () => { state.profile = select.value; render(); } },\n    usable.map((p) => h("option", { value: p.name, selected: p.name === state.profile }, `${p.name} (${p.tier})`)));\n  const body = h("div", {}, h("div", { class: "panel empty" }, "Counting objects in the org\u2026"));\n  const refresh = h("button", { class: "btn" }, "Refresh");\n  const load = async (fresh) => {\n    const profile = state.profile;\n    refresh.disabled = true;\n    try {\n      const r = await api(`/api/monitoring?profile=${encodeURIComponent(profile)}${fresh ? "&refresh=1" : ""}`);\n      if (profile === state.profile && state.view === "monitoring") body.replaceChildren(monReport(r));\n    } catch (err) {\n      body.replaceChildren(h("div", { class: "error" }, err.message));\n    } finally { refresh.disabled = false; }\n  };\n  refresh.addEventListener("click", () => load(true));\n  load(false);\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Monitoring"), h("span", { class: "spacer" }), select, refresh),\n    h("p", { class: "lead" }, "How many objects this org has, next to the limits Genesys Cloud sets for it. The limits come from the org itself, so raised limits show up too. Cards turn amber from 80 % and red from 95 %."),\n    body);\n}\n\nfunction monReport(r) {\n  const close = r.metrics.filter((m) => m.level === "warn" || m.level === "alert").sort((a, b) => b.percent - a.percent);\n  const failed = r.metrics.filter((m) => m.level === "error").length;\n  return h("div", {},\n    h("div", { class: "muted", style: "margin:-6px 0 10px;font-size:12px" }, `${r.profile} \xB7 counted ${time(r.at)}${failed ? ` \xB7 ${failed} not readable` : ""}`),\n    close.length\n      ? h("div", { class: "warn" }, h("strong", {}, "Close to a limit: "), close.map((m, i) => [i ? ", " : "", `${m.label} ${monNumber(m.count)} / ${monNumber(m.limit)} (${m.percent} %)`]))\n      : h("div", { class: "okbox" }, "Everything is below 80 % of its limit."),\n    r.limitErrors.length ? h("div", { class: "warn" }, `Limits not readable for: ${r.limitErrors.join(", ")}. Those cards show the count only.`) : null,\n    MON_GROUPS.map((g) => {\n      const items = r.metrics.filter((m) => m.group === g);\n      return items.length ? [h("h3", {}, g), h("div", { class: "mon" }, items.map(monCard)), g === "Integrations" ? monIntegrations(r) : null] : null;\n    }));\n}\n\nconst MON_TYPES = { "purecloud-data-actions": "Genesys Cloud", "custom-rest-actions": "Web services", "function-data-actions": "Function", "aws-lambda-data-actions": "AWS Lambda",\n  "google-cloud-data-actions": "Google Cloud", "salesforce-datadip": "Salesforce", "microsoft-dynamics-data-actions": "Dynamics 365", "zendesk-datadip": "Zendesk" };\n\n/** Data actions per integration: where the actions are, and which integration is full. */\nfunction monIntegrations(r) {\n  const rows = r.integrations || [];\n  if (!rows.length) return null;\n  const limit = r.metrics.find((m) => m.id === "dataactions-per-integration")?.limit;\n  const cell = (n) => h("td", { style: "text-align:right;white-space:nowrap" }, n ? monNumber(n) : h("span", { class: "muted" }, "\u2013"));\n  const tr = (x) => {\n    const share = limit ? x.custom / limit : 0;\n    const level = share >= 0.95 ? "alert" : share >= 0.8 ? "warn" : "ok";\n    return h("tr", {},\n      h("td", {}, x.name, x.enabled === false ? [" ", pill("disabled")] : null),\n      h("td", { class: "muted" }, MON_TYPES[x.type] || x.type || ""),\n      h("td", { class: `m-${level}`, style: "min-width:150px" },\n        h("div", { class: "row", style: "gap:6px;flex-wrap:nowrap" }, h("strong", {}, monNumber(x.custom)), limit ? h("span", { class: "muted" }, `/ ${monNumber(limit)}`) : null),\n        limit ? h("div", { class: "meter", style: "margin-top:3px" }, h("i", { style: `width:${Math.min(100, Math.max(x.custom ? 2 : 0, share * 100))}%` })) : null),\n      cell(x.builtIn),\n      h("td", { style: "text-align:right;white-space:nowrap" }, x.drafts ? [monNumber(x.drafts), x.newDrafts ? h("span", { class: "muted" }, ` (${x.newDrafts} new)`) : null] : h("span", { class: "muted" }, "\u2013")));\n  };\n  const table = (list) => h("table", {},\n    h("tr", {}, h("th", {}, "Integration"), h("th", {}, "Type"), h("th", {}, limit ? "Custom actions (limit per integration)" : "Custom actions"),\n      h("th", { style: "text-align:right" }, "Built-in"), h("th", { style: "text-align:right" }, "Drafts")),\n    list.map(tr));\n  const shown = 15;\n  return h("div", { class: "panel", style: "margin-top:10px" },\n    h("h3", { style: "margin-top:0" }, `Data actions per integration (${rows.length})`),\n    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "Custom actions count towards the limits. Built-in actions come with integrations such as Salesforce or Dynamics and are not counted. New drafts were never published."),\n    table(rows.slice(0, shown)),\n    rows.length > shown ? h("details", {}, h("summary", {}, `Show ${rows.length - shown} more`), table(rows.slice(shown))) : null);\n}\n\n// ---------------------------------------------------------------- demos\n// Whole demos deployed into an org with one button: prerequisites (checked where possible), deploy\n// and remove (background jobs, the page follows their log), commands the demo needs on this\n// computer (Start / Stop / Log), and the manual steps on the day.\nconst DEMOS_KEY = "gctk-demos";\nconst PREREQ = { ok: ["ready", "s-applied"], missing: ["missing", "s-failed"], manual: ["check yourself", "s-pending"], error: ["could not check", "s-pending"] };\n\nasync function viewDemos() {\n  const data = await api("/api/demos");\n  let saved = {};\n  try { saved = JSON.parse(localStorage.getItem(DEMOS_KEY) || "{}") || {}; } catch {}\n  // pick.demo is the open demo; empty = the catalog. The page always starts in the catalog.\n  // A link may open one demo directly: \u2026#token=\u2026&view=demos&demo=<id>.\n  let linked = "";\n  try { linked = sessionStorage.getItem("gctk-open-demo") || ""; sessionStorage.removeItem("gctk-open-demo"); } catch {}\n  const pick = state.demosPick || (state.demosPick = { demo: linked, profile: saved.profile || "", query: "" });\n  const keep = () => { try { localStorage.setItem(DEMOS_KEY, JSON.stringify({ profile: pick.profile })); } catch {} };\n  const open = (id) => { pick.demo = id; render(); window.scrollTo({ top: 0 }); };\n  const msg = h("div");\n  const demo = data.demos.find((d) => d.id === pick.demo);\n  if (demo) {\n    const back = h("button", { class: "btn", onclick: () => open("") }, "\u2190 All demos");\n    return h("div", {}, h("div", { class: "row", style: "margin-bottom:10px" }, back, h("span", { class: "muted" }, `Demos / ${demo.manifest?.name || demo.folder.split("/").pop()}`)), msg, demoDetail(demo, data, pick, keep, msg));\n  }\n\n  const head = [h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demos"),\n    h("p", { class: "lead" }, "Pick a demo to see what it contains, what the org needs and how to deploy it. A deploy builds the whole demo in an org with one button: queues, case plans, Copilot, knowledge, bot flow, agent scripts.")];\n  if (!data.demos.length) return h("div", {}, head, msg, h("div", { class: "panel empty" }, "This gctk has no demos."));\n\n  const search = h("input", { type: "search", placeholder: "Search demos", value: pick.query || "", style: "min-width:260px" });\n  const grid = h("div", { class: "cards" });\n  const card = (d) => {\n    const m = d.manifest;\n    if (!m) return h("div", { class: "panel" }, h("strong", {}, d.folder.split("/").pop()), h("div", { class: "error" }, d.error || "This demo cannot be read."));\n    const first = ["Digital bot flow", "Inbound message flow", "Copilot assistant", "Case plan", "Agent script", "Knowledge base", "Speech & text analytics program", "Queue"];\n    const rank = (l) => (first.indexOf(l) + 1 || 99);\n    const kinds = (d.snapshot?.contents || []).map((c) => c.label).sort((a, b) => rank(a) - rank(b));\n    return h("div", { class: "panel", style: "cursor:pointer", role: "button", tabindex: "0", onclick: () => open(d.id), onkeydown: (ev) => { if (ev.key === "Enter") open(d.id); } },\n      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" })),\n      m.description ? h("div", { class: "muted", style: "font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" }, m.description) : null,\n      h("div", { style: "font-size:13px" }, d.snapshot ? `${d.snapshot.objects} objects: ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ` and ${kinds.length - 5} more kinds` : ""}` : h("span", { class: "muted" }, "No snapshot yet")),\n      (m.parameters || []).length ? h("div", { class: "muted", style: "font-size:12px" }, `You enter: ${m.parameters.map((p) => p.label.split(" (")[0]).join(" \xB7 ")}`) : null,\n      h("div", { class: "row", style: "margin-top:auto;flex-wrap:wrap;gap:6px" },\n        d.deployments.length ? d.deployments.map((x) => pill(`deployed in ${x.profile}`, "s-applied")) : h("span", { class: "muted", style: "font-size:12px" }, "Not deployed yet"),\n        h("span", { class: "spacer" }),\n        h("button", { class: "btn primary", onclick: (ev) => { ev.stopPropagation(); open(d.id); } }, "Open")));\n  };\n  const draw = () => {\n    const q = (pick.query || "").toLowerCase();\n    const hits = data.demos.filter((d) => !q || `${d.manifest?.name || ""} ${d.manifest?.description || ""} ${(d.snapshot?.contents || []).map((c) => c.label).join(" ")}`.toLowerCase().includes(q));\n    put(grid, hits.length ? hits.map(card) : h("div", { class: "panel empty" }, "No demo matches the search."));\n  };\n  search.oninput = () => { pick.query = search.value; draw(); };\n  draw();\n  return h("div", {}, head, msg, data.demos.length > 3 ? h("div", { class: "row", style: "margin-bottom:12px" }, search) : null, grid);\n}\n\n// The demo story: scenes in stage order (who says or does what, and what it triggers), plus a\n// reference of all triggers read from the demo\'s Copilot, NLU, checklists and analytics topics.\nconst STORY_WHO = { customer: ["Customer types", "#2a5c9c"], bot: ["Bot", "#6b5aa6"], agent: ["Agent writes", "#2f8f43"], you: ["You", "#7a6a50"] };\n/** @{customer.*} in the story: the presenter\'s persona (or the package\'s customer until they join). */\nfunction customerTokens(p) {\n  if (!p) return {};\n  const name = `${p.firstName} ${p.lastName}`.trim();\n  return { salutation: p.salutation || "", firstName: p.firstName, lastName: p.lastName, name, initials: `${p.firstName.charAt(0)}${p.lastName.charAt(0)}`.toUpperCase(), greeting: p.salutation ? `${p.salutation} ${p.lastName}` : name };\n}\nfunction storyPanel(d, persona) {\n  const [first, ...rest] = (d.manifest?.presenterContact || "").split(" ");\n  const cust = customerTokens(persona || (first ? { firstName: first, lastName: rest.join(" ") } : undefined));\n  const fill = (v) => typeof v === "string" ? v.replace(/@\\{customer\\.(\\w+)\\}/g, (t, k) => cust[k] ?? t) : Array.isArray(v) ? v.map(fill) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)])) : v;\n  const s = fill(d.story);\n  if (!s) return null;\n  const m = d.manifest;\n  const chLabel = (id) => (m.channels || []).find((c) => c.id === id)?.label.replace(/^Lumea /, "") || id;\n  const block = (title, ...body) => h("div", { style: "margin-top:12px" }, h("strong", { style: "font-size:13px" }, title), ...body);\n  const list = (items) => h("ul", { style: "margin:4px 0 0;padding-left:20px;font-size:14px" }, items.map((x) => h("li", {}, x)));\n  const triggerTable = (rows) => h("table", { style: "margin-top:6px;font-size:13px" },\n    h("tr", {}, h("th", { style: "text-align:left;width:38%" }, "When"), h("th", { style: "text-align:left" }, "Then")),\n    rows.map((r) => h("tr", {}, h("td", { style: "vertical-align:top" }, r.when), h("td", { style: "vertical-align:top" }, Array.isArray(r.then) ? r.then.join(" + ") : r.then))));\n  const scene = (sc, i) => h("details", { class: "panel", style: "margin:8px 0 0", open: i === 0 },\n    h("summary", { style: "margin:0" }, h("strong", {}, sc.title), sc.duration ? h("span", { class: "muted" }, ` \xB7 ${sc.duration}`) : null),\n    sc.screen ? h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, `Screen: ${sc.screen}`) : null,\n    (sc.steps || []).map((st) => {\n      const [label, color] = STORY_WHO[st.who] || [st.who, "#666"];\n      return h("div", { style: "display:flex;gap:10px;margin-top:8px;align-items:flex-start" },\n        h("span", { class: "pill", style: `flex:none;min-width:104px;text-align:center;color:#fff;background:${color}` }, label),\n        h("div", { style: "font-size:14px" }, st.channel ? h("span", { class: "pill", style: "margin-right:6px" }, `${chLabel(st.channel)} only`) : null, st.text));\n    }),\n    (sc.triggers || []).length ? block("What triggers what", triggerTable(sc.triggers)) : null,\n    (sc.notes || []).map((n) => h("div", { class: "warn", style: "margin-top:8px;font-size:13px" }, n)));\n  const ref = s.reference;\n  const reference = h("details", { class: "panel", style: "margin:12px 0 0" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Trigger reference"), h("span", { class: "muted" }, " \xB7 read from the demo\'s Copilot, NLU, checklists and analytics")),\n    ref.copilot.length ? block("Copilot rules", triggerTable(ref.copilot)) : null,\n    ref.intents.length ? block("NLU intents and the phrases they are trained on", ref.intents.map((it) => h("details", { style: "margin-top:6px" },\n      h("summary", {}, `${it.name} (${it.phrases.length} phrases)${it.rule ? "" : " \xB7 no rule of its own: falls back to the knowledge search"}`),\n      list(it.phrases)))) : null,\n    ref.checklists.length ? block("Checklist items and when Copilot ticks them", ref.checklists.map((c) => h("div", { style: "margin-top:6px" },\n      h("div", { style: "font-size:13px;font-weight:600" }, c.name),\n      h("table", { style: "font-size:13px;margin-top:4px" }, c.items.map((it) => h("tr", {}, h("td", { style: "vertical-align:top;white-space:nowrap;padding-right:12px" }, it.name), h("td", { class: "muted" }, it.ticksWhen))))))) : null,\n    ref.topics.length ? block("Speech & text analytics topics (marked in the conversation afterwards)", ref.topics.map((tp) => h("div", { style: "font-size:13px;margin-top:4px" }, h("b", {}, tp.name), h("span", { class: "muted" }, `: ${tp.phrases.join(" \xB7 ")}`)))) : null);\n  return h("details", { class: "panel" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Demo story"), h("span", { class: "muted" }, ` \xB7 ${s.scenes.length} scenes${s.duration ? `, ${s.duration}` : ""}`)),\n    s.summary ? h("p", { style: "margin:10px 0 0" }, s.summary) : null,\n    s.persona ? block("Persona", h("div", { style: "font-size:14px" }, s.persona)) : null,\n    (s.rules || []).length ? block("Stage rules", list(s.rules)) : null,\n    (s.before || []).length ? block("Before the demo", list(s.before)) : null,\n    block("Scenes", s.scenes.map(scene)),\n    reference);\n}\n\n// What the org\'s OAuth client needs for this demo, from the API spec. "a | b" means one of them is enough.\nfunction permissionsPanel(d) {\n  const groups = d.permissions || [];\n  if (!groups.length) return null;\n  const total = new Set(groups.flatMap((g) => g.items)).size;\n  const text = groups.map((g) => `${g.title}\\n${g.items.map((x) => `  ${x.split(" | ").join(" or ")}`).join("\\n")}`).join("\\n\\n");\n  return h("details", { class: "panel" },\n    h("summary", { style: "margin:0" }, `Permissions the org\'s OAuth client needs (${total})`),\n    h("p", { class: "muted", style: "font-size:13px" }, "Give the OAuth client of the org (Client Credentials) a role with these permissions. Without them the deploy stops at the first object it may not create. Where it says \\"or\\", one of the two is enough."),\n    h("div", { class: "row", style: "margin-bottom:8px" }, h("button", { class: "btn", onclick: async (ev) => { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; setTimeout(() => (ev.target.textContent = "Copy list"), 1500); } }, "Copy list")),\n    groups.map((g) => h("div", { style: "margin-top:10px" },\n      h("strong", { style: "font-size:13px" }, `${g.title} (${g.items.length})`),\n      h("div", { class: "mono", style: "font-size:12px;columns:2 320px;column-gap:24px;margin-top:4px" }, g.items.map((x) => h("div", {}, x.split(" | ").join(" or ")))))));\n}\n\nfunction demoDetail(d, data, pick, keep, msg) {\n  if (d.error) return h("div", { class: "error" }, d.error);\n  const m = d.manifest;\n  const profiles = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  if (!profiles.some((p) => p.name === pick.profile)) pick.profile = profiles.find((p) => p.name !== d.sourceProfile)?.name || profiles[0]?.name || "";\n  const orgSel = h("select", { onchange: () => { pick.profile = orgSel.value; keep(); render(); } },\n    profiles.map((p) => h("option", { value: p.name, selected: p.name === pick.profile }, `${p.name} (${p.tier}, ${p.region})${p.name === d.sourceProfile ? " \xB7 the snapshot source" : ""}`)));\n  // The demo\'s deployment in this org comes from the org itself (every gctk sees the same).\n  let orgStatus = null;\n  const storyBox = h("div", {}, storyPanel(d));\n  // The presenter\'s customer persona: salutation and name of the contact they play (unique in the org).\n  const personaOn = Boolean(m.presenterContact);\n  const persona = { salutation: h("select", { "aria-label": "Salutation" }, [["Herr", "Herr"], ["Frau", "Frau"], ["", "\u2013"]].map(([v, l]) => h("option", { value: v }, l))), firstName: h("input", { placeholder: "First name", "aria-label": "Customer first name", style: "min-width:140px" }), lastName: h("input", { placeholder: "Last name", "aria-label": "Customer last name", style: "min-width:140px" }) };\n  const personaValue = () => ({ salutation: persona.salutation.value, firstName: persona.firstName.value.trim(), lastName: persona.lastName.value.trim() });\n  const personaFields = () => personaOn ? h("label", { style: "grid-column:1/-1" }, "Your customer (the contact you play; the name must be unique in the org)", h("div", { class: "row" }, persona.salutation, persona.firstName, persona.lastName)) : null;\n  const deployed = d.deployments.find((x) => x.profile === pick.profile);\n  const prereqBox = h("div", {}, h("div", { class: "muted" }, "Checking the org \u2026"));\n  const divSel = h("select", {}, h("option", {}, "\u2026"));\n  const userSel = h("select", { style: "min-width:240px" }, h("option", {}, "\u2026"));\n  const waSel = h("select", { style: "min-width:240px" }, h("option", { value: "" }, "\u2026"));\n  userSel.addEventListener("change", () => { if (orgStatus?.deployment) drawDeploy(); });\n  let whatsapp = [];\n  // Parameters: the presenter\'s own values (e.g. the phone that plays the customer), prefilled from the last deploy into this org.\n  const paramInputs = (m.parameters || []).map((p) => ({ p, el: h("input", { type: p.format === "email" ? "email" : p.format === "phone" ? "tel" : "text", value: deployed?.params?.[p.id] || "", placeholder: p.format === "phone" ? "+4915112345678" : p.format === "email" ? "name@example.com" : "", style: "min-width:240px" }) }));\n  const cmdBox = h("div");\n  const out = h("div");\n\n  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));\n  // Background job: start it, then follow its log until it is done.\n  const follow = async (url, body, title, after) => {\n    const logEl = h("pre", { style: "max-height:300px;white-space:pre-wrap" }, "");\n    put(out, h("div", { class: "panel" }, h("strong", {}, title), logEl));\n    out.scrollIntoView({ behavior: "smooth", block: "nearest" });\n    try {\n      const { job } = await api(url, { method: "POST", body });\n      for (;;) {\n        await new Promise((r) => setTimeout(r, 1500));\n        const j = await api(`/api/demos/jobs/${job}`);\n        logEl.textContent = j.lines.join("\\n");\n        logEl.scrollTop = logEl.scrollHeight;\n        if (j.done) {\n          if (j.error) out.firstChild.append(h("div", { class: "error" }, j.error));\n          else out.firstChild.append(h("div", { class: "okbox" }, after(j.result)));\n          break;\n        }\n      }\n    } catch (err) { out.firstChild.append(h("div", { class: "error" }, err.message)); }\n    const fresh = await api("/api/demos");\n    Object.assign(d, fresh.demos.find((x) => x.id === d.id));\n    try { orgStatus = (await api(`/api/demos/${d.id}/org?profile=${encodeURIComponent(pick.profile)}`)).status; } catch {}\n    drawDeploy();\n  };\n\n  const deployBox = h("div");\n  // Customer channel: preselected from the last deploy into this org, else the demo\'s first channel.\n  const channels = m.channels || [];\n  pick.channel = channels.some((ch) => ch.id === pick.channel) ? pick.channel : (deployed?.channel || channels[0]?.id || "");\n  const routingHere = () => m.messageRouting && (!m.messageRouting.channel || m.messageRouting.channel === pick.channel);\n  const channelLabel = (id) => channels.find((ch) => ch.id === id)?.label || id;\n  const channelPick = () => channels.length ? h("div", { style: "margin-top:10px" },\n    h("div", { style: "font-weight:600;margin-bottom:6px" }, "How does the customer write to you?"),\n    h("div", { class: "grid" }, channels.map((ch) => h("label", { class: "panel", style: `margin:0;cursor:pointer;display:flex;gap:10px;align-items:flex-start;${ch.id === pick.channel ? "border-color:var(--accent)" : ""}` },\n      h("input", { type: "radio", name: `channel-${d.id}`, checked: ch.id === pick.channel, onchange: () => { pick.channel = ch.id; drawDeploy(); }, style: "margin-top:4px" }),\n      h("span", {}, h("strong", {}, ch.label), ch.description ? h("div", { class: "muted", style: "font-size:13px" }, ch.description) : null))))) : null;\n  const drawDeploy = () => {\n    const st = orgStatus;\n    const dep = st?.deployment;\n    // which: "deploy" (everything), "join" (the presenter\'s own), "update" (the org\'s own).\n    const fields = (which) => [\n      which === "deploy" ? channelPick() : null,\n      h("div", { class: "grid", style: "margin-top:12px" },\n        which === "deploy" ? h("label", {}, "Division", divSel) : null,\n        which !== "update" ? h("label", {}, which === "join" ? "Presenter (you)" : "Presenter (you; member of the demo\'s queues)", userSel) : null,\n        which === "deploy" && routingHere() ? h("label", {}, `WhatsApp number (routed to "${m.messageRouting.flow}")`, waSel) : null,\n        which !== "update" ? personaFields() : null,\n        paramInputs.filter(({ p }) => which === "deploy" || (which === "join" ? p.perPresenter : !p.perPresenter)).map(({ p, el }) => h("label", {}, `${p.label}${p.optional ? "" : " *"}`, el)))];\n    const deploy = (update) => {\n      const wa = !update && routingHere() ? whatsapp.find((w) => w.id === waSel.value) : undefined;\n      if (!update && routingHere() && !wa && !confirm("No WhatsApp number is selected, so no message routing changes and the customer cannot write via WhatsApp. Deploy anyway?")) return;\n      const route = wa ? `\\n\\nMessages to WhatsApp ${wa.name}${wa.phone ? ` (${wa.phone})` : ""} then go to "${m.messageRouting.flow}"${wa.flow && wa.flow !== m.messageRouting.flow ? ` instead of "${wa.flow}" (Remove puts "${wa.flow}" back)` : ""}.` : "";\n      const params = Object.fromEntries(paramInputs.map(({ p, el }) => [p.id, el.value.trim()]));\n      const empty = paramInputs.find(({ p, el }) => !p.optional && !el.value.trim() && (!update || !p.perPresenter));\n      if (!update && personaOn && (!userSel.value || !personaValue().firstName || !personaValue().lastName)) { put(msg, h("div", { class: "error" }, "Choose yourself as the presenter and give your customer a first and last name.")); return; }\n      if (empty) { empty.el.focus(); put(msg, h("div", { class: "error" }, `Enter "${empty.p.label}".`)); return; }\n      put(msg);\n      const via = channels.length && !update ? `\\n\\nCustomer channel: ${channelLabel(pick.channel)}.` : "";\n      const ask = update\n        ? `Update the deployment of "${m.name}" in ${pick.profile} to the demo\'s latest version? It stays the one deployment everyone in this org shares; nothing is created twice.`\n        : `Deploy "${m.name}" into ${pick.profile}?${via} Objects that already exist with the same name are used as they are; everything else is created. Everyone with gctk then sees this deployment.${route}`;\n      if (!confirm(ask)) return;\n      follow(`/api/demos/${d.id}/deploy`, { profile: pick.profile, divisionId: divSel.value, presenterId: update ? "" : userSel.value, whatsappIntegrationId: wa ? wa.id : "", channel: dep?.channel || pick.channel, params, update, ...(!update && personaOn ? { persona: personaValue() } : {}) }, update ? `Updating in ${pick.profile}` : `Deploying into ${pick.profile}`, (r) => `Done: ${r.created.length} objects in ${pick.profile}${r.reused.length ? `, ${r.reused.length} were already there` : ""}.`);\n    };\n    const warnBox = (text) => h("div", { class: "warn" }, text);\n    let body;\n    if (!d.snapshot) body = warnBox(d.canSnapshot ? `No snapshot yet: take one from ${d.sourceProfile} under "What the demo contains" first.` : "No snapshot yet, so this demo cannot be deployed. Update gctk to get it.");\n    else if (!st) body = h("div", { class: "muted" }, "Checking whether the demo is in this org \u2026");\n    else if (dep && dep.deploying) body = [warnBox(`${dep.by} is deploying it into ${pick.profile} right now (started ${time(dep.at)}). Wait until it is done, then reload this page.`)];\n    else if (dep) {\n      const names = dep.presenters.map((x) => x.customer ? `${x.name} (customer ${x.customer})` : x.name).join(", ");\n      const meId = st.me?.presenterId || userSel.value;\n      const meIn = dep.presenters.some((x) => x.id === meId);\n      const join = async () => {\n        if (!userSel.value) { put(msg, h("div", { class: "error" }, "Choose yourself as the presenter first.")); return; }\n        const params = Object.fromEntries(paramInputs.filter(({ p }) => p.perPresenter).map(({ p, el }) => [p.id, el.value.trim()]));\n        try { orgStatus = await api(`/api/demos/${d.id}/join`, { method: "POST", body: { profile: pick.profile, presenterId: userSel.value, params, ...(personaOn ? { persona: personaValue() } : {}) } }); put(msg, h("div", { class: "okbox" }, meIn ? "Your customer is updated." : "You present this demo now, with your own customer.")); drawDeploy(); put(storyBox, storyPanel(d, orgStatus.me?.persona || orgStatus.template)); }\n        catch (err) { put(msg, h("div", { class: "error" }, err.message)); }\n      };\n      body = [\n        h("div", { class: dep.state === "deployed" ? "okbox" : "warn" },\n          `${dep.state === "deployed" ? "Deployed" : "Partly deployed"} in ${pick.profile} by ${dep.by} on ${time(dep.at)}: ${dep.created} objects created${dep.reused ? `, ${dep.reused} were already there` : ""}${dep.channel ? `, customer channel ${channelLabel(dep.channel)}` : ""}. Presenters: ${names || "nobody yet"}.${dep.routing ? ` WhatsApp ${dep.routing.integration}${dep.routing.phone ? ` (${dep.routing.phone})` : ""} routes to the demo.` : ""}${dep.error ? ` Last problem: ${dep.error}` : ""}`),\n        h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, "A demo exists once per org and everyone shares it: whoever has gctk sees this deployment. Join it to present (you become a member of the demo\'s queues), update it to the demo\'s latest version, or remove it for everyone."),\n        fields("join"),\n        h("div", { class: "row", style: "margin-top:10px" },\n          h("button", { class: "btn primary", onclick: join }, meIn ? "Save my customer" : "Join as presenter"),\n          meIn ? h("button", { class: "btn", onclick: async () => {\n            if (!confirm(`Leave the demo in ${pick.profile}? Your customer contact${st.me?.persona?.lastName ? ` "${st.me.persona.firstName} ${st.me.persona.lastName}"` : ""} is deleted and you leave the demo\'s queues; the demo stays for the others.`)) return;\n            try { orgStatus = await api(`/api/demos/${d.id}/leave`, { method: "POST", body: { profile: pick.profile, presenterId: meId } }); put(msg, h("div", { class: "okbox" }, "You no longer present this demo.")); drawDeploy(); put(storyBox, storyPanel(d, orgStatus.template)); }\n            catch (err) { put(msg, h("div", { class: "error" }, err.message)); }\n          } }, "Leave") : null,\n          h("button", { class: "btn", onclick: () => deploy(true) }, dep.state === "deployed" ? "Update to the latest version" : "Finish the deploy"),\n          h("span", { class: "spacer" }),\n          h("button", { class: "btn danger", onclick: () => {\n            if (!confirm(`Remove "${m.name}" from ${pick.profile} for everyone?\\n\\n${dep.created} objects gctk created are deleted${names ? `, and the presenters (${names}) lose the demo` : ""}. Objects that were already there stay.`)) return;\n            follow(`/api/demos/${d.id}/remove`, { profile: pick.profile }, `Removing from ${pick.profile}`, (r) => `Removed ${r.removed} objects.${r.failed.length ? ` Not removed: ${r.failed.join("; ")}` : ""}`);\n          } }, "Remove for everyone"))];\n    } else if (st.unregistered) {\n      body = [warnBox(`This computer deployed the demo into ${pick.profile} on ${time(st.unregistered.at)} (${st.unregistered.created} objects), but the org does not know it yet: colleagues would not see it and could deploy it again.`),\n        h("button", { class: "btn primary", onclick: async () => {\n          try { orgStatus = await api(`/api/demos/${d.id}/register`, { method: "POST", body: { profile: pick.profile } }); drawDeploy(); }\n          catch (err) { put(msg, h("div", { class: "error" }, err.message)); }\n        } }, "Register it in the org")];\n    } else {\n      body = [\n        st.existing?.length ? warnBox(`${st.existing.length} of the demo\'s objects are in ${pick.profile} already, built by hand or by an older gctk: ${st.existing.slice(0, 6).join(", ")}${st.existing.length > 6 ? " \u2026" : ""}. The deploy uses them and never changes or deletes them.`) : null,\n        fields("deploy"),\n        h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => deploy(false) }, `Deploy into ${pick.profile}`))];\n    }\n    put(deployBox, body);\n  };\n\n  const drawCommands = (cmds) => put(cmdBox, (cmds || []).length ? cmds.map((c) => {\n    const logEl = h("pre", { style: "max-height:260px;white-space:pre-wrap", hidden: true });\n    const showLog = async () => { logEl.hidden = !logEl.hidden; if (!logEl.hidden) logEl.textContent = (await api(`/api/demos/${d.id}/commands/${c.id}/log`)).log || "(no output yet)"; };\n    const act = async (what) => {\n      try {\n        if (what === "start") await api(`/api/demos/${d.id}/commands/${c.id}/start`, { method: "POST", body: { profile: pick.profile } });\n        else await api(`/api/demos/${d.id}/commands/${c.id}/stop`, { method: "POST", body: {} });\n        setTimeout(async () => drawCommands(await api(`/api/demos/${d.id}/commands`)), what === "start" ? 2500 : 800);\n      } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }\n    };\n    return h("div", { class: "todo-row", style: "flex-wrap:wrap" },\n      h("strong", {}, c.label), c.running ? pill(`running for ${c.profile}`, "s-applied") : pill("stopped", ""),\n      c.running && c.links?.length ? c.links.map((l) => h("a", { href: l.url, target: "_blank", rel: "noopener", style: "margin-right:10px" }, l.label)) : c.running && c.url ? h("a", { href: c.url, target: "_blank", rel: "noopener" }, c.url) : null,\n      h("span", { class: "spacer" }),\n      c.running ? h("button", { class: "btn", onclick: () => act("start") }, "Restart") : h("button", { class: "btn primary", onclick: () => act("start") }, `Start for ${pick.profile}`),\n      c.running ? h("button", { class: "btn danger", onclick: () => act("stop") }, "Stop") : null,\n      h("button", { class: "btn", onclick: showLog }, "Log"),\n      logEl);\n  }) : h("div", { class: "muted" }, "This demo needs nothing running on this computer."));\n\n  if (pick.profile) api(`/api/demos/${d.id}/org?profile=${encodeURIComponent(pick.profile)}`).then((o) => {\n    put(prereqBox, h("div", { class: "prereqs" }, o.prerequisites.map((r) => [\n      h("span", {}, pill(PREREQ[r.state][0], PREREQ[r.state][1])),\n      h("span", {}, r.text, r.detail ? h("span", { class: "muted", style: "font-size:12px" }, ` \xB7 ${r.detail}`) : null)])));\n    put(divSel, o.divisions.map((x) => h("option", { value: x.id, selected: x.home }, x.name + (x.home ? " (home)" : ""))));\n    const me = (state.overview?.user || "").toLowerCase();\n    put(userSel, h("option", { value: "" }, "Nobody (add members later)"), o.users.map((u) => h("option", { value: u.id, selected: me && (u.email || "").toLowerCase().startsWith(me.replace(/\\./g, ".")) }, u.email ? `${u.name} \xB7 ${u.email}` : u.name)));\n    whatsapp = o.whatsapp || [];\n    put(waSel, h("option", { value: "" }, whatsapp.length ? "Do not change message routing" : "No WhatsApp integration in this org"),\n      whatsapp.map((w, i) => h("option", { value: w.id, selected: i === 0 }, `${w.name}${w.phone ? ` \xB7 ${w.phone}` : ""}${w.flow ? ` \xB7 now \u2192 ${w.flow}` : " \xB7 no flow yet"}`)));\n    drawCommands(o.commands);\n    orgStatus = o.status;\n    const mine = o.status?.me;\n    for (const { p, el } of paramInputs) if (!el.value) el.value = (p.perPresenter ? mine?.params?.[p.id] : o.status?.deployment?.params?.[p.id]) || "";\n    if (mine?.persona?.lastName) { persona.salutation.value = mine.persona.salutation || ""; persona.firstName.value = mine.persona.firstName; persona.lastName.value = mine.persona.lastName; }\n    if (mine?.presenterId) userSel.value = mine.presenterId;\n    put(storyBox, storyPanel(d, mine?.persona?.lastName ? mine.persona : o.status?.template));\n    drawDeploy();\n  }).catch((err) => put(prereqBox, h("div", { class: "error" }, err.message)));\n  drawDeploy();\n\n  const snap = d.snapshot;\n  return h("div", {},\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" }), h("label", { class: "row" }, "Org", orgSel)),\n      m.description ? h("p", { class: "muted", style: "margin:6px 0 0" }, m.description) : null),\n    storyBox,\n    step(1, "Prerequisites in the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. The ones it can check show their state; check the others yourself."), prereqBox),\n    permissionsPanel(d),\n    step(2, "Deploy", deployBox),\n    out,\n    step(3, "Run on this computer", cmdBox),\n    m.manual?.length ? step(4, "On the day", h("ul", { style: "margin:0;padding-left:20px" }, m.manual.map((x) => h("li", {}, x)))) : null,\n    h("details", { class: "panel" }, h("summary", { style: "margin:0" }, `What the demo contains${snap ? ` (${snap.objects} objects, ${time(snap.at)})` : ""}`),\n      snap ? h("table", { style: "margin-top:8px" }, snap.contents.map((c) => h("tr", {}, h("td", { style: "white-space:nowrap" }, c.label), h("td", { class: "muted" }, c.names.join(" \xB7 "))))) : h("p", { class: "muted" }, "No snapshot yet."),\n      snap?.unresolved ? h("div", { class: "warn" }, `${snap.unresolved} id(s) point to objects outside the demo; they stay as they are.`) : null,\n      h("div", { class: "row", style: "margin-top:10px" }, d.canSnapshot ? h("button", { class: "btn", onclick: () => {\n        if (!confirm(`Read the demo\'s objects again from ${d.sourceProfile}? The new snapshot replaces snapshot.json in ${d.folder}.`)) return;\n        follow(`/api/demos/${d.id}/snapshot`, {}, `Snapshot from ${d.sourceProfile}`, (r) => `Snapshot taken: ${r.objects.length} objects.`);\n      } }, snap ? `Take snapshot again from ${d.sourceProfile}` : `Take snapshot from ${d.sourceProfile}`) : null,\n        h("span", { class: "muted", style: "font-size:12px" }, "Comes with gctk: everything it needs, pages included, is part of the plugin."))));\n}\n\n// ------------------------------------------------------------ your data\n// Where gctk keeps what on this computer: its folder, the keychain entries (names only), and what\n// it wrote elsewhere. Nothing here leaves the computer.\nconst fmtBytes = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;\n\nasync function viewData() {\n  const d = await api("/api/data");\n  const tilde = (p) => (d.userHome && p.startsWith(d.userHome + "/") ? `~${p.slice(d.userHome.length)}` : p);\n  const msg = h("div");\n  const open = async (key) => { try { await api("/api/data/open", { method: "POST", body: { key } }); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); } };\n  const openBtn = (p) => p.exists ? h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(p.key) }, "Open") : h("span", { class: "muted", style: "font-size:12px" }, "not created yet");\n  const table = (list) => h("table", {}, h("tr", {}, h("th", {}, "What"), h("th", {}, "Where"), h("th", { style: "text-align:right" }, "Size"), h("th", {}, "")),\n    list.map((p) => h("tr", {},\n      h("td", {}, h("strong", {}, p.label), h("div", { class: "muted", style: "font-size:12px" }, p.what)),\n      h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere", title: p.path }, tilde(p.path)),\n      h("td", { class: "muted", style: "text-align:right;white-space:nowrap" }, p.exists ? `${fmtBytes(p.bytes)}${p.items !== undefined ? ` \xB7 ${p.items}` : ""}` : "\u2013"),\n      h("td", {}, openBtn(p)))));\n  const total = d.places.reduce((n, p) => n + p.bytes, 0);\n  return h("div", {},\n    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Your data"),\n    h("p", { class: "lead" }, "Everything gctk keeps stays on this computer: settings and records in one folder, secrets in the keychain. The AI never sees the secrets."),\n    msg,\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", {}, "gctk\'s folder"), h("span", { class: "mono", title: d.home }, tilde(d.home)), h("span", { class: "muted" }, fmtBytes(total)), h("span", { class: "spacer" }),\n        h("button", { class: "btn primary", onclick: () => open("home") }, "Open in Finder")),\n      d.homeFromEnv ? h("div", { class: "muted", style: "font-size:13px;margin-top:4px" }, "Set by GCTK_HOME for this UI.") : null,\n      h("div", { style: "margin-top:10px" }, table(d.places))),\n    h("div", { class: "panel" },\n      h("div", { class: "row" }, h("strong", {}, "Secrets"), h("span", { class: "muted" }, `${d.keychain}, service "gctk"`)),\n      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, other server secrets on the Cursor setup page."),\n      h("table", {}, h("tr", {}, h("th", {}, "Entry"), h("th", {}, "What it is"), h("th", {}, "")),\n        d.secrets.map((x) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, x.account), h("td", {}, x.what), h("td", {}, x.stored ? pill("stored", "s-applied") : pill("missing", "s-failed")))))),\n    d.elsewhere.length ? h("div", { class: "panel" },\n      h("strong", {}, "Written outside gctk\'s folder"),\n      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and Cursor config files whose entries the Cursor setup page changed."),\n      table(d.elsewhere)) : null);\n}\n\n// ------------------------------------------------------------- AI setup\n// The MCP servers and skills of the user\'s editors, read from their config files by the gctk server.\n// Secrets arrive masked; the fix buttons change the user\'s config files (server side).\n// Cursor setup (page id ai-setup; decision 2026-10-06: Cursor only, no skills). What Cursor loads in\n// every folder, the org each Genesys server works on, and one-click fixes. A folder\'s own servers and\n// org belong to the Projects page; folders with their own config are offered as projects.\nconst CREDS = {\n  none: ["no credentials", ""],\n  plain: ["secret in plain text in the file", "s-failed"],\n  reference: ["secret from a variable", ""],\n  keychain: ["secret in a keychain entry of its own", "s-pending"],\n  org: ["org on the Orgs page", "s-applied"],\n  "gctk-profile": ["gctk orgs (keychain)", "s-applied"],\n  axl: ["AXL workshop org (keychain, through gctk)", "s-applied"],\n  project: ["project org (keychain, through gctk)", "s-applied"],\n};\nconst FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };\n/** Plain names for the Genesys tools people meet most. */\nconst TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };\nconst RELOAD_HINT = "Restart the server in Cursor so it picks up the change: Settings \u2192 MCP, switch it off and on.";\nconst projName = (p) => (p ? p.split(/[\\\\/]/).filter(Boolean).pop() : "");\nconst whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";\nconst sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || whereText(a).localeCompare(whereText(b)));\n\nasync function viewAiSetup() {\n  const msg = h("div");\n  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading Cursor\'s config files\u2026"));\n  const refresh = h("button", { class: "btn" }, "Refresh");\n  let projects = [];\n  const draw = (s) => put(body, aiSetupReport(s, msg, draw, projects));\n  const load = async () => {\n    refresh.disabled = true;\n    try {\n      const [s, axl] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);\n      projects = axl.workshops.map((x) => x.workshop);\n      draw(s);\n    } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }\n  };\n  refresh.addEventListener("click", () => { msg.replaceChildren(); load(); });\n  load();\n  return h("div", {},\n    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Cursor setup"), h("span", { class: "spacer" }), refresh),\n    h("p", { class: "lead" }, "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder\'s own servers and org are set on the Projects page."),\n    msg, body);\n}\n\nfunction aiSetupReport(s, msg, draw, projects) {\n  const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINT)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };\n  const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };\n  const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });\n  const ctx = {\n    msg, draw,\n    async fix(x, kind) {\n      const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");\n      const ask = {\n        keychain: `Move ${names} of "${x.name}" (${whereText(x)}) into the keychain? The secret is then no longer in\\n${x.file}\\n\\nScripts that read the secret from this file themselves stop working (a demo started from the Demos page gets it from gctk).`,\n        restore: `Write the secret of "${x.name}" back into\\n${x.file}\\nin plain text?`,\n        remove: `Remove the server "${x.name}" from\\n${x.file}?`,\n        "clean-env": `Remove the old variable from "${x.name}"?`,\n        repair: `Point "${x.name}" (${whereText(x)}) to the copy of gctk that stays across plugin updates?\\n${x.file}`,\n      }[kind];\n      if (!confirm(ask)) return;\n      try { done(`Done: ${FIX_LABELS[kind].toLowerCase()} (${x.name}).`, await post(x, kind)); } catch (err) { failed(err); }\n    },\n    async restoreSkill(r) {\n      try { done(`Restored ${r.name} to ${r.from}.`, await api("/api/ai-setup/skills/restore", { method: "POST", body: { id: r.id } })); } catch (err) { failed(err); }\n    },\n    /** Links x to an org on the Orgs page; asks once when x\'s secret differs from the org\'s. */\n    async link(x, body) {\n      const call = (extra) => api("/api/ai-setup/link", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body, ...extra } });\n      try {\n        let r;\n        try { r = await call({}); }\n        catch (err) {\n          if (err.code !== "SECRET_DIFFERS") throw err;\n          if (!confirm(`${err.message.replace(/^[A-Z_]+: /, "")}\\n\\nUse the org\'s secret? The one ${x.credentials === "plain" ? "in the file" : "in its own keychain entry"} is dropped. (If the org\'s is the old one, cancel and store the new secret on the Orgs page first.)`)) return;\n          r = await call({ useOrgSecret: true });\n        }\n        await refreshOverview();\n        done(r.linked.created ? `Added the org ${r.linked.profile} on the Orgs page and linked ${x.name} to it.` : `Linked ${x.name} to the org ${r.linked.profile}.`, r);\n      } catch (err) { failed(err); }\n    },\n    async setCredentials(x, body) {\n      try { done(`Saved the new credentials of ${x.name}.`, await api("/api/ai-setup/credentials", { method: "POST", body: { file: x.file, section: x.section, name: x.name, ...body } })); } catch (err) { failed(err); }\n    },\n    async fixAll(list, kind, what) {\n      if (!confirm(`${what}?\\n\\n${list.map((x) => `\u2022 ${x.name} (${whereText(x)})`).join("\\n")}`)) return;\n      let next;\n      try { for (const x of list) next = await post(x, kind); done(`Done for ${list.length} entries.`, next); } catch (err) { failed(err); if (next) draw(next); }\n    },\n  };\n  const found = s.files.filter((f) => f.exists);\n  const managed = s.secrets;\n  const details = h("details", { class: "panel", style: "margin-top:14px" },\n    h("summary", { style: "margin:0" }, h("strong", {}, "Details"), h("span", { class: "muted", style: "font-size:13px" }, ` \xB7 every entry, secrets in the keychain, ${found.length} config files`)),\n    h("div", { style: "margin-top:10px" },\n      h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Every entry"),\n      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "Open an entry for its file, command and variables (secrets masked) and the fixes for it."),\n      sortServers(s.servers).map((x) => serverRow(x, ctx)),\n      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,\n      s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),\n        s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,\n      filesPanel(s, msg, draw)));\n  return [todoPanel(s, ctx), aiOverview(s, ctx), folderPanel(s, projects), details];\n}\n\n/**\n * Moves a server\'s credentials to the Orgs page: link to the org with the same OAuth client, or add\n * them as a new org (region from the entry), or pick another org.\n */\nfunction linkControl(x, ctx) {\n  const L = x.linkOrg;\n  if (!L) return null;\n  if (L.match) return h("button", { class: "btn primary", title: `Its OAuth client is the one of ${L.match}; the secret then comes from the Orgs page.`, onclick: () => {\n    if (confirm(`Link "${x.name}" (${whereText(x)}) to the org ${L.match}?\\n\\nIts client ID and secret then come from the Orgs page; ${x.credentials === "plain" ? "the secret leaves the file" : "its own keychain entry is deleted"}.`)) ctx.link(x, { profile: L.match });\n  } }, `Link to ${L.match}`);\n  const orgsNow = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  if (x.credentials === "org") {\n    // Linked to an org that is gone: only another org can take over (no secret left to add).\n    const sel = h("select", { "aria-label": "Org" }, h("option", { value: "" }, orgsNow.length ? "Link to another org\u2026" : "no org on the Orgs page"), orgsNow.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`)));\n    sel.addEventListener("change", () => { if (sel.value) ctx.link(x, { profile: sel.value, useOrgSecret: true }); });\n    return sel;\n  }\n  const box = h("div", { style: "flex-basis:100%;display:none" });\n  const name = h("input", { placeholder: "e.g. dach-sandbox", style: "min-width:180px", "aria-label": "Org name" });\n  const tier = h("select", { "aria-label": "Tier" }, h("option", { value: "" }, "tier\u2026"), ["sandbox", "dev", "test", "production"].map((t) => h("option", { value: t }, t)));\n  const region = h("input", { value: L.region || "", placeholder: "region, e.g. mypurecloud.de", style: "min-width:200px", "aria-label": "Region" });\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const other = orgs.length ? h("select", { "aria-label": "Existing org" }, h("option", { value: "" }, "or use one of your orgs\u2026"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier})`))) : null;\n  other?.addEventListener("change", () => { if (other.value && confirm(`Let "${x.name}" work on ${other.value} instead? Its own client ID and secret are dropped.`)) ctx.link(x, { profile: other.value }); else other.value = ""; });\n  put(box, h("div", { class: "row", style: "margin:6px 0 2px" }, name, tier, region,\n    h("button", { class: "btn primary", onclick: () => {\n      if (!name.value.trim() || !tier.value) { alert("Give the org a name and choose its tier."); return; }\n      ctx.link(x, { newOrg: { name: name.value.trim(), tier: tier.value, region: region.value } });\n    } }, "Add org and link"), other),\n    h("div", { class: "muted", style: "font-size:12px" }, "The client ID and secret it has now become this org on the Orgs page; the server then takes them from there."));\n  const open = h("button", { class: "btn primary", onclick: () => { box.style.display = box.style.display === "none" ? "" : "none"; } }, "Add as an org");\n  return [open, box];\n}\n\n/** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */\nfunction todoPanel(s, ctx) {\n  const having = (kind) => s.servers.filter((x) => x.problems.some((p) => p.kind === kind));\n  const fixable = (kind, fix) => having(kind).filter((x) => x.problems.some((p) => p.kind === kind && p.fix === fix));\n  const SAYS_MORE = ["missing-command", "launch-invalid"];\n  const row = (x, kind, btn) => h("div", { class: "todo-row" },\n    h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)),\n    SAYS_MORE.includes(kind) ? h("span", { class: "muted", style: "font-size:12px;flex-basis:100%" }, x.problems.filter((p) => p.kind === kind).map((p) => p.text).join(" ")) : null,\n    h("span", { class: "spacer" }), btn);\n  let first = true;\n  const group = (title, why, rows, all) => {\n    if (!rows.length) return null;\n    const open = first;\n    first = false;\n    return h("details", { class: "todo-group", open },\n      h("summary", {}, h("strong", {}, title), pill(String(rows.length), "s-pending"), why ? h("span", { class: "muted", style: "font-size:13px" }, why) : null),\n      all ? h("div", { class: "row", style: "margin:4px 0 6px" }, all) : null, rows);\n  };\n  const secrets = having("plain-secret");\n  const canMove = fixable("plain-secret", "keychain");\n  const shared = secrets.some((x) => x.problems.some((p) => p.kind === "same-secret"));\n  const broken = [...having("missing-command"), ...having("launch-invalid")];\n  const removable = broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair"));\n  const groups = [\n    group("Secrets in plain text", `Anyone who can read these files can use the secret. Move it to the Orgs page: gctk keeps it in the keychain, and you see there which OAuth clients you have.${shared ? " Several entries share one secret; as an org it is kept once." : ""}`,\n      secrets.map((x) => row(x, "plain-secret", x.linkOrg ? linkControl(x, ctx) : canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null))),\n    group("Credentials not on the Orgs page", "Each has a keychain entry of its own, so the Orgs page does not show it. Link it to an org: one place for every OAuth client, and a new secret is entered once.",\n      having("not-linked").map((x) => row(x, "not-linked", linkControl(x, ctx)))),\n    group("Entries that cannot start", "The program or script they point to is gone, so Cursor shows an error for them.",\n      broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "link") ? linkControl({ ...x, linkOrg: x.linkOrg || {} }, ctx) : x.problems.some((p) => p.fix === "repair")\n        ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")\n        : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),\n      removable.length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(removable, "remove", `Remove ${removable.length} entries that cannot start`) }, "Remove all") : null),\n    group("Older gctk entries", "They load gctk as github:\u2026, which needs git and starts slowly. Repair switches them to the download link.",\n      having("old-package").map((x) => row(x, "old-package", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),\n    group("Entries that only work on this computer", "They start gctk from a development checkout or a plugin version an update deletes. Repair points them to the copy every computer with gctk has.",\n      having("unstable-path").map((x) => row(x, "unstable-path", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),\n    group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),\n    group("Secrets in headers", "Remote servers: gctk cannot move these. Use Cursor\'s variables (for example ${env:NAME}) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),\n    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),\n  ].filter(Boolean);\n  return groups.length\n    ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)\n    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, and every entry can start.");\n}\n\n/** One server as a compact line; the details open on click. */\nfunction serverRow(x, ctx) {\n  const [credText, credCls] = CREDS[x.credentials] || [x.credentials, ""];\n  const issues = x.problems.filter((p) => p.level === "warn" && p.kind !== "plain-secret" && p.kind !== "same-secret").length;\n  const restore = x.credentials === "keychain" && x.launch?.valid && x.editable;\n  const vars = [...x.env, ...x.headers.map((v) => ({ ...v, name: `header ${v.name}` }))];\n  const org = x.org;\n  return h("details", { class: "srv" },\n    h("summary", {}, h("strong", {}, x.name), h("span", { class: "muted" }, whereText(x)), x.disabled ? pill("switched off") : null,\n      h("span", { class: "spacer" }), issues ? pill(`${issues} to fix`, "s-failed") : null, pill(credText, credCls)),\n    h("div", { class: "body" },\n      h("dl", { class: "kv" },\n        h("dt", {}, "File"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.file),\n        h("dt", {}, "Org"), h("dd", {}, org?.profile ? org.profile : org?.clientId ? "not one of your gctk orgs" : x.credentials === "gctk-profile" ? "needs no org" : "\u2014"),\n        org?.region ? [h("dt", {}, "Region"), h("dd", { class: "mono" }, org.region)] : null,\n        org?.clientId ? [h("dt", {}, "OAuth client"), h("dd", { class: "mono" }, org.clientId)] : null,\n        h("dt", {}, x.transport === "http" ? "URL" : "Starts"), h("dd", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, x.transport === "http" ? x.url : [x.command, ...x.args].join(" "))),\n      vars.length ? h("table", {}, vars.map((v) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, v.name), h("td", { class: "v" }, v.value, v.plain ? [" ", pill("plain text", "s-failed")] : "")))) : null,\n      x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,\n      x.credentialKeys ? credentialsForm(x, ctx)\n        : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the Projects page.") : null,\n      x.editable ? h("div", { class: "row" },\n        x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,\n        x.problems.some((p) => p.fix === "repair") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, FIX_LABELS.repair) : null,\n        x.problems.some((p) => p.fix === "clean-env") ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, FIX_LABELS["clean-env"]) : null,\n        restore ? h("button", { class: "btn", onclick: () => ctx.fix(x, "restore") }, FIX_LABELS.restore) : null,\n        h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, FIX_LABELS.remove))\n        : h("div", { class: "muted", style: "font-size:12px" }, x.scope === "plugin" ? "Comes with a plugin; change it there." : "gctk does not change this file.")));\n}\n\n/** New client ID, secret or region for a Genesys server, or those of one of the user\'s gctk orgs. */\nfunction credentialsForm(x, ctx) {\n  const keys = x.credentialKeys;\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const org = h("select", {}, h("option", { value: "" }, "Enter them below"), orgs.map((p) => h("option", { value: p.name }, `${p.name} (${p.tier}, ${p.region})`)));\n  const clientId = keys.clientId ? h("input", { placeholder: x.org?.clientId ? `now ${x.org.clientId}` : "Client ID", autocomplete: "off", style: "min-width:280px" }) : null;\n  const secret = keys.secret ? h("input", { type: "password", placeholder: "Client secret (empty: keep the current one)", autocomplete: "new-password", style: "min-width:280px" }) : null;\n  const region = keys.region || keys.habitat ? h("input", { placeholder: x.org?.region ? `now ${x.org.region}` : "Region, e.g. mypurecloud.de", style: "min-width:200px" }) : null;\n  const plain = x.credentials !== "keychain";\n  const keychain = h("input", { type: "checkbox", checked: true });\n  const typed = [clientId, secret, region].filter(Boolean);\n  org.addEventListener("change", () => { for (const el of typed) el.disabled = Boolean(org.value); });\n  const save = () => ctx.setCredentials(x, org.value\n    ? { profile: org.value, keychain: plain ? keychain.checked : true }\n    : { clientId: clientId?.value || "", secret: secret?.value || "", region: region?.value || "", keychain: plain ? keychain.checked : true });\n  const field = (label, el) => el ? h("label", {}, label, el) : null;\n  return h("details", { class: "creds" },\n    h("summary", {}, "Change credentials"),\n    h("div", { class: "grid", style: "margin-top:6px" },\n      h("label", {}, "Take them from an org", org),\n      field(`Client ID (${keys.clientId})`, clientId), field(`Secret (${keys.secret})`, secret), field(`Region (${[keys.region, keys.habitat].filter(Boolean).join(", ")})`, region)),\n    plain && keys.secret ? h("label", { class: "row", style: "margin-top:8px;color:var(--text)" }, keychain, "Keep the secret in the keychain, not in the file") : null,\n    h("div", { class: "row", style: "margin-top:8px" }, h("button", { class: "btn primary", onclick: save }, "Save credentials"),\n      h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));\n}\n\n/** What Cursor loads in every folder: the Genesys tools with their org and status, then the rest. */\nfunction aiOverview(s, ctx) {\n  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);\n  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;\n  const everywhere = s.servers.filter((x) => x.scope !== "project");\n  const orgOf = (x) => {\n    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");\n    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null); }\n    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);\n    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");\n    return h("span", { class: "muted" }, "no org set");\n  };\n  const status = (x) => {\n    const warn = x.problems.filter((p) => p.level === "warn");\n    if (x.disabled) return pill("switched off", "");\n    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");\n    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");\n    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");\n    return pill("ready", "s-applied");\n  };\n  const useOrg = (x) => {\n    if (!x.credentialKeys || !x.editable || !orgs.length) return null;\n    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org\u2026" : "Use one of your orgs\u2026"),\n      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));\n    sel.addEventListener("change", () => {\n      const o = sel.value;\n      if (!o) return;\n      if (!confirm(`Let "${x.name}" (${whereText(x)}) work on ${o}?\\n\\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\\n${x.file}`)) { sel.value = ""; return; }\n      ctx.setCredentials(x, { profile: o, keychain: true });\n    });\n    return sel;\n  };\n  const toolRow = (x) => h("div", { class: "todo-row" },\n    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : "~/.cursor/mcp.json"),\n    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)), status(x), useOrg(x));\n  const genesys = everywhere.filter((x) => x.genesys);\n  const others = everywhere.filter((x) => !x.genesys);\n  const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));\n  return h("div", { class: "panel" },\n    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "In every folder"),\n      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ~/.cursor/mcp.json and plugins` : "no Genesys tools")),\n    genesys.length ? names.map((n) => {\n      const [title, what] = TOOL_NAMES[n] || [n, ""];\n      return h("div", { style: "margin-top:10px" },\n        h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `\xB7 ${what}`) : null),\n        sortServers(genesys.filter((x) => x.name === n)).map(toolRow));\n    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),\n    others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);\n}\n\n/** Folders with their own .cursor/mcp.json: the ones that are projects open there, the others can become one. */\nfunction folderPanel(s, projects) {\n  const folders = [...new Set(s.servers.filter((x) => x.scope === "project").map((x) => x.project))].sort((a, b) => projName(a).localeCompare(projName(b)));\n  if (!folders.length) return null;\n  const open = (id) => { state.axlOpen = id; go("axl"); };\n  const make = async (folder) => {\n    try {\n      const r = await api("/api/axl/workshops", { method: "POST", body: { name: projName(folder), folder, lab: false } });\n      open(r.id);\n    } catch (err) { showError(err); }\n  };\n  return h("div", { class: "panel" },\n    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Folders with their own servers"), h("span", { class: "muted" }, "Cursor loads these only in that folder, next to the ones above")),\n    folders.map((f) => {\n      const here = s.servers.filter((x) => x.project === f);\n      const p = projects.find((w) => w.folder === f);\n      const bad = here.some((x) => x.problems.some((q) => q.level === "warn"));\n      return h("div", { class: "todo-row" },\n        h("span", { style: "flex:1;min-width:220px" }, h("strong", {}, projName(f)), p ? [" ", pill(p.lab === false ? "project" : "AXL workshop", "")] : null,\n          h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, f)),\n        h("span", { class: "muted", style: "font-size:13px;min-width:200px" }, here.map((x) => toolTitle(x.name)).join(", ")),\n        bad ? pill("needs a look", "s-failed") : null,\n        p ? h("button", { class: "btn", onclick: () => open(p.id) }, "Open project") : h("button", { class: "btn", title: "Choose its org and Genesys tools on the Projects page", onclick: () => make(f) }, "Make it a project"));\n    }));\n}\n\n/** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */\nfunction secretCard(m, msg, draw) {\n  const inputs = m.names.map((n) => [n, h("input", { type: "password", autocomplete: "new-password", placeholder: "new value", style: "flex:1;min-width:220px" })]);\n  const save = async () => {\n    try {\n      const next = await api(`/api/ai-setup/secrets/${encodeURIComponent(m.account)}`, { method: "PUT", body: { values: Object.fromEntries(inputs.map(([n, el]) => [n, el.value])) } });\n      put(msg, h("div", { class: "okbox" }, `Saved the new secret for ${m.usedBy.map((u) => u.server).join(", ")}. `, RELOAD_HINT));\n      draw(next);\n    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }\n  };\n  return h("div", { class: "keybox" },\n    h("div", { class: "row" }, "\u{1F511}", h("strong", {}, `Secret in the keychain: ${m.names.join(", ")}`), m.profile ? h("span", { class: "muted" }, `org ${m.profile}`) : null, m.stored ? null : pill("missing in the keychain", "s-failed"),\n      h("span", { class: "muted", style: "font-size:13px" }, `used by ${m.usedBy.length} entr${m.usedBy.length > 1 ? "ies" : "y"}`)),\n    h("details", {}, h("summary", {}, "Enter a new secret (after rotating it in Genesys Cloud)"),\n      inputs.map(([n, el]) => h("div", { class: "row", style: "margin:6px 0" }, h("span", { class: "mono", style: "min-width:220px" }, n), el)),\n      h("button", { class: "btn primary", onclick: save }, "Save in the keychain")));\n}\n\nfunction filesPanel(s, msg, draw) {\n  const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/.cursor/mcp.json", style: "flex:1;min-width:280px" });\n  const call = async (url, body) => {\n    try { draw(await api(url, { method: "POST", body })); msg.replaceChildren(); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }\n  };\n  const status = (f) => !f.exists ? h("span", { class: "muted" }, "not there") : f.error ? h("span", { class: "muted" }, f.error) : f.scope === "plugin" ? h("span", { class: "muted" }, "read-only (plugin)") : pill("found", "s-applied");\n  const added = s.locations.filter((l) => !s.files.some((f) => f.path === l && f.added));\n  return h("div", { style: "margin-top:16px" },\n    h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Config files"),\n    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk reads ~/.cursor/mcp.json, Cursor\'s plugins and the .cursor/mcp.json of the folders Cursor knows (its recent folders and your projects). Add a folder or file that is somewhere else."),\n    h("table", {}, h("tr", {}, h("th", {}, "File"), h("th", {}, "For"), h("th", {}, "")),\n      s.files.map((f) => h("tr", {},\n        h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, f.path),\n        h("td", { class: "muted" }, f.scope === "plugin" ? `plugin ${f.plugin}` : f.scope === "project" ? "one folder" : "every folder"),\n        h("td", { style: "white-space:nowrap" }, status(f), f.added ? [" ", h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: f.path }) }, "Remove")] : null)))),\n    added.length ? h("div", { style: "margin-top:10px" }, h("strong", { style: "font-size:13px" }, "Added folders"), added.map((l) => h("div", { class: "row", style: "margin-top:4px" }, h("span", { class: "mono", style: "font-size:12px;flex:1" }, l),\n      h("button", { class: "btn", style: "padding:2px 8px;font-size:12px", onclick: () => call("/api/ai-setup/locations/remove", { path: l }) }, "Remove")))) : null,\n    h("div", { class: "row", style: "margin-top:12px" }, input, h("button", { class: "btn primary", onclick: () => input.value.trim() && call("/api/ai-setup/locations", { path: input.value }) }, "Add")));\n}\n\n// ---------------------------------------------------------------- start\n(async () => {\n  if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "No session token. Ask the AI to open the gctk UI again, or run `gctk ui`.")); return; }\n  try {\n    await refreshOverview();\n    // A page this tab remembers that no longer exists opens Orgs.\n    if (![...VIEWS, ...MINOR_VIEWS].some(([id]) => id === state.view)) {\n      state.view = "profiles";\n      try { sessionStorage.setItem("gctk-view", "profiles"); } catch {}\n    }\n    await render();\n  }\n  catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); return; }\n})();\n</script>\n</body>\n</html>\n';
 
 // src/ui/launcher.ts
 import { spawn as spawn4 } from "node:child_process";
@@ -52924,7 +53203,7 @@ function readLogo(name) {
 }
 
 // src/ui/server.ts
-var VERSION2 = true ? "0.29.1" : "dev";
+var VERSION2 = true ? "0.30.0" : "dev";
 var MAX_BODY = 1024 * 1024;
 var MAX_UPLOAD_BODY = 4 * 1024 * 1024;
 var HttpError = class extends Error {
@@ -52943,7 +53222,7 @@ function clientFor(profile2) {
   }
   return c;
 }
-var currentUser = () => os5.userInfo().username;
+var currentUser = () => os6.userInfo().username;
 function profileView(p) {
   return {
     name: p.name,
@@ -53127,6 +53406,10 @@ var startJob = (work) => {
   return { job: id };
 };
 var stringMap = (x) => x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).filter(([, v]) => typeof v === "string")) : {};
+var personaOf = (body) => {
+  const p = body.persona && typeof body.persona === "object" ? body.persona : void 0;
+  return p ? { salutation: String(p.salutation ?? ""), firstName: String(p.firstName ?? ""), lastName: String(p.lastName ?? "") } : void 0;
+};
 route("GET", "/api/demos", () => ({ demos: listDemos(), types: DEMO_TYPES }));
 route("GET", "/api/demos/jobs/:job", ({ params }) => {
   const j = jobs.get(params.job);
@@ -53135,15 +53418,18 @@ route("GET", "/api/demos/jobs/:job", ({ params }) => {
 });
 route("GET", "/api/demos/:id/org", async ({ params, query }) => {
   const profile2 = str2(Object.fromEntries(query), "profile");
-  const [prerequisites, users, divisions, whatsapp] = await Promise.all([checkPrerequisites(params.id, profile2), orgUsers(profile2), orgDivisions(profile2), orgWhatsApp(profile2).catch(() => [])]);
-  return { prerequisites, users, divisions, whatsapp, commands: commandStatus(params.id) };
+  const [prerequisites, users, divisions, whatsapp, status] = await Promise.all([checkPrerequisites(params.id, profile2), orgUsers(profile2), orgDivisions(profile2), orgWhatsApp(profile2).catch(() => []), orgDemoStatus(params.id, profile2)]);
+  return { prerequisites, users, divisions, whatsapp, status, commands: commandStatus(params.id) };
 });
 route("POST", "/api/demos/:id/snapshot", ({ params }) => startJob((log) => takeSnapshot(params.id, { log })));
 route(
   "POST",
   "/api/demos/:id/deploy",
-  ({ params, body }) => startJob((log) => deployDemo(params.id, { profile: str2(body, "profile"), divisionId: str2(body, "divisionId", false) || void 0, presenterId: str2(body, "presenterId", false) || void 0, whatsappIntegrationId: str2(body, "whatsappIntegrationId", false) || void 0, params: stringMap(body.params), channel: str2(body, "channel", false) || void 0, log }))
+  ({ params, body }) => startJob((log) => deployDemo(params.id, { profile: str2(body, "profile"), divisionId: str2(body, "divisionId", false) || void 0, presenterId: str2(body, "presenterId", false) || void 0, whatsappIntegrationId: str2(body, "whatsappIntegrationId", false) || void 0, params: stringMap(body.params), channel: str2(body, "channel", false) || void 0, update: body.update === true, persona: personaOf(body), log }))
 );
+route("POST", "/api/demos/:id/join", ({ params, body }) => joinDemo(params.id, { profile: str2(body, "profile"), presenterId: str2(body, "presenterId"), persona: personaOf(body), params: stringMap(body.params) }));
+route("POST", "/api/demos/:id/leave", ({ params, body }) => leaveDemo(params.id, { profile: str2(body, "profile"), presenterId: str2(body, "presenterId") }));
+route("POST", "/api/demos/:id/register", ({ params, body }) => registerDeployment(params.id, str2(body, "profile")));
 route("POST", "/api/demos/:id/remove", ({ params, body }) => startJob((log) => removeDemo(params.id, { profile: str2(body, "profile"), log })));
 route("GET", "/api/demos/:id/commands", ({ params }) => commandStatus(params.id));
 route("POST", "/api/demos/:id/commands/:cmd/start", ({ params, body }) => startCommand(params.id, params.cmd, str2(body, "profile")));
@@ -53350,8 +53636,8 @@ async function startUi(opts = {}) {
 }
 
 // src/ui/daemon.ts
-var VERSION3 = true ? "0.29.1" : "dev";
-var BUILD_ID = true ? "cd9ebed" : "dev";
+var VERSION3 = true ? "0.30.0" : "dev";
+var BUILD_ID = true ? "5541d17" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto9.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path14.join(gctkHome(), "ui.json");
@@ -53448,7 +53734,7 @@ async function ensureSharedUi() {
 }
 
 // src/mcp/server.ts
-var VERSION4 = true ? "0.29.1" : "dev";
+var VERSION4 = true ? "0.30.0" : "dev";
 var INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
 transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
 monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
@@ -53528,7 +53814,7 @@ async function ask(question, opts = {}) {
 }
 
 // src/cli/index.ts
-var VERSION5 = true ? "0.29.1" : "dev";
+var VERSION5 = true ? "0.30.0" : "dev";
 var program2 = new Command().name("gctk").description("Genesys Cloud Toolkit: a local UI that makes your AI setup and Genesys Cloud demos transparent").version(VERSION5).option("-p, --profile <name>", "profile to use (default: GCTK_PROFILE or the active profile)");
 var profile = program2.command("profile").description("manage org connections (profiles)");
 profile.command("add <name>").description("create a profile and store its OAuth client credentials in the keychain").requiredOption("-r, --region <region>", "domain (mypurecloud.de) or region key (eu-central-1)").addOption(new Option("-t, --tier <tier>", "environment tier").choices([...TIERS]).makeOptionMandatory()).option("-d, --description <text>", "free text, e.g. customer or purpose").option("--env-credentials", "read credentials from GCTK_CLIENT_ID / GCTK_CLIENT_SECRET instead of the keychain (CI)").option("--no-login", "do not ask for credentials now").action(async (name, o) => {

@@ -7,9 +7,11 @@ import fs from "node:fs";
 
 const ENDPOINTS = {
   base: ["GET /api/v2/authorization/divisions", "GET /api/v2/users", "GET /api/v2/users/{}"],
+  // The org's registry of deployed demos (demo-registry.ts): one data table, one row per demo.
+  registry: ["GET /api/v2/flows/datatables", "POST /api/v2/flows/datatables", "GET /api/v2/flows/datatables/{}/rows/{}", "POST /api/v2/flows/datatables/{}/rows", "PUT /api/v2/flows/datatables/{}/rows/{}", "DELETE /api/v2/flows/datatables/{}/rows/{}"],
   wrapupcode: ["GET /api/v2/routing/wrapupcodes", "POST /api/v2/routing/wrapupcodes", "DELETE /api/v2/routing/wrapupcodes/{}"],
   responselibrary: ["GET /api/v2/responsemanagement/libraries", "POST /api/v2/responsemanagement/libraries", "GET /api/v2/responsemanagement/responses", "POST /api/v2/responsemanagement/responses", "DELETE /api/v2/responsemanagement/responses/{}", "DELETE /api/v2/responsemanagement/libraries/{}"],
-  queue: ["GET /api/v2/routing/queues", "POST /api/v2/routing/queues", "GET /api/v2/routing/queues/{}", "PUT /api/v2/routing/queues/{}", "POST /api/v2/routing/queues/{}/wrapupcodes", "POST /api/v2/routing/queues/{}/members", "DELETE /api/v2/routing/queues/{}"],
+  queue: ["GET /api/v2/routing/queues", "POST /api/v2/routing/queues", "GET /api/v2/routing/queues/{}", "PUT /api/v2/routing/queues/{}", "POST /api/v2/routing/queues/{}/wrapupcodes", "POST /api/v2/routing/queues/{}/members", "DELETE /api/v2/routing/queues/{}/members/{}", "DELETE /api/v2/routing/queues/{}"],
   intentcategory: ["GET /api/v2/intents/categories", "POST /api/v2/intents/categories", "DELETE /api/v2/intents/categories/{}"],
   customerintent: ["GET /api/v2/intents/customerintents", "POST /api/v2/intents/customerintents", "DELETE /api/v2/intents/customerintents/{}"],
   workbin: ["POST /api/v2/taskmanagement/workbins/query", "POST /api/v2/taskmanagement/workbins", "DELETE /api/v2/taskmanagement/workbins/{}"],

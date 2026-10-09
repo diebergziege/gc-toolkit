@@ -100,21 +100,36 @@ create:
       configurationId: "@{messengerconfig:Lumea Website}"
       flowId: "@{messageflow:Lumea WhatsApp Einstieg}"
 
-# Entered on the Demos page at deploy. The customer "Markus Berger" is played by the presenter's
-# phone, so his number and email are the presenter's own.
+# The customer "Markus Berger" of the snapshot is a template: every presenter plays their own
+# customer, with a name they choose (unique in the org), their demo phone and their mailbox. gctk
+# creates that contact when they join; the local part (pages, SMS, email) uses their values.
+presenterContact: Markus Berger
+
+# Entered on the Demos page: the presenter's own values when they join, the org's at deploy.
 parameters:
   - id: customerPhone
-    label: Customer's mobile number (your demo phone, with WhatsApp)
+    label: Your customer's mobile number (your demo phone, with WhatsApp)
     format: phone
+    perPresenter: true
     contact: { name: Markus Berger, fields: [workPhone, whatsAppId] }
   - id: customerEmail
-    label: Customer's email address (the mailbox you send the customer's email from)
+    label: Your customer's email address (the mailbox you send the customer's email from)
     format: email
+    perPresenter: true
     contact: { name: Markus Berger, fields: [workEmail] }
   - id: smsFrom
     label: SMS sender number of the org (optional; without it you cannot send the customer an SMS during the demo)
     format: phone
     optional: true
+
+# Taking a snapshot: what everyone in the org shares names neither a presenter nor a customer
+# (canned responses insert the agent's own name, the script pages get it on the presenter's computer).
+replace:
+  - { value: "mein Name ist @{presenter.name} vom", with: "mein Name ist {{AGENT_NAME}} vom" }
+  - { value: "&agent=@{presenter.name}", with: "" }
+  - { value: "?agent=@{presenter.name}", with: "" }
+  - { value: "@{presenter.name} ist dem Chat beigetreten", with: "Ihr Lumea-Berater ist dem Chat beigetreten" }
+  - { value: "Guten Tag Herr Berger. Ich bin", with: "Guten Tag. Ich bin" }
 
 # The deploy points the WhatsApp number chosen on the page at this flow (and Remove gives the
 # number its previous flow back).
@@ -141,7 +156,7 @@ manual:
   - Chrome or Edge for the agent desktop (not Safari, it blocks http://localhost inside the agent script)
   - Presenter on Available, on queue "Lumea Kundenservice"
   - Wrap-up code "Vertragsverlaengerung" visible in the selection
-  - For the email scene, send the customer's email from the address entered at deploy
+  - For the email scene, send your customer's email from the address you entered when you joined
 
 # Runs inside gctk with the org's credentials: the pages the agent scripts embed
 # (http://localhost:8090/…) and the third-party answer Copilot shows for the bill question.

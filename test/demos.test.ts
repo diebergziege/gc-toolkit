@@ -6,19 +6,53 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { GenesysClient } from "../src/core/client.js";
 import { fillTemplate } from "../src/core/demo-local.js";
-import { applyParameters, demoPermissions, loadStory, removeFlowActions, commandStatus, deployDemo, listDemos, loadManifest, parameterValues, removeDemo, setSnapshotSource, snapshotSource, startCommand, stopCommand, takeSnapshot } from "../src/core/demos.js";
+import { applyParameters, demoPermissions, loadStory, removeFlowActions, commandStatus, deployDemo, joinDemo, leaveDemo, listDemos, loadManifest, orgDemoStatus, parameterValues, registerDeployment, removeDemo, setSnapshotSource, snapshotSource, startCommand, stopCommand, takeSnapshot } from "../src/core/demos.js";
 import { saveProfile } from "../src/core/profiles.js";
 
 type Obj = Record<string, any>;
 let tmp: string;
 const saved = { ...process.env };
 
-/** A tiny org: wrap-up codes, queues (with wrap-up codes and members), checklists, response libraries. */
+const NOT_MINE = Symbol("not the registry");
+/** The org's "gctk demos" data table as Genesys answers it: a second row with the same key is refused. */
+function fakeRegistry() {
+  const tables: Obj[] = [];
+  const rows = new Map<string, Obj>();
+  const fail = (code: string, msg: string) => Object.assign(new Error(msg), { code });
+  const handle = (method: string, p: string, q: Obj, body: any): any => {
+    if (p === "/api/v2/flows/datatables") {
+      if (method === "GET") return { entities: tables.filter((t) => !q.name || t.name === q.name) };
+      const t = { ...body, id: crypto.randomUUID() };
+      tables.push(t);
+      return t;
+    }
+    if (/^\/api\/v2\/flows\/datatables\/[^/]+\/rows$/.test(p) && method === "POST") {
+      if (rows.has(body.key)) throw fail("HTTP_400", `POST ${p} failed [flows.datatables.not.unique]: key name is not unique`);
+      rows.set(body.key, body);
+      return body;
+    }
+    const m = p.match(/^\/api\/v2\/flows\/datatables\/[^/]+\/rows\/(.+)$/);
+    if (m) {
+      const k = decodeURIComponent(m[1]!);
+      if (method === "GET") {
+        if (!rows.has(k)) throw fail("HTTP_404", "not found");
+        return rows.get(k);
+      }
+      if (method === "PUT") return void rows.set(k, body);
+      if (method === "DELETE") return void rows.delete(k);
+    }
+    return NOT_MINE;
+  };
+  return { tables, rows, handle, entry: (k: string) => JSON.parse(rows.get(k)!.entry) };
+}
+
+/** A tiny org: wrap-up codes, queues (with wrap-up codes and members), checklists, response libraries, the gctk registry. */
 function fakeOrg(name: string) {
-  const db: Record<string, Obj[]> = { wrapupcodes: [], queues: [], checklists: [], libraries: [], responses: [], divisions: [{ id: crypto.randomUUID(), name: "Home", homeDivision: true }] };
+  const db: Record<string, Obj[]> = { contacts: [], wrapupcodes: [], queues: [], checklists: [], libraries: [], responses: [], divisions: [{ id: crypto.randomUUID(), name: "Home", homeDivision: true }] };
   const queueWraps = new Map<string, string[]>();
   const members = new Map<string, string[]>();
   const calls: string[] = [];
+  const registry = fakeRegistry();
   const list = (k: string, q: Obj = {}) => ({ entities: db[k]!.filter((x) => !q.name || x.name === q.name), pageCount: 1 });
   const add = (k: string, body: Obj) => {
     const o = { ...body, id: crypto.randomUUID() };
@@ -27,6 +61,8 @@ function fakeOrg(name: string) {
   };
   const route = (method: string, p: string, q: Obj, body: any): any => {
     calls.push(`${method} ${p}`);
+    const reg = registry.handle(method, p, q, body);
+    if (reg !== NOT_MINE) return reg;
     let m: RegExpMatchArray | null;
     if (p === "/api/v2/authorization/divisions") return list("divisions");
     if ((m = p.match(/^\/api\/v2\/users\/(.+)$/))) return { id: m[1], name: "Pat Presenter" };
@@ -40,7 +76,16 @@ function fakeOrg(name: string) {
       if (method === "POST") return void queueWraps.set(m[1]!, [...(queueWraps.get(m[1]!) ?? []), ...body.map((x: Obj) => x.id)]);
       return { entities: (queueWraps.get(m[1]!) ?? []).map((id) => db.wrapupcodes!.find((w) => w.id === id)) };
     }
-    if ((m = p.match(/^\/api\/v2\/routing\/queues\/([^/]+)\/members$/))) return void members.set(m[1]!, body.map((x: Obj) => x.id));
+    if ((m = p.match(/^\/api\/v2\/routing\/queues\/([^/]+)\/members$/))) return void members.set(m[1]!, [...new Set([...(members.get(m[1]!) ?? []), ...body.map((x: Obj) => x.id)])]);
+    if ((m = p.match(/^\/api\/v2\/routing\/queues\/([^/]+)\/members\/([^/]+)$/)) && method === "DELETE") return void members.set(m[1]!, (members.get(m[1]!) ?? []).filter((x) => x !== m![2]));
+    if (p === "/api/v2/externalcontacts/contacts") return method === "GET" ? { entities: db.contacts!.filter((x) => !q.q || `${x.firstName} ${x.lastName}`.includes(q.q)), pageCount: 1 } : add("contacts", body);
+    if ((m = p.match(/^\/api\/v2\/externalcontacts\/contacts\/(.+)$/))) {
+      const i = db.contacts!.findIndex((x) => x.id === m![1]);
+      if (i < 0) throw Object.assign(new Error("not found"), { code: "HTTP_404" });
+      if (method === "DELETE") return void db.contacts!.splice(i, 1);
+      if (method === "PUT") return (db.contacts![i] = { ...body, id: m[1] });
+      return db.contacts![i];
+    }
     if ((m = p.match(/^\/api\/v2\/routing\/queues\/([^/]+)$/))) {
       if (method === "DELETE") return void (db.queues = db.queues!.filter((x) => x.id !== m![1]));
       return db.queues!.find((x) => x.id === m![1]);
@@ -70,7 +115,7 @@ function fakeOrg(name: string) {
       return { first, paged: { items: first.body.entities, pages: 1, truncated: false } };
     },
   } as unknown as GenesysClient;
-  return { db, client, calls, members, queueWraps };
+  return { db, client, calls, members, queueWraps, registry };
 }
 
 /** A demo package in the built-in demos folder; its id is "test-demo". */
@@ -155,8 +200,9 @@ describe("demos", () => {
     expect(dst.db.responses!).toHaveLength(1);
     expect(rec.ids["@{responselibrary:Lib#response:Hello}"]).toBe(dst.db.responses![0]!.id);
 
-    // A second deploy creates nothing.
-    const again = await deployDemo(id, { profile: "dst-org", client: dst.client });
+    // Never twice: a second deploy is refused; Update brings the same deployment up to date and creates nothing.
+    await expect(deployDemo(id, { profile: "dst-org", client: dst.client })).rejects.toThrow(/deployed in this org already/);
+    const again = await deployDemo(id, { profile: "dst-org", client: dst.client, update: true });
     expect(dst.db.queues).toHaveLength(1);
     expect(again.created).toHaveLength(4);
     expect(listDemos()[0]!.deployments).toEqual([expect.objectContaining({ profile: "dst-org", created: 4, reused: 1 })]);
@@ -166,6 +212,7 @@ describe("demos", () => {
     expect(dst.db.wrapupcodes!.map((w) => w.id)).toEqual(["already-there"]);
     expect(dst.db.queues).toEqual([]);
     expect(listDemos()[0]!.deployments).toEqual([]);
+    expect(dst.registry.rows.size).toBe(0);
   });
 
   it("starts a command with the org's credentials and the deployed ids, and stops it", async () => {
@@ -194,7 +241,10 @@ describe("demos", () => {
     const flows = [{ id: "flow-entry", name: "Entry" }];
     let routedTo: unknown = { id: "flow-old" };
     const puts: unknown[] = [];
+    const registry = fakeRegistry();
     const request = async (method: string, p: string, _q: Obj = {}, body?: any): Promise<{ status: number; body: any }> => {
+        const reg = registry.handle(method, p, _q, body);
+        if (reg !== NOT_MINE) return { status: 200, body: reg };
         if (p === "/api/v2/authorization/divisions") return { status: 200, body: { entities: [{ id: "d1", name: "Home", homeDivision: true }] } };
         if (p === "/api/v2/flows") return { status: 200, body: { entities: flows } };
         if (p === "/api/v2/conversations/messaging/integrations/whatsapp/wa-1") return { status: 200, body: { id: "wa-1", name: "Demo Number", phoneNumber: "+44 20", recipient: { id: "rcp-1" } } };
@@ -220,7 +270,7 @@ describe("demos", () => {
     expect(routedTo).toEqual({ id: "flow-entry" });
     expect(rec.routing).toMatchObject({ integration: "Demo Number", previousFlowId: "flow-old", previousFlow: "Old flow" });
     // A second deploy keeps "Old flow" as the one to go back to.
-    expect((await deployDemo(id, { profile: "dst-org", client: c, whatsappIntegrationId: "wa-1" })).routing).toMatchObject({ previousFlow: "Old flow" });
+    expect((await deployDemo(id, { profile: "dst-org", client: c, whatsappIntegrationId: "wa-1", update: true })).routing).toMatchObject({ previousFlow: "Old flow" });
     expect(listDemos()[0]!.deployments[0]!.routing).toEqual({ integration: "Demo Number", phone: "+44 20" });
     await removeDemo(id, { profile: "dst-org", client: c });
     expect(routedTo).toEqual({ id: "flow-old" });
@@ -275,6 +325,7 @@ describe("demos", () => {
     expect(snap).not.toHaveProperty("source");
     const dst = fakeOrg("dst-org");
     await expect(deployDemo(id, { profile: "dst-org", client: dst.client })).rejects.toThrow(/Enter "Who"/);
+    expect(dst.registry.rows.size).toBe(0); // checked before anything is registered
     const rec = await deployDemo(id, { profile: "dst-org", client: dst.client, params: { who: 'Ann "A" Lee' } });
     expect(dst.db.responses![0]!.texts).toEqual([{ content: 'Hi Ann "A" Lee' }]);
     expect(rec.params).toEqual({ who: 'Ann "A" Lee' });
@@ -302,7 +353,7 @@ describe("demos", () => {
     const viaWhatsApp = await deployDemo(id, { profile: "dst-org", client: dst.client, channel: "whatsapp" });
     expect(viaWhatsApp.channel).toBe("whatsapp");
     expect(dst.db.checklists!.map((x) => x.name).sort()).toEqual(["Always", "Greeting"]);
-    const byDefault = await deployDemo(id, { profile: "dst-org", client: dst.client });
+    const byDefault = await deployDemo(id, { profile: "dst-org", client: dst.client, update: true });
     expect(byDefault.channel).toBe("web");
     expect(dst.db.checklists!.map((x) => x.name).sort()).toEqual(["Always", "Greeting", "Web only"]);
     expect(listDemos()[0]!.deployments[0]).toMatchObject({ channel: "web" });
@@ -419,5 +470,119 @@ describe("demos", () => {
     const folder = demoFolder();
     fs.writeFileSync(path.join(folder, "demo.yaml"), "name: x\ninclude:\n  - { type: spaceship, names: [a] }\n");
     expect(listDemos()[0]!.error).toMatch(/unknown type "spaceship"/);
+  });
+});
+
+describe("one deployment per org, whoever deploys", () => {
+  const otherComputer = () => { process.env.GCTK_HOME = path.join(tmp, `gctk-${crypto.randomUUID()}`); saveProfile({ name: "dst-org", region: "mypurecloud.de", tier: "sandbox", credentials: "env" }); };
+
+  it("keeps the deployment in the org: another computer sees it, cannot deploy again, joins, and can remove it", async () => {
+    demoFolder();
+    const id = "test-demo";
+    await takeSnapshot(id, { client: sourceOrg().client });
+    const dst = fakeOrg("dst-org");
+    await deployDemo(id, { profile: "dst-org", client: dst.client, presenterId: "user-a" });
+    expect(dst.registry.entry(id)).toMatchObject({ demo: id, state: "deployed", by: "Pat Presenter", presenters: [{ id: "user-a" }] });
+    expect(JSON.stringify(dst.registry.entry(id))).not.toContain('"profile"');
+
+    otherComputer();
+    const st = await orgDemoStatus(id, "dst-org", dst.client);
+    expect(st.deployment).toMatchObject({ state: "deployed", by: "Pat Presenter", created: 5, reused: 0 });
+    await expect(deployDemo(id, { profile: "dst-org", client: dst.client, presenterId: "user-b" })).rejects.toThrow(/never deployed twice/);
+    expect(dst.db.queues).toHaveLength(1);
+
+    const q = dst.db.queues![0]!;
+    await joinDemo(id, { profile: "dst-org", presenterId: "user-b", client: dst.client });
+    expect(dst.members.get(q.id)).toEqual(["user-a", "user-b"]);
+    expect(dst.registry.entry(id).presenters.map((p: Obj) => p.id)).toEqual(["user-a", "user-b"]);
+
+    expect(await removeDemo(id, { profile: "dst-org", client: dst.client })).toEqual({ removed: 5, failed: [] });
+    expect(dst.db.queues).toEqual([]);
+    expect(dst.registry.rows.size).toBe(0);
+    expect((await orgDemoStatus(id, "dst-org", dst.client)).deployment).toBeUndefined();
+  });
+
+  it("lets only one deploy start, and refuses one while another is running", async () => {
+    demoFolder();
+    const id = "test-demo";
+    await takeSnapshot(id, { client: sourceOrg().client });
+    const dst = fakeOrg("dst-org");
+    const busy = { demo: id, state: "deploying", by: "Sam", at: new Date().toISOString(), heartbeat: new Date().toISOString(), version: "x", presenters: [], record: { at: "", ids: {}, created: [], reused: [] } };
+    dst.registry.handle("POST", "/api/v2/flows/datatables", {}, { name: "gctk demos" });
+    dst.registry.rows.set(id, { key: id, entry: JSON.stringify(busy) });
+    await expect(deployDemo(id, { profile: "dst-org", client: dst.client })).rejects.toThrow(/Sam is deploying/);
+    await expect(removeDemo(id, { profile: "dst-org", client: dst.client })).rejects.toThrow(/deploying this demo right now/);
+    // A deploy that stopped writing long ago (a closed laptop) is taken over.
+    dst.registry.rows.set(id, { key: id, entry: JSON.stringify({ ...busy, heartbeat: new Date(Date.now() - 3600_000).toISOString() }) });
+    await deployDemo(id, { profile: "dst-org", client: dst.client });
+    expect(dst.registry.entry(id).state).toBe("deployed");
+  });
+
+  it("shows what exists in an org without a deployment, and registers an older local deployment", async () => {
+    demoFolder();
+    const id = "test-demo";
+    await takeSnapshot(id, { client: sourceOrg().client });
+    const handMade = fakeOrg("dst-org");
+    handMade.db.queues!.push({ id: "mine", name: "Sales" });
+    expect((await orgDemoStatus(id, "dst-org", handMade.client)).existing).toEqual(['Queue "Sales"']);
+
+    const dst = fakeOrg("dst-org");
+    await deployDemo(id, { profile: "dst-org", client: dst.client });
+    dst.registry.rows.clear(); // as if deployed before the org kept the registry
+    expect((await orgDemoStatus(id, "dst-org", dst.client)).unregistered).toMatchObject({ created: 5 });
+    expect((await registerDeployment(id, "dst-org", dst.client)).deployment).toMatchObject({ state: "deployed", created: 5 });
+  });
+});
+
+describe("every presenter plays their own customer", () => {
+  /** A package whose customer contact is a template (presenterContact), with the presenter's phone. */
+  function personaDemo() {
+    const folder = path.join(tmp, "builtin", "persona-demo");
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, "demo.yaml"), [
+      "name: Persona demo",
+      "include: []",
+      "presenterContact: Markus Berger",
+      "parameters:",
+      "  - { id: customerPhone, label: Phone, format: phone, perPresenter: true, contact: { name: Markus Berger, fields: [workPhone] } }",
+    ].join("\n"));
+    fs.writeFileSync(path.join(folder, "snapshot.json"), JSON.stringify({ at: "x", region: "mypurecloud.de", unresolved: [], objects: [
+      { type: "queue", name: "Sales", spec: { name: "Sales", wrapupCodes: [] } },
+      { type: "externalcontact", name: "Markus Berger", spec: { firstName: "Markus", lastName: "Berger", salutation: "Herr", workPhone: { display: "@{param:customerPhone}" }, personalEmail: "markus.berger@muster.de", whatsAppId: { displayName: "Markus Berger", phoneNumber: { display: "@{param:customerPhone.digits}" } } } },
+    ] }));
+    return "persona-demo";
+  }
+
+  it("gives each presenter an own contact with a name unique in the org, and their own values on their computer", async () => {
+    const id = personaDemo();
+    const dst = fakeOrg("dst-org");
+    await expect(deployDemo(id, { profile: "dst-org", client: dst.client, presenterId: "user-a", persona: { firstName: "M4x", lastName: "" }, params: { customerPhone: "+4915100000001" } })).rejects.toThrow(/first and last name/);
+    expect(dst.registry.rows.size).toBe(0);
+    await deployDemo(id, { profile: "dst-org", client: dst.client, presenterId: "user-a", persona: { salutation: "Herr", firstName: "Max", lastName: "Muster" }, params: { customerPhone: "+4915100000001" } });
+    // The template is never deployed as such: Max Muster is user A's customer.
+    expect(dst.db.contacts!.map((c) => `${c.firstName} ${c.lastName}`)).toEqual(["Max Muster"]);
+    expect(dst.db.contacts![0]).toMatchObject({ salutation: "Herr", workPhone: { display: "+4915100000001" }, personalEmail: "max.muster@muster.de", whatsAppId: { displayName: "Max Muster", phoneNumber: { display: "4915100000001" } } });
+    expect(dst.registry.entry(id).presenters).toEqual([expect.objectContaining({ id: "user-a", customer: "Max Muster", contactId: dst.db.contacts![0]!.id })]);
+
+    // Another computer, another presenter: the same customer name is taken.
+    process.env.GCTK_HOME = path.join(tmp, "gctk-b");
+    saveProfile({ name: "dst-org", region: "mypurecloud.de", tier: "sandbox", credentials: "env" });
+    await expect(joinDemo(id, { profile: "dst-org", presenterId: "user-b", persona: { firstName: "Max", lastName: "Muster" }, params: { customerPhone: "+4915100000002" }, client: dst.client })).rejects.toThrow(/plays the customer "Max Muster" already/);
+    const st = await joinDemo(id, { profile: "dst-org", presenterId: "user-b", persona: { salutation: "Frau", firstName: "Erika", lastName: "Beispiel" }, params: { customerPhone: "+4915100000002" }, client: dst.client });
+    expect(st.me).toMatchObject({ presenterId: "user-b", persona: { firstName: "Erika" }, params: { customerPhone: "+4915100000002" } });
+    expect(dst.db.contacts!.map((c) => c.workPhone.display).sort()).toEqual(["+4915100000001", "+4915100000002"]);
+    const q = dst.db.queues![0]!;
+    expect(dst.members.get(q.id)).toEqual(["user-a", "user-b"]);
+    // A hand-made contact with a name blocks it too.
+    dst.db.contacts!.push({ id: "theirs", firstName: "Hans", lastName: "Hand" });
+    await expect(joinDemo(id, { profile: "dst-org", presenterId: "user-c", persona: { firstName: "Hans", lastName: "Hand" }, params: { customerPhone: "+4915100000003" }, client: dst.client })).rejects.toThrow(/has a contact "Hans Hand" already/);
+
+    // B leaves: their customer goes, A's stays; Remove takes A's too and leaves the hand-made one.
+    await leaveDemo(id, { profile: "dst-org", presenterId: "user-b", client: dst.client });
+    expect(dst.members.get(q.id)).toEqual(["user-a"]);
+    expect(dst.db.contacts!.map((c) => c.firstName).sort()).toEqual(["Hans", "Max"]);
+    await removeDemo(id, { profile: "dst-org", client: dst.client });
+    expect(dst.db.contacts!.map((c) => c.firstName)).toEqual(["Hans"]);
+    expect(dst.registry.rows.size).toBe(0);
   });
 });

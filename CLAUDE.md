@@ -51,8 +51,23 @@
   source id replaced by `@{type:name}` (sub-objects
   `@{type:name#key}`; agent script page ids stay, the client chooses them). `deployDemo` walks the
   types in `TYPES` order, reuses objects with the same name, resolves the tokens to the target's
-  ids and `@{param:…}` / `@{presenter.name}` to the values entered at deploy, records per org in `~/.config/gctk/demos/<id>/<profile>.json`, and deletes an object again
-  when its create failed halfway; `removeDemo` deletes only what it created, newest first. Each type's
+  ids and `@{param:…}` / `@{presenter.name}` to the values entered at deploy, and deletes an object again
+  when its create failed halfway. A demo is deployed once per org, whoever deploys (decision
+  2026-10-09; consultants share orgs): the org's data table "gctk demos" (`src/core/demo-registry.ts`)
+  holds one row per demo with the record (created/reused objects, ids, presenters, state). Creating the
+  row is the lock (Genesys refuses a duplicate key); a second deploy is refused, others Join (member of
+  the queues gctk created), Update (`update: true`, the same deployment) or Remove (for everyone); a
+  deploy that stopped writing 30 min ago can be taken over. `~/.config/gctk/demos/<id>/<profile>.json`
+  is only this computer's copy (for the local part and commands); a pre-0.30 copy can be registered.
+  Objects gctk did not create are never updated or deleted (a hand-built demo stays as it is).
+  Every presenter plays their own customer (manifest `presenterContact`: the snapshot's contact is a
+  template, never deployed as such): Join asks for salutation, first and last name (unique in the org:
+  no other presenter and no contact has it) and the `perPresenter` parameters (phone, email); gctk
+  creates that contact, keeps it in the registry's presenter entry, and deletes it on Leave and Remove.
+  The local part fills `@{param:…}`, `@{customer.*}` and the contact token from this computer's
+  presenter (`demos/<id>/presenter/<profile>.json`). What everyone shares names nobody: canned
+  responses use `{{AGENT_NAME}}`, script links carry no name, the bot greets neutrally (package
+  `replace`, applied after this computer's own replacements); `removeDemo` deletes only what it created, newest first. Each type's
   create calls were checked against the API spec and run live (source org → test org,
   2026-10-01): knowledge bases need `contentSearchEnabled` at create (Copilot answer generation),
   step plans take `workitemSettings.worktypeId`, assistant queues need `id` in the body, flows go

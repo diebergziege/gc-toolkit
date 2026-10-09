@@ -24,7 +24,7 @@ import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
-import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, listDemos, orgDivisions, orgUsers, orgWhatsApp, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
+import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
 import { gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
@@ -290,6 +290,11 @@ const startJob = (work: (log: (l: string) => void) => Promise<unknown>) => {
 /** Parameter values from the page: string values only. */
 const stringMap = (x: unknown): Record<string, string> =>
   x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x as Record<string, unknown>).filter(([, v]) => typeof v === "string") as Array<[string, string]>) : {};
+/** The presenter's customer persona from the page (checked in demos.ts). */
+const personaOf = (body: Json) => {
+  const p = body.persona && typeof body.persona === "object" ? (body.persona as Json) : undefined;
+  return p ? { salutation: String(p.salutation ?? ""), firstName: String(p.firstName ?? ""), lastName: String(p.lastName ?? "") } : undefined;
+};
 route("GET", "/api/demos", () => ({ demos: listDemos(), types: DEMO_TYPES }));
 route("GET", "/api/demos/jobs/:job", ({ params }) => {
   const j = jobs.get(params.job!);
@@ -298,13 +303,17 @@ route("GET", "/api/demos/jobs/:job", ({ params }) => {
 });
 route("GET", "/api/demos/:id/org", async ({ params, query }) => {
   const profile = str(Object.fromEntries(query), "profile");
-  const [prerequisites, users, divisions, whatsapp] = await Promise.all([checkPrerequisites(params.id!, profile), orgUsers(profile), orgDivisions(profile), orgWhatsApp(profile).catch(() => [])]);
-  return { prerequisites, users, divisions, whatsapp, commands: commandStatus(params.id!) };
+  // status: the demo's deployment in this org, from the org's own registry (whoever deployed it).
+  const [prerequisites, users, divisions, whatsapp, status] = await Promise.all([checkPrerequisites(params.id!, profile), orgUsers(profile), orgDivisions(profile), orgWhatsApp(profile).catch(() => []), orgDemoStatus(params.id!, profile)]);
+  return { prerequisites, users, divisions, whatsapp, status, commands: commandStatus(params.id!) };
 });
 route("POST", "/api/demos/:id/snapshot", ({ params }) => startJob((log) => takeSnapshot(params.id!, { log })));
 route("POST", "/api/demos/:id/deploy", ({ params, body }) =>
-  startJob((log) => deployDemo(params.id!, { profile: str(body, "profile"), divisionId: str(body, "divisionId", false) || undefined, presenterId: str(body, "presenterId", false) || undefined, whatsappIntegrationId: str(body, "whatsappIntegrationId", false) || undefined, params: stringMap(body.params), channel: str(body, "channel", false) || undefined, log })),
+  startJob((log) => deployDemo(params.id!, { profile: str(body, "profile"), divisionId: str(body, "divisionId", false) || undefined, presenterId: str(body, "presenterId", false) || undefined, whatsappIntegrationId: str(body, "whatsappIntegrationId", false) || undefined, params: stringMap(body.params), channel: str(body, "channel", false) || undefined, update: body.update === true, persona: personaOf(body), log })),
 );
+route("POST", "/api/demos/:id/join", ({ params, body }) => joinDemo(params.id!, { profile: str(body, "profile"), presenterId: str(body, "presenterId"), persona: personaOf(body), params: stringMap(body.params) }));
+route("POST", "/api/demos/:id/leave", ({ params, body }) => leaveDemo(params.id!, { profile: str(body, "profile"), presenterId: str(body, "presenterId") }));
+route("POST", "/api/demos/:id/register", ({ params, body }) => registerDeployment(params.id!, str(body, "profile")));
 route("POST", "/api/demos/:id/remove", ({ params, body }) => startJob((log) => removeDemo(params.id!, { profile: str(body, "profile"), log })));
 route("GET", "/api/demos/:id/commands", ({ params }) => commandStatus(params.id!));
 route("POST", "/api/demos/:id/commands/:cmd/start", ({ params, body }) => startCommand(params.id!, params.cmd!, str(body, "profile")));

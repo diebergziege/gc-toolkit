@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
@@ -8,6 +9,7 @@ import { GenesysClient } from "./client.js";
 import { loadCredentials } from "./credentials.js";
 import { type LocalHandle, type LocalRuntime, startLocal } from "./demo-local.js";
 import { DEMO_PERMISSIONS } from "./demo-permissions.js";
+import { claimDeployment, deployingNow, dropDeployment, ensureRegistry, findRegistry, type OrgDeployment, type Presenter, readDeployment, writeDeployment } from "./demo-registry.js";
 import { GctkError } from "./errors.js";
 import { exportFlowYaml } from "./flow-export.js";
 import { gctkHome } from "./paths.js";
@@ -58,6 +60,8 @@ export interface DemoParameter {
   optional?: boolean;
   /** Snapshot: these fields of the contact carry the value (workPhone, cellPhone, whatsAppId, workEmail …). */
   contact?: { name: string; fields: string[] };
+  /** Each presenter's own value (their customer contact, the local part), not the deployment's. */
+  perPresenter?: boolean;
 }
 
 export interface DemoManifest {
@@ -80,6 +84,8 @@ export interface DemoManifest {
   local?: LocalRuntime;
   /** The demo's inbound message flow; the deploy routes the chosen WhatsApp number to it (only for that channel, if set). */
   messageRouting?: { flow: string; channel?: string };
+  /** The snapshot's customer contact is a template: every presenter gets an own copy with their persona and values. */
+  presenterContact?: string;
 }
 
 export interface DemoInfo {
@@ -107,6 +113,59 @@ interface Source {
 }
 
 const recordDir = (id: string) => path.join(gctkHome(), "demos", id);
+
+/** The customer a presenter plays: their own name for the demo's customer contact (unique in the org). */
+export interface Persona {
+  salutation?: string;
+  firstName: string;
+  lastName: string;
+}
+/** This computer's presenter in an org's deployment: their persona and own values (phone, email), and their contact. */
+export interface PresenterLocal {
+  presenterId: string;
+  name: string;
+  persona: Persona;
+  params: Record<string, string>;
+  contactId?: string;
+}
+const presenterFile = (id: string, profile: string) => path.join(recordDir(id), "presenter", `${profile}.json`);
+export function loadPresenter(id: string, profile: string): PresenterLocal | undefined {
+  try {
+    return JSON.parse(fs.readFileSync(presenterFile(id, profile), "utf8")) as PresenterLocal;
+  } catch {
+    return undefined;
+  }
+}
+function savePresenter(id: string, profile: string, p: PresenterLocal): void {
+  fs.mkdirSync(path.dirname(presenterFile(id, profile)), { recursive: true });
+  fs.writeFileSync(presenterFile(id, profile), `${JSON.stringify(p, null, 2)}\n`, { mode: 0o600 });
+}
+const personaName = (p: Persona) => `${p.firstName} ${p.lastName}`;
+const NAME_RE = /^[\p{L}][\p{L}' .-]{0,39}$/u;
+function cleanPersona(raw: unknown): Persona {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const firstName = String(r.firstName ?? "").trim();
+  const lastName = String(r.lastName ?? "").trim();
+  const salutation = String(r.salutation ?? "").trim();
+  if (!NAME_RE.test(firstName) || !NAME_RE.test(lastName)) throw invalid("Enter the first and last name of your customer (letters only, up to 40 each).");
+  if (salutation && !["Herr", "Frau"].includes(salutation)) throw invalid('The salutation is "Herr", "Frau" or none.');
+  return { ...(salutation ? { salutation } : {}), firstName, lastName };
+}
+/** @{customer.*} in the local part: the presenter's persona, else the template's. */
+function personaValues(p: Persona | undefined, template?: Obj): Record<string, string> {
+  const x: Persona = p ?? { salutation: template?.salutation, firstName: String(template?.firstName ?? ""), lastName: String(template?.lastName ?? "") };
+  const name = personaName(x).trim();
+  return {
+    "@{customer.salutation}": x.salutation ?? "",
+    "@{customer.firstName}": x.firstName,
+    "@{customer.lastName}": x.lastName,
+    "@{customer.name}": name,
+    "@{customer.initials}": `${x.firstName.charAt(0)}${x.lastName.charAt(0)}`.toUpperCase(),
+    "@{customer.greeting}": x.salutation ? `${x.salutation} ${x.lastName}` : name,
+  };
+}
+/** An address for the persona that is nobody's (muster.de, the German "example" domain). */
+const personaMail = (p: Persona) => `${personaName(p).toLowerCase().normalize("NFKD").replace(/[^a-z0-9 ]/g, "").trim().replace(/ +/g, ".")}@muster.de`;
 
 /** Where this computer takes a demo's snapshot from, and which of that org's texts it replaces. */
 export interface SnapshotSource {
@@ -826,7 +885,7 @@ export function demoPermissions(m: DemoManifest, snap?: { objects: Array<{ type:
   const label = (id: string) => m.channels?.find((c) => c.id === id)?.label ?? id;
   const groups: Array<{ title: string; items: string[] }> = [];
   const common = [...(snap?.objects ?? []).map((o) => o.type), ...(m.create ?? []).filter((x) => !x.channel).map((x) => x.type)];
-  groups.push({ title: "Deploy and remove", items: set([of("base"), ...[...new Set(common)].map(forType)]) });
+  groups.push({ title: "Deploy and remove", items: set([of("base"), of("registry"), ...[...new Set(common)].map(forType)]) });
   const channelIds = [...new Set([...(m.create ?? []).map((x) => x.channel), m.messageRouting?.channel].filter((x): x is string => Boolean(x)))];
   for (const ch of channelIds) {
     const items = set([...(m.create ?? []).filter((x) => x.channel === ch).map((x) => forType(x.type)), m.messageRouting?.channel === ch ? of("whatsapp") : []]);
@@ -900,7 +959,8 @@ export async function takeSnapshot(id: string, opts: { client?: GenesysClient; l
         return t ?? u;
       });
       let name = g.cap.name;
-      for (const r of [...(m.replace ?? []), ...(source.replace ?? [])]) {
+      // This computer's replacements first (a person's name), then the package's (they may refine those).
+      for (const r of [...(source.replace ?? []), ...(m.replace ?? [])]) {
         text = text.split(jsonText(r.value)).join(jsonText(r.with));
         name = name.split(r.value).join(r.with);
       }
@@ -1035,9 +1095,22 @@ export interface DeployOptions {
   params?: Record<string, string>;
   /** Customer channel (manifest channels; default: the first). */
   channel?: string;
+  /** The demo is deployed in the org already: bring that deployment up to date (never a second one). */
+  update?: boolean;
+  /** The deploying presenter's customer persona (when the demo has a presenter contact). */
+  persona?: Persona;
   client?: GenesysClient;
   log?: (line: string) => void;
 }
+
+declare const __GCTK_VERSION__: string;
+const GCTK_VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
+type SharedRecord = Omit<DeployRecord, "profile">;
+const shared = (r: DeployRecord): SharedRecord => {
+  const { profile: _p, ...rest } = r;
+  return rest;
+};
+const when = (iso: string) => iso.slice(0, 16).replace("T", " ");
 
 /** Name used for @{presenter.name} when no presenter is chosen. */
 const NO_PRESENTER = "Ihr Kundenservice";
@@ -1048,7 +1121,13 @@ export async function deployDemo(id: string, o: DeployOptions): Promise<DeployRe
   const m = loadManifest(src.pkg);
   const snap = readSnapshot(src.pkg);
   if (!snap) throw invalid("Take a snapshot first.");
-  const values = parameterValues(m.parameters ?? [], o.params);
+  const sharedParams = (m.parameters ?? []).filter((p) => !p.perPresenter);
+  const values = parameterValues(sharedParams, o.params);
+  // The presenter's own values are checked before anything is written.
+  if (o.persona) {
+    cleanPersona(o.persona);
+    parameterValues((m.parameters ?? []).filter((p) => p.perPresenter), o.params);
+  }
   const channel = o.channel || m.channels?.[0]?.id;
   if (m.channels && !m.channels.some((ch) => ch.id === channel)) throw invalid(`Unknown customer channel "${channel}". Known: ${m.channels.map((ch) => ch.id).join(", ")}.`);
   const forChannel = (x?: string) => !x || x === channel;
@@ -1057,15 +1136,33 @@ export async function deployDemo(id: string, o: DeployOptions): Promise<DeployRe
   const divisions = await all(c, "/api/v2/authorization/divisions");
   const division = (o.divisionId ? divisions.find((d) => d.id === o.divisionId) : divisions.find((d) => d.homeDivision)) ?? divisions[0];
   if (!division) throw invalid("No division is visible to this org's OAuth client.");
-  const rec: DeployRecord = loadRecord(id, o.profile) ?? { profile: o.profile, at: "", ids: {}, created: [], reused: [] };
+  // One deployment per org, whoever deploys: the org's registry says whether it exists.
+  const table = await ensureRegistry(c, division.id);
+  let org = await readDeployment<SharedRecord>(c, table, id);
+  if (org && deployingNow(org)) throw new GctkError("DEMO_BUSY", `${org.by} is deploying "${m.name}" into this org right now (since ${when(org.at)} UTC). Wait until it is done.`);
+  if (org && org.state === "deployed" && !o.update) throw new GctkError("DEMO_DEPLOYED", `"${m.name}" is deployed in this org already (by ${org.by}, ${when(org.at)} UTC). Join it as a presenter, update it, or remove it; it is never deployed twice.`);
+  const local = loadRecord(id, o.profile);
+  const rec: DeployRecord = org ? { ...org.record, profile: o.profile } : local ?? { profile: o.profile, at: "", ids: {}, created: [], reused: [] };
   rec.at = new Date().toISOString();
   rec.division = division.name;
   rec.channel = channel;
-  rec.params = Object.fromEntries((m.parameters ?? []).filter((p) => values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]!]));
+  rec.params = Object.fromEntries(sharedParams.filter((p) => values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]!]));
   const presenterName = o.presenterId ? await c.get<Obj>(`/api/v2/users/${o.presenterId}`).then((r) => r.body.name as string | undefined).catch(() => undefined) : undefined;
   rec.presenter = o.presenterId ? { id: o.presenterId, name: presenterName ?? NO_PRESENTER } : undefined;
   const extra = { ...values, "@{presenter.name}": rec.presenter?.name ?? NO_PRESENTER };
   const env: DeployEnv = { client: c, division: { id: division.id, name: division.name }, presenter: o.presenterId, log, refreshed: (rec.refreshed ??= {}) };
+  const now = () => new Date().toISOString();
+  const entry: OrgDeployment<SharedRecord> = org
+    ? { ...org, state: "deploying", heartbeat: now(), version: GCTK_VERSION, record: shared(rec) }
+    : { demo: id, state: "deploying", by: presenterName ?? os.userInfo().username, at: now(), heartbeat: now(), version: GCTK_VERSION, presenters: [], record: shared(rec) };
+  if (org) await writeDeployment(c, table, entry);
+  else await claimDeployment(c, table, entry);
+  org = entry;
+  const progress = async () => {
+    saveRecord(id, rec);
+    await writeDeployment(c, table, { ...entry, heartbeat: now(), record: shared(rec) });
+  };
+  let failure: unknown;
   try {
     const changed = (obj: SnapObject): SnapObject => {
       const ch = (m.channelChanges ?? []).filter((x) => x.channel === channel && x.type === obj.type && x.name === obj.name);
@@ -1074,7 +1171,8 @@ export async function deployDemo(id: string, o: DeployOptions): Promise<DeployRe
       if (r.removed !== ch.reduce((n, x) => n + x.removeActions.length, 0)) log(`! ${obj.name}: only ${r.removed} of the actions to remove for this channel were found`);
       return { ...obj, spec: { ...obj.spec, yaml: r.yaml } };
     };
-    for (const obj of [...snap.objects.map(changed), ...(m.create ?? []).filter((x) => forChannel(x.channel))].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type))) {
+    const shared = (obj: SnapObject) => !(m.presenterContact && obj.type === "externalcontact" && obj.name === m.presenterContact);
+    for (const obj of [...snap.objects.filter(shared).map(changed), ...(m.create ?? []).filter((x) => forChannel(x.channel))].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type))) {
       const def = TYPES[obj.type]!;
       const key = token(obj.type, obj.name);
       const existing = await def.find(c, obj.name);
@@ -1087,12 +1185,13 @@ export async function deployDemo(id: string, o: DeployOptions): Promise<DeployRe
           log(changed ? `~ ${def.label} "${obj.name}" brought to the demo's version` : `= ${def.label} "${obj.name}" already the demo's version`);
           continue;
         }
-        if (def.update && JSON.stringify(obj.spec).includes("@{param:")) {
+        // Only what gctk created takes the deploy's values; what someone built by hand stays as it is.
+        if (def.update && JSON.stringify(obj.spec).includes("@{param:") && rec.created.some((x) => x.id === existing)) {
           await def.update(c, existing, resolve(obj.spec, { ...rec.ids, ...extra }, `${def.label} "${obj.name}"`));
-          log(`~ ${def.label} "${obj.name}" already there, updated with your values`);
+          log(`~ ${def.label} "${obj.name}" updated with the values entered`);
           continue;
         }
-        log(`= ${def.label} "${obj.name}" already there`);
+        log(`= ${def.label} "${obj.name}" already there${rec.created.some((x) => x.id === existing) ? "" : " (not made by gctk: left as it is)"}`);
         continue;
       }
       log(`+ ${def.label} "${obj.name}"`);
@@ -1109,14 +1208,164 @@ export async function deployDemo(id: string, o: DeployOptions): Promise<DeployRe
       rec.ids[key] = made.id;
       rec.created.push({ type: obj.type, name: obj.name, id: made.id });
       for (const [k, v] of Object.entries(made.subs ?? {})) rec.ids[token(obj.type, obj.name, k)] = v;
-      saveRecord(id, rec);
+      await progress();
     }
     if (o.whatsappIntegrationId && m.messageRouting && forChannel(m.messageRouting.channel)) await routeWhatsApp(c, rec, o.whatsappIntegrationId, m.messageRouting.flow, log);
-  } finally {
-    saveRecord(id, rec);
+  } catch (err) {
+    failure = err;
+  }
+  saveRecord(id, rec);
+  try {
+    await writeDeployment(c, table, { ...entry, state: failure ? "incomplete" : "deployed", heartbeat: now(), record: shared(rec), ...(failure ? { error: (failure as Error).message } : { error: undefined }) });
+  } catch (err) {
+    log(`! could not update the org's registry: ${(err as Error).message}`);
+  }
+  if (failure) throw failure;
+  // Whoever deploys presents too: their own customer contact (a presenter who is in already stays as they are).
+  if (o.presenterId && !entry.presenters.some((p) => p.id === o.presenterId)) {
+    if (o.persona || !m.presenterContact) await joinDemo(id, { profile: o.profile, presenterId: o.presenterId, persona: o.persona, params: o.params, client: c, log });
+    else log("! no customer persona given: join the demo as a presenter to get your own customer contact");
   }
   log(`done: ${rec.created.length} created, ${rec.reused.length} already there`);
   return rec;
+}
+
+/** What the Demos page shows for one org: its deployment of the demo (from the org), or what already exists there. */
+export interface OrgDemoStatus {
+  deployment?: { state: OrgDeployment["state"]; by: string; at: string; heartbeat: string; deploying: boolean; created: number; reused: number; division?: string; channel?: string; params?: Record<string, string>; presenters: Presenter[]; routing?: { integration: string; phone?: string }; error?: string };
+  /** This computer's presenter in the deployment (their persona and own values). */
+  me?: PresenterLocal;
+  /** The template persona (the customer's name in the package). */
+  template?: Persona;
+  /** This computer deployed it there earlier, but the org has no registry entry yet. */
+  unregistered?: { at: string; created: number };
+  /** Without a deployment: demo objects that are in the org already (built by hand, or by an older gctk). */
+  existing?: string[];
+}
+
+export async function orgDemoStatus(id: string, profile: string, client?: GenesysClient): Promise<OrgDemoStatus> {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const snap = readSnapshot(src.pkg);
+  const c = client ?? new GenesysClient(loadProfile(profile), { source: "ui" });
+  const org = await readDeployment<SharedRecord>(c, await findRegistry(c), id);
+  const local = loadRecord(id, profile);
+  const tpl = presenterTemplate(m, snap);
+  const template = tpl ? { ...(tpl.spec.salutation ? { salutation: String(tpl.spec.salutation) } : {}), firstName: String(tpl.spec.firstName ?? ""), lastName: String(tpl.spec.lastName ?? "") } : undefined;
+  if (org) {
+    // The org knows best: this computer keeps a copy for the local part and the commands.
+    saveRecord(id, { ...org.record, profile });
+    const r = org.record;
+    let me = loadPresenter(id, profile);
+    if (me && !org.presenters.some((p) => p.id === me!.presenterId)) {
+      fs.rmSync(presenterFile(id, profile), { force: true });
+      me = undefined;
+    }
+    return { ...(me ? { me } : {}), ...(template ? { template } : {}), deployment: { state: org.state, by: org.by, at: org.at, heartbeat: org.heartbeat, deploying: deployingNow(org), created: r.created.length, reused: r.reused.length, division: r.division, channel: r.channel, params: r.params, presenters: org.presenters, ...(r.routing ? { routing: { integration: r.routing.integration, phone: r.routing.phone } } : {}), ...(org.error ? { error: org.error } : {}) } };
+  }
+  if (local?.created.length) return { unregistered: { at: local.at, created: local.created.length }, ...(template ? { template } : {}) };
+  if (local) fs.rmSync(recordFile(id, profile), { force: true });
+  const objects = [...(snap?.objects ?? []), ...(m.create ?? [])];
+  const existing: string[] = [];
+  for (let i = 0; i < objects.length; i += 6) {
+    const found = await Promise.all(objects.slice(i, i + 6).map((obj) => TYPES[obj.type]!.find(c, obj.name).then((x) => (x ? `${TYPES[obj.type]!.label} "${obj.name}"` : undefined)).catch(() => undefined)));
+    existing.push(...found.filter((x): x is string => Boolean(x)));
+  }
+  return { existing, ...(template ? { template } : {}) };
+}
+
+const presenterTemplate = (m: DemoManifest, snap?: Snapshot) => (m.presenterContact ? snap?.objects.find((o) => o.type === "externalcontact" && o.name === m.presenterContact) : undefined);
+
+/** Puts a deployment this computer made before 0.30 into the org's registry, so every gctk sees it. */
+export async function registerDeployment(id: string, profile: string, client?: GenesysClient): Promise<OrgDemoStatus> {
+  const rec = loadRecord(id, profile);
+  if (!rec) throw invalid("This computer has no record of a deployment into this org.");
+  const c = client ?? new GenesysClient(loadProfile(profile), { source: "ui" });
+  const divisions = await all(c, "/api/v2/authorization/divisions");
+  const table = await ensureRegistry(c, (divisions.find((d) => d.homeDivision) ?? divisions[0])?.id);
+  const at = rec.at || new Date().toISOString();
+  await claimDeployment(c, table, { demo: id, state: "deployed", by: rec.presenter?.name ?? os.userInfo().username, at, heartbeat: at, version: GCTK_VERSION, presenters: rec.presenter ? [rec.presenter] : [], record: shared(rec) });
+  return orgDemoStatus(id, profile, c);
+}
+
+/**
+ * Adds a presenter to the deployment: member of the queues gctk created for the demo, and (when the
+ * demo has a presenter contact) their own customer contact with the persona's name, unique in the org,
+ * and their phone and email. Joining again changes the persona or the values.
+ */
+export async function joinDemo(id: string, o: { profile: string; presenterId: string; persona?: Persona; params?: Record<string, string>; client?: GenesysClient; log?: (l: string) => void }): Promise<OrgDemoStatus> {
+  const src = sourceOf(id);
+  const m = loadManifest(src.pkg);
+  const snap = readSnapshot(src.pkg);
+  const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  const log = o.log ?? (() => {});
+  const table = await findRegistry(c);
+  const org = await readDeployment<SharedRecord>(c, table, id);
+  if (!table || !org || deployingNow(org)) throw invalid("The demo is not deployed in this org (yet).");
+  const before = org.presenters.find((p) => p.id === o.presenterId);
+  const name = await c.get<Obj>(`/api/v2/users/${o.presenterId}`).then((r) => String(r.body.name ?? o.presenterId)).catch(() => o.presenterId);
+  const me: Presenter = { id: o.presenterId, name, ...(before?.contactId ? { contactId: before.contactId } : {}) };
+  const tpl = presenterTemplate(m, snap);
+  let persona: Persona | undefined;
+  let params: Record<string, string> = {};
+  if (tpl) {
+    persona = cleanPersona(o.persona);
+    const values = parameterValues((m.parameters ?? []).filter((p) => p.perPresenter), o.params);
+    params = Object.fromEntries((m.parameters ?? []).filter((p) => p.perPresenter && values[`@{param:${p.id}}`]).map((p) => [p.id, values[`@{param:${p.id}}`]!]));
+    const customer = personaName(persona);
+    const taken = org.presenters.find((p) => p.id !== o.presenterId && p.customer?.toLowerCase() === customer.toLowerCase());
+    if (taken) throw invalid(`${taken.name} plays the customer "${customer}" already. Choose another name.`);
+    const existing = await TYPES.externalcontact!.find(c, customer);
+    if (existing && existing !== before?.contactId) throw invalid(`The org has a contact "${customer}" already. Choose a name nobody uses, so each presenter's customer is recognised by their own number.`);
+    const spec = resolve({
+      ...tpl.spec,
+      firstName: persona.firstName,
+      lastName: persona.lastName,
+      ...(persona.salutation ? { salutation: persona.salutation } : { salutation: undefined }),
+      ...(tpl.spec.personalEmail ? { personalEmail: personaMail(persona) } : {}),
+      ...(tpl.spec.whatsAppId ? { whatsAppId: { ...tpl.spec.whatsAppId, displayName: customer } } : {}),
+    }, { ...org.record.ids, ...values }, `your customer contact "${customer}"`);
+    if (before?.contactId) {
+      await TYPES.externalcontact!.update!(c, before.contactId, spec);
+      log(`~ customer contact "${customer}" updated`);
+    } else {
+      me.contactId = (await TYPES.externalcontact!.create(spec, { client: c, division: { id: "", name: "" }, log, refreshed: {} })).id;
+      log(`+ customer contact "${customer}"`);
+    }
+    me.customer = customer;
+  }
+  if (!before) {
+    for (const q of org.record.created.filter((x) => x.type === "queue")) {
+      try {
+        await post(c, `/api/v2/routing/queues/${q.id}/members`, [{ id: o.presenterId }]);
+        log(`+ ${name} in queue "${q.name}"`);
+      } catch (err) {
+        log(`! queue "${q.name}": ${(err as Error).message}`);
+      }
+    }
+  }
+  org.presenters = [...org.presenters.filter((p) => p.id !== o.presenterId), me];
+  await writeDeployment(c, table, org);
+  savePresenter(id, o.profile, { presenterId: o.presenterId, name, persona: persona ?? { firstName: "", lastName: "" }, params, ...(me.contactId ? { contactId: me.contactId } : {}) });
+  return orgDemoStatus(id, o.profile, c);
+}
+
+/** Takes a presenter out: their customer contact is deleted, they leave the demo's queues. */
+export async function leaveDemo(id: string, o: { profile: string; presenterId: string; client?: GenesysClient; log?: (l: string) => void }): Promise<OrgDemoStatus> {
+  const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  const log = o.log ?? (() => {});
+  const table = await findRegistry(c);
+  const org = await readDeployment<SharedRecord>(c, table, id);
+  const p = org?.presenters.find((x) => x.id === o.presenterId);
+  if (!table || !org || !p) throw invalid("This user does not present the demo in this org.");
+  if (p.contactId) await TYPES.externalcontact!.remove(c, p.contactId).catch((err) => { if (!/HTTP_404/.test((err as GctkError).code ?? "")) throw err; });
+  for (const q of org.record.created.filter((x) => x.type === "queue")) {
+    await del(c, `/api/v2/routing/queues/${q.id}/members/${o.presenterId}`).catch(() => log(`! could not take ${p.name} out of queue "${q.name}"`));
+  }
+  org.presenters = org.presenters.filter((x) => x.id !== o.presenterId);
+  await writeDeployment(c, table, org);
+  if (loadPresenter(id, o.profile)?.presenterId === o.presenterId) fs.rmSync(presenterFile(id, o.profile), { force: true });
+  return orgDemoStatus(id, o.profile, c);
 }
 
 /** Points the WhatsApp number's message routing at the demo's flow; keeps the flow it had before for Remove. */
@@ -1147,12 +1396,27 @@ async function restoreRouting(c: GenesysClient, rec: DeployRecord, log: (l: stri
 
 /** Deletes what the deploys created in this org, newest first; objects that were already there stay. */
 export async function removeDemo(id: string, o: { profile: string; client?: GenesysClient; log?: (l: string) => void }): Promise<{ removed: number; failed: string[] }> {
-  const rec = loadRecord(id, o.profile);
-  if (!rec) throw invalid("Nothing was deployed into this org.");
   const c = o.client ?? new GenesysClient(loadProfile(o.profile), { source: "ui" });
+  // The org's registry first: it may hold a deployment from another computer.
+  const table = await findRegistry(c);
+  const org = await readDeployment<SharedRecord>(c, table, id);
+  if (org && deployingNow(org)) throw new GctkError("DEMO_BUSY", `${org.by} is deploying this demo right now. Wait until it is done.`);
+  const rec: DeployRecord | undefined = org ? { ...org.record, profile: o.profile } : loadRecord(id, o.profile);
+  if (!rec) throw invalid("Nothing was deployed into this org.");
   const log = o.log ?? (() => {});
   const failed: string[] = [];
   let removed = 0;
+  // Every presenter's own customer contact goes too.
+  for (const p of org?.presenters ?? []) {
+    if (!p.contactId) continue;
+    try {
+      await TYPES.externalcontact!.remove(c, p.contactId);
+      log(`- customer contact "${p.customer}" (${p.name})`);
+    } catch (err) {
+      if (!/HTTP_404/.test((err as GctkError).code ?? "")) failed.push(`customer contact "${p.customer}": ${(err as Error).message}`);
+    }
+  }
+  fs.rmSync(presenterFile(id, o.profile), { force: true });
   // A flow a number still routes to cannot be deleted: give the number its old flow back first.
   try {
     await restoreRouting(c, rec, log);
@@ -1174,8 +1438,13 @@ export async function removeDemo(id: string, o: { profile: string; client?: Gene
       } else rec.created = rec.created.filter((y) => y.id !== x.id);
     }
   }
-  if (!rec.created.length && !rec.routing) fs.rmSync(recordFile(id, o.profile), { force: true });
-  else saveRecord(id, rec);
+  if (!rec.created.length && !rec.routing) {
+    fs.rmSync(recordFile(id, o.profile), { force: true });
+    if (table && org) await dropDeployment(c, table, id);
+  } else {
+    saveRecord(id, rec);
+    if (table && org) await writeDeployment(c, table, { ...org, state: "incomplete", heartbeat: new Date().toISOString(), record: shared(rec), error: failed.join("; ") });
+  }
   return { removed, failed };
 }
 
@@ -1275,11 +1544,14 @@ export function commandStatus(id: string): CommandStatus[] {
 }
 
 /** Values the local part and commands may use: deployed ids, parameters, presenter, org. */
-function runValues(m: DemoManifest, rec: DeployRecord | undefined, profileRegion: string): Record<string, string> {
+function runValues(m: DemoManifest, rec: DeployRecord | undefined, profileRegion: string, me?: PresenterLocal, template?: Obj): Record<string, string> {
+  // The local part runs on the presenter's computer: their customer, their phone and email.
   return {
     ...(rec?.ids ?? {}),
-    ...parameterValues((m.parameters ?? []).map((p) => ({ ...p, optional: true })), rec?.params ?? {}),
-    "@{presenter.name}": rec?.presenter?.name ?? NO_PRESENTER,
+    ...parameterValues((m.parameters ?? []).map((p) => ({ ...p, optional: true })), { ...(rec?.params ?? {}), ...(me?.params ?? {}) }),
+    ...personaValues(me?.persona.firstName ? me.persona : undefined, template),
+    ...(m.presenterContact && me?.contactId ? { [token("externalcontact", m.presenterContact)]: me.contactId } : {}),
+    "@{presenter.name}": me?.name ?? rec?.presenter?.name ?? NO_PRESENTER,
     "@{org.region}": profileRegion,
     "@{org.messengerEnv}": environmentFor(profileRegion),
   };
@@ -1294,7 +1566,7 @@ async function startLocalPart(id: string, src: Source, m: DemoManifest, profileN
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, "", { mode: 0o600 });
   const log = (line: string) => fs.appendFileSync(file, `${new Date().toLocaleTimeString()}  ${line}\n`);
-  const handle = await startLocal(m.local!, { client: client ?? new GenesysClient(profile, { source: "ui" }), dir: src.pkg, region: profile.region, values: runValues(m, rec, profile.region), log });
+  const handle = await startLocal(m.local!, { client: client ?? new GenesysClient(profile, { source: "ui" }), dir: src.pkg, region: profile.region, values: runValues(m, rec, profile.region, loadPresenter(id, profileName), presenterTemplate(m, readSnapshot(src.pkg))?.spec), log });
   log(`started for ${profileName}`);
   locals.set(id, { handle, profile: profileName, startedAt: new Date().toISOString() });
   return commandStatus(id).find((s) => s.id === LOCAL)!;
@@ -1329,7 +1601,7 @@ export async function startCommand(id: string, cmdId: string, profileName: strin
   const profile = loadProfile(profileName);
   const creds = loadCredentials(profile);
   const rec = loadRecord(id, profileName);
-  const ids: Record<string, string> = { ...runValues(m, rec, profile.region), "@{org.clientId}": creds.clientId, "@{org.clientSecret}": creds.clientSecret, "@{org.name}": profile.name };
+  const ids: Record<string, string> = { ...runValues(m, rec, profile.region, loadPresenter(id, profileName), presenterTemplate(m, readSnapshot(src.pkg))?.spec), "@{org.clientId}": creds.clientId, "@{org.clientSecret}": creds.clientSecret, "@{org.name}": profile.name };
   const isSource = profileName === snapshotSource(id)?.profile;
   const fill = (v: string) => v.replace(/@\{[^}]+\}/g, (t) => ids[t] ?? (isSource ? "" : t));
   const env: NodeJS.ProcessEnv = { ...process.env };

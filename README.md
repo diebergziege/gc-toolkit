@@ -21,7 +21,8 @@ itself.
   parameters such as the phone that plays the customer, prerequisites, manual steps, what runs on
   this computer) and `snapshot.json`; **Take snapshot** (only for whoever maintains the demo; the source org is a
   setting on their computer, never part of the package) reads the objects from the source org, **Deploy** creates them in the chosen org in the
-  right order (queues and wrap-up codes, intents, workbins, work item schemas, worktypes, case
+  right order, once per org: the org itself records the deployment, so every colleague's gctk sees it,
+  joins it as a presenter (each with their own customer: a name unique in the org, their demo phone and mailbox) or updates it instead of deploying it again (queues and wrap-up codes, intents, workbins, work item schemas, worktypes, case
   plans, contacts, knowledge bases, canned responses, checklists, NLU domains, agent scripts, the
   Copilot assistant, speech & text analytics, digital bot and inbound message flows), reusing what
   already has the name, and routes the WhatsApp number you pick to the demo's message flow. You pick how the customer writes: on a
@@ -127,7 +128,7 @@ Open button; this is the overview:
 | `~/.config/gctk/profiles/` | your orgs (name, region, tier; no secrets) |
 | `~/.config/gctk/config.yaml` | the org you work on by default |
 | `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | Cursor setup: servers started through gctk, added locations, skills an earlier gctk removed |
-| `~/.config/gctk/demos/` | Demos: what each deploy created per org (and your parameter values), logs |
+| `~/.config/gctk/demos/` | Demos: this computer's copy of each org's deployment (the org keeps the original in its data table "gctk demos"), logs |
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |

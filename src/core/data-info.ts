@@ -58,7 +58,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["mcp-launch.json", "Cursor setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
   ["ai-setup.json", "Cursor setup: added locations", "Config files and folders you added on the Cursor setup page."],
   ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (Cursor setup, Details) can put them back."],
-  ["demos", "Demos: deployments and logs", "Per org what a deploy created (for Remove), the commands that run, and their logs."],
+  ["demos", "Demos: deployments and logs", "This computer's copy of each org's deployment (the org keeps the original in its data table \"gctk demos\"), the commands that run, and their logs."],
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
   ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the Genesys tools of each folder (programs and settings, no credentials)."],
