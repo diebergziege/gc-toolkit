@@ -81,7 +81,7 @@
   files; endpoints `session`, `request` (org call with templated body/reply), `latestEmail`), and
   Copilot third-party answers (notification channel on the queues, PATCH of each open suggestion).
   It stops with the UI.
-  `create` lists objects the package adds that the source org lacks (Vendor Battle: messenger
+  `create` lists objects the package adds that the source org lacks (Lumea: messenger
   configuration and deployment for its Lumea website); a new snapshot leaves them alone. `channels`
   is the customer channel the presenter picks at deploy (`web`, `whatsapp`); `create[].channel` and
   `messageRouting.channel` tie objects and routing to one. Web deployments accept only public

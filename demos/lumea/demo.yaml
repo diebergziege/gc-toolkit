@@ -1,9 +1,11 @@
-# gctk demo package: the Vendor Battle demo, deployable into any org from the gctk UI (page
+# gctk demo package: the Lumea Energie & Smart Home demo, deployable into any org from the gctk UI (page
 # "Demos"). snapshot.json holds the objects below, read from the source org; "Deploy" creates them
 # in the chosen org. Everything the objects need (wrap-up codes, intents, workbin, schemas, topics)
 # is picked up automatically. The source org is not named here: "Take snapshot" is only offered on
-# a computer where it is set (`gctk demo-source vendor-battle <profile> --replace "Name=@{presenter.name}"`).
+# a computer where it is set (`gctk demo-source lumea <profile> --replace "Name=@{presenter.name}"`).
 name: Lumea Energie & Smart Home
+# The package was called vendor-battle before 0.30: this computer's records and settings move over.
+formerIds: [vendor-battle]
 description: >
   Customer Service Summit 2026: WhatsApp bot, agent with Copilot (checklists, canned responses,
   knowledge, NLU rules, a third-party answer from the "ERP"), case management with two case plans,
@@ -59,7 +61,7 @@ create:
     channel: web
     spec:
       name: Lumea Website
-      description: "Vendor Battle: Web Messenger der Lumea-Website (gctk)"
+      description: "Lumea-Demo: Web Messenger der Lumea-Website (gctk)"
       languages: [de]
       defaultLanguage: de
       headlessMode: { enabled: false }
@@ -94,7 +96,7 @@ create:
     channel: web
     spec:
       name: Lumea Website
-      description: "Vendor Battle: Lumea-Website auf http://localhost:8090/website/ (gctk)"
+      description: "Lumea-Demo: Lumea-Website auf http://localhost:8090/website/ (gctk)"
       # Genesys accepts only public domains in allowedDomains, and the website runs on localhost.
       allowAllDomains: true
       configurationId: "@{messengerconfig:Lumea Website}"
@@ -130,6 +132,14 @@ replace:
   - { value: "?agent=@{presenter.name}", with: "" }
   - { value: "@{presenter.name} ist dem Chat beigetreten", with: "Ihr Lumea-Berater ist dem Chat beigetreten" }
   - { value: "Guten Tag Herr Berger. Ich bin", with: "Guten Tag. Ich bin" }
+  # Names and descriptions of the source org's objects: the demo carries no event name.
+  - { value: "Lumea – Vendor Battle", with: "Lumea Antworten" }
+  - { value: "Vendor Battle – Serviceschlange für die Lumea-Demo (Persona Familie Berger).", with: "Serviceschlange der Lumea-Demo." }
+  - { value: "Agent Copilot – Vendor Battle, Persona Familie Berger.", with: "Agent Copilot der Lumea-Demo." }
+  - { value: "Vendor Battle: gespielter Agentic Virtual Agent der Persona Familie Berger.", with: "Lumea-Demo: gespielter Agentic Virtual Agent." }
+  - { value: "Vendor-Battle-Demo Lumea: ", with: "Lumea-Demo: " }
+  - { value: "Vendor-Battle-Demo: ", with: "Lumea-Demo: " }
+  - { value: "Vendor Battle: ", with: "Lumea-Demo: " }
 
 # The deploy points the WhatsApp number chosen on the page at this flow (and Remove gives the
 # number its previous flow back).

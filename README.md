@@ -16,7 +16,7 @@ itself.
   entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from
   becoming a project. Secrets are never shown
 - **Demos**: deploy a whole demo into another org with one button. The demos ship with gctk
-  (`demos/`, first: **Lumea Energie & Smart Home**, built for a vendor battle), so anyone with the plugin can
+  (`demos/`, first: **Lumea Energie & Smart Home**), so anyone with the plugin can
   deploy them. A package is `demo.yaml` (what belongs to it,
   parameters such as the phone that plays the customer, prerequisites, manual steps, what runs on
   this computer) and `snapshot.json`; **Take snapshot** (only for whoever maintains the demo; the source org is a

@@ -40013,11 +40013,33 @@ function sources() {
   }
   return out;
 }
+function adoptFormerIds(id, m) {
+  const demosDir = path8.join(gctkHome(), "demos");
+  for (const old of m.formerIds ?? []) {
+    if (!ID_SAFE.test(old) || old === id) continue;
+    try {
+      if (fs8.existsSync(path8.join(demosDir, old)) && !fs8.existsSync(path8.join(demosDir, id))) fs8.renameSync(path8.join(demosDir, old), path8.join(demosDir, id));
+      if (fs8.existsSync(demosDir)) {
+        for (const f of fs8.readdirSync(demosDir)) if (f.startsWith(`${old}-`) && f.endsWith(".log")) fs8.renameSync(path8.join(demosDir, f), path8.join(demosDir, `${id}${f.slice(old.length)}`));
+      }
+      const all2 = readSources();
+      if (all2[old] && !all2[id]) {
+        all2[id] = all2[old];
+        delete all2[old];
+        fs8.writeFileSync(sourcesFile(), `${JSON.stringify(all2, null, 2)}
+`, { mode: 384 });
+      }
+    } catch {
+    }
+  }
+}
+var ID_SAFE = /^[a-z0-9][a-z0-9-]{0,59}$/;
 function loadManifest(pkg) {
   const file2 = path8.join(pkg, "demo.yaml");
   if (!fs8.existsSync(file2)) throw invalid(`${pkg} has no demo.yaml.`);
   const m = import_yaml2.default.parse(fs8.readFileSync(file2, "utf8"));
   if (!m?.name || !Array.isArray(m.include)) throw invalid(`${file2} needs name and include.`);
+  adoptFormerIds(path8.basename(pkg), m);
   for (const i of [...m.include, ...m.create ?? []]) if (!TYPES[i.type]) throw invalid(`${file2}: unknown type "${i.type}". Known: ${Object.keys(TYPES).join(", ")}.`);
   return m;
 }
@@ -40030,14 +40052,21 @@ function listDemos() {
   const profiles = new Set(listProfiles());
   return sources().map((src) => {
     const id = src.id;
-    const base = { id, folder: src.pkg, canSnapshot: false, deployments: listDeployments(id) };
+    const base = { id, folder: src.pkg, canSnapshot: false, deployments: [] };
     try {
       base.manifest = loadManifest(src.pkg);
+    } catch (err) {
+      base.error = err.message;
+    }
+    base.deployments = listDeployments(id);
+    try {
+      if (!base.manifest) throw new Error(base.error);
+      const manifest = base.manifest;
       const source = snapshotSource(id);
       if (source) base.sourceProfile = source.profile;
       base.canSnapshot = Boolean(source && profiles.has(source.profile));
-      base.permissions = demoPermissions(base.manifest, readSnapshot(src.pkg));
-      base.story = loadStory(src.pkg, base.manifest, readSnapshot(src.pkg));
+      base.permissions = demoPermissions(manifest, readSnapshot(src.pkg));
+      base.story = loadStory(src.pkg, manifest, readSnapshot(src.pkg));
     } catch (err) {
       base.error = err.message;
     }
@@ -53637,7 +53666,7 @@ async function startUi(opts = {}) {
 
 // src/ui/daemon.ts
 var VERSION3 = true ? "0.30.0" : "dev";
-var BUILD_ID = true ? "5541d17" : "dev";
+var BUILD_ID = true ? "a32f7d6" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto9.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path14.join(gctkHome(), "ui.json");

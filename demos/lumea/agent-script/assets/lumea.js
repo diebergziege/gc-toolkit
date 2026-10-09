@@ -1,5 +1,5 @@
 /* Lumea – gemeinsame Daten, Zustand und Helfer für beide Script-Seiten.
-   Persona und Falldaten: Stammdatenblatt "Familie Berger", Vendor Battle CSS 2026.
+   Persona und Falldaten: Stammdaten der Lumea-Demo (die Persona wählt jeder Präsentierende selbst).
    Alle Daten sind fiktive Demo-Daten. */
 
 /* =================== 1. Helfer =================== */
@@ -182,7 +182,7 @@ const YEARS = [
 ];
 
 /* =================== 3. Gemeinsamer Zustand (beide Seiten) =================== */
-const STATE_KEY = 'lumea.vendorbattle.v1';
+const STATE_KEY = 'lumea.demo.v1';
 const DEFAULT_STATE = {
   // Abrechnung (Seite 1)
   abschlagFixed: false,

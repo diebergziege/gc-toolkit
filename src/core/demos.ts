@@ -86,6 +86,8 @@ export interface DemoManifest {
   messageRouting?: { flow: string; channel?: string };
   /** The snapshot's customer contact is a template: every presenter gets an own copy with their persona and values. */
   presenterContact?: string;
+  /** Ids the package had before: this computer's records, logs and snapshot source move to the current one. */
+  formerIds?: string[];
 }
 
 export interface DemoInfo {
@@ -214,11 +216,33 @@ function sources(): Source[] {
   return out;
 }
 
+/** Moves what this computer kept under a package's former id (records, logs, snapshot source) to its id. */
+function adoptFormerIds(id: string, m: DemoManifest): void {
+  const demosDir = path.join(gctkHome(), "demos");
+  for (const old of m.formerIds ?? []) {
+    if (!ID_SAFE.test(old) || old === id) continue;
+    try {
+      if (fs.existsSync(path.join(demosDir, old)) && !fs.existsSync(path.join(demosDir, id))) fs.renameSync(path.join(demosDir, old), path.join(demosDir, id));
+      if (fs.existsSync(demosDir)) for (const f of fs.readdirSync(demosDir)) if (f.startsWith(`${old}-`) && f.endsWith(".log")) fs.renameSync(path.join(demosDir, f), path.join(demosDir, `${id}${f.slice(old.length)}`));
+      const all = readSources();
+      if (all[old] && !all[id]) {
+        all[id] = all[old]!;
+        delete all[old];
+        fs.writeFileSync(sourcesFile(), `${JSON.stringify(all, null, 2)}\n`, { mode: 0o600 });
+      }
+    } catch {
+      // another gctk moved it a moment ago, or the home is read-only: the old data stays where it is
+    }
+  }
+}
+const ID_SAFE = /^[a-z0-9][a-z0-9-]{0,59}$/;
+
 export function loadManifest(pkg: string): DemoManifest {
   const file = path.join(pkg, "demo.yaml");
   if (!fs.existsSync(file)) throw invalid(`${pkg} has no demo.yaml.`);
   const m = YAML.parse(fs.readFileSync(file, "utf8")) as DemoManifest;
   if (!m?.name || !Array.isArray(m.include)) throw invalid(`${file} needs name and include.`);
+  adoptFormerIds(path.basename(pkg), m);
   for (const i of [...m.include, ...(m.create ?? [])]) if (!TYPES[i.type]) throw invalid(`${file}: unknown type "${i.type}". Known: ${Object.keys(TYPES).join(", ")}.`);
   return m;
 }
@@ -233,14 +257,22 @@ export function listDemos(): DemoInfo[] {
   const profiles = new Set(listProfiles());
   return sources().map((src) => {
     const id = src.id;
-    const base: DemoInfo = { id, folder: src.pkg, canSnapshot: false, deployments: listDeployments(id) };
+    const base: DemoInfo = { id, folder: src.pkg, canSnapshot: false, deployments: [] };
     try {
       base.manifest = loadManifest(src.pkg);
+    } catch (err) {
+      base.error = (err as Error).message;
+    }
+    // After the manifest: it moves the records of a former id first.
+    base.deployments = listDeployments(id);
+    try {
+      if (!base.manifest) throw new Error(base.error);
+      const manifest = base.manifest;
       const source = snapshotSource(id);
       if (source) base.sourceProfile = source.profile;
       base.canSnapshot = Boolean(source && profiles.has(source.profile));
-      base.permissions = demoPermissions(base.manifest, readSnapshot(src.pkg));
-      base.story = loadStory(src.pkg, base.manifest, readSnapshot(src.pkg));
+      base.permissions = demoPermissions(manifest, readSnapshot(src.pkg));
+      base.story = loadStory(src.pkg, manifest, readSnapshot(src.pkg));
     } catch (err) {
       base.error = (err as Error).message;
     }

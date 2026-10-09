@@ -441,8 +441,8 @@ describe("demos", () => {
     expect(commandStatus(id)[0]!.running).toBe(false);
   });
 
-  it("ships Vendor Battle complete and without anyone's phone or email", () => {
-    const pkg = path.resolve("demos/vendor-battle");
+  it("ships the Lumea demo complete and without anyone's phone or email", () => {
+    const pkg = path.resolve("demos/lumea");
     const m = loadManifest(pkg);
     const snap = fs.readFileSync(path.join(pkg, "snapshot.json"), "utf8");
     const declared = new Set((m.parameters ?? []).map((p) => p.id));
@@ -584,5 +584,23 @@ describe("every presenter plays their own customer", () => {
     await removeDemo(id, { profile: "dst-org", client: dst.client });
     expect(dst.db.contacts!.map((c) => c.firstName)).toEqual(["Hans"]);
     expect(dst.registry.rows.size).toBe(0);
+  });
+});
+
+describe("a package that was renamed", () => {
+  it("moves this computer's records, logs and snapshot source from the former id", () => {
+    const pkg = path.join(tmp, "builtin", "new-name");
+    fs.mkdirSync(pkg, { recursive: true });
+    fs.writeFileSync(path.join(pkg, "demo.yaml"), "name: Renamed\nformerIds: [old-name]\ninclude: []\n");
+    const demos = path.join(process.env.GCTK_HOME!, "demos");
+    fs.mkdirSync(path.join(demos, "old-name"), { recursive: true });
+    fs.writeFileSync(path.join(demos, "old-name", "dst-org.json"), JSON.stringify({ profile: "dst-org", at: "2026-10-01T10:00:00Z", ids: {}, created: [{ type: "queue", name: "Q", id: "q1" }], reused: [] }));
+    fs.writeFileSync(path.join(demos, "old-name-local.log"), "x");
+    fs.writeFileSync(path.join(process.env.GCTK_HOME!, "demo-sources.json"), JSON.stringify({ "old-name": { profile: "src-org" } }));
+    const [d] = listDemos();
+    expect(d).toMatchObject({ id: "new-name", sourceProfile: "src-org", deployments: [expect.objectContaining({ profile: "dst-org", created: 1 })] });
+    expect(fs.existsSync(path.join(demos, "old-name"))).toBe(false);
+    expect(fs.existsSync(path.join(demos, "new-name-local.log"))).toBe(true);
+    expect(snapshotSource("new-name")).toEqual({ profile: "src-org" });
   });
 });

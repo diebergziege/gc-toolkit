@@ -1,4 +1,4 @@
-# Demo story of Vendor Battle, shown on the Demos page ("Demo story"). Scenes in stage order; the
+# Demo story of the Lumea demo, shown on the Demos page ("Demo story"). Scenes in stage order; the
 # customer's lines are German on purpose: the Copilot NLU intents are trained on these phrases.
 # The trigger reference below the scenes is built from the snapshot (rules, intents, checklists).
 summary: >

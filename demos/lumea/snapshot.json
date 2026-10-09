@@ -31,7 +31,7 @@
       "name": "Lumea Kundenservice",
       "spec": {
         "name": "Lumea Kundenservice",
-        "description": "Vendor Battle – Serviceschlange für die Lumea-Demo (Persona Familie Berger).",
+        "description": "Serviceschlange der Lumea-Demo.",
         "mediaSettings": {
           "call": {
             "alertingTimeoutSeconds": 30,
@@ -109,7 +109,7 @@
         "cannedResponseLibraries": {
           "mode": "SelectedOnly",
           "libraryIds": [
-            "@{responselibrary:Lumea – Vendor Battle}"
+            "@{responselibrary:Lumea Antworten}"
           ]
         },
         "wrapupCodes": [
@@ -124,7 +124,7 @@
       "name": "Lumea Vorgangsbearbeitung",
       "spec": {
         "name": "Lumea Vorgangsbearbeitung",
-        "description": "Vendor Battle: Work Items des Angebots-Case. Bewusst NICHT die Gespraechs-Queue.",
+        "description": "Lumea-Demo: Work Items des Angebots-Case. Bewusst NICHT die Gespraechs-Queue.",
         "mediaSettings": {
           "call": {
             "alertingTimeoutSeconds": 8,
@@ -549,7 +549,7 @@
       "name": "Lumea Rechnungsbeschwerde",
       "spec": {
         "name": "Lumea Rechnungsbeschwerde",
-        "description": "Vendor-Battle-Demo Lumea: Beschwerde zur Jahresabrechnung. Drei Stufen.",
+        "description": "Lumea-Demo: Beschwerde zur Jahresabrechnung. Drei Stufen.",
         "defaultWorkbinId": "@{workbin:Lumea Workbin}",
         "schemaId": "@{workitemschema:Lumea Rechnungsbeschwerde}",
         "defaultQueueId": "@{queue:Lumea Kundenservice}",
@@ -596,7 +596,7 @@
       "name": "Lumea Vertragsangebot",
       "spec": {
         "name": "Lumea Vertragsangebot",
-        "description": "Vendor-Battle-Demo Lumea: Arbeit aus einem Vertragsangebot.",
+        "description": "Lumea-Demo: Arbeit aus einem Vertragsangebot.",
         "defaultWorkbinId": "@{workbin:Lumea Workbin}",
         "schemaId": "@{workitemschema:Lumea Vertragsangebot}",
         "defaultQueueId": "@{queue:Lumea Vorgangsbearbeitung}",
@@ -631,7 +631,7 @@
       "name": "Lumea Rechnungsbeschwerde",
       "spec": {
         "name": "Lumea Rechnungsbeschwerde",
-        "description": "Vendor-Battle-Demo: Beschwerde zur Jahresabrechnung, drei Stufen",
+        "description": "Lumea-Demo: Beschwerde zur Jahresabrechnung, drei Stufen",
         "referencePrefix": "LUM",
         "defaultDueDurationInSeconds": 432000,
         "defaultTtlSeconds": 2678400,
@@ -716,7 +716,7 @@
       "name": "Lumea Vertragsangebot",
       "spec": {
         "name": "Lumea Vertragsangebot",
-        "description": "Vendor-Battle-Demo: Vertragsangebot nach dem Gespraech",
+        "description": "Lumea-Demo: Vertragsangebot nach dem Gespraech",
         "referencePrefix": "ANG",
         "defaultDueDurationInSeconds": 86400,
         "defaultTtlSeconds": 2678400,
@@ -821,7 +821,7 @@
       "name": "Lumea Energie & Smart Home",
       "spec": {
         "name": "Lumea Energie & Smart Home",
-        "description": "Wissensbasis für Agent Copilot – Vendor Battle, Persona Familie Berger.",
+        "description": "Wissensbasis für Agent Copilot der Lumea-Demo.",
         "coreLanguage": "de-DE",
         "contentSearchEnabled": true,
         "categories": [
@@ -1821,9 +1821,9 @@
     },
     {
       "type": "responselibrary",
-      "name": "Lumea – Vendor Battle",
+      "name": "Lumea Antworten",
       "spec": {
-        "name": "Lumea – Vendor Battle",
+        "name": "Lumea Antworten",
         "responses": [
           {
             "name": "01 Begruessung nach Uebergabe",
@@ -3283,8 +3283,8 @@
                     {
                       "actionType": "CannedResponse",
                       "attributes": {
-                        "responseId": "@{responselibrary:Lumea – Vendor Battle#response:01 Begruessung nach Uebergabe}",
-                        "libraryId": "@{responselibrary:Lumea – Vendor Battle}"
+                        "responseId": "@{responselibrary:Lumea Antworten#response:01 Begruessung nach Uebergabe}",
+                        "libraryId": "@{responselibrary:Lumea Antworten}"
                       }
                     },
                     {
@@ -3388,8 +3388,8 @@
                     {
                       "actionType": "CannedResponse",
                       "attributes": {
-                        "responseId": "@{responselibrary:Lumea – Vendor Battle#response:07 Abschluss}",
-                        "libraryId": "@{responselibrary:Lumea – Vendor Battle}"
+                        "responseId": "@{responselibrary:Lumea Antworten#response:07 Abschluss}",
+                        "libraryId": "@{responselibrary:Lumea Antworten}"
                       }
                     }
                   ]
@@ -3580,7 +3580,7 @@
       "name": "Lumea Kundenservice",
       "spec": {
         "name": "Lumea Kundenservice",
-        "description": "Vendor-Battle-Demo Lumea: Auswertung der Kundenservice-Queue",
+        "description": "Lumea-Demo: Auswertung der Kundenservice-Queue",
         "tags": [],
         "topicIds": [
           "@{statopic:Lumea Wechselabsicht}",
@@ -3598,7 +3598,7 @@
       "name": "Lumea WhatsApp AVA",
       "spec": {
         "name": "Lumea WhatsApp AVA",
-        "yaml": "digitalBot:\n  name: Lumea WhatsApp AVA\n  description: \"Vendor Battle: gespielter Agentic Virtual Agent der Persona Familie Berger. Freier Text statt Quick Replies, feste Zeilen, keine NLU.\"\n  division: Home\n  startUpRef: \"/digitalBot/bots/bot[Begrüßung_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  variables:\n    - knowledgeBaseDocumentCollectionVariable:\n        name: Flow.result1\n        initialValue:\n          noValue: true\n        isInput: false\n        isOutput: false\n    - stringVariable:\n        name: Slot.conversation\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.identify_contract\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.intro\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.reason_for_contact\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n  settingsErrorHandling:\n    errorHandling:\n      exit:\n        none: true\n    enableAgentEscalation:\n      lit: true\n    errorEventHandover:\n      noValue: true\n    agentEscalationConfirmation:\n      noValue: true\n    agentEscalationHandover:\n      noValue: true\n    recognitionFailureEventHandover:\n      noValue: true\n    recognitionFailureEventHandling:\n      exit:\n        none: true\n    agentEscalationHandling:\n      exit:\n        none: true\n  settingsBotFlow:\n    virtualAgentEnabled: true\n  settingsUserInput:\n    noMatchesMax:\n      lit: 1\n    noInputsMax:\n      lit: 3\n    noInputsTimeout:\n      lit:\n        minutes: 1\n    endOfSessionMessage:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe eine Weile nichts von Ihnen gehört, deshalb schließe ich diesen Chat. Bitte kehren Sie zurück, wenn Sie meine Hilfe benötigen. Vielen Dank!\\\")))\"\n    confirmationRejectionsMax:\n      lit: 3\n    collectionLowConfidenceThreshold:\n      lit: 20\n    collectionHighConfidenceThreshold:\n      lit: 70\n    confirmationLowConfidenceThreshold:\n      lit: 40\n    noMatchApology:\n      exp: \"\\\"\\\"\"\n    noInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten.\\\")))\"\n    noToConfirmationApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Mir ist ein Fehler unterlaufen.\\\")))\"\n    confirmationNoMatchApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n    confirmationNoInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten. Geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n  settingsKnowledge:\n    none: true\n  settingsVirtualAgent:\n    summarization:\n      lit: false\n    assignWrapupCodes:\n      lit: false\n  bots:\n    - bot:\n        name: Begrüßung\n        refId: Begrüßung_10\n        trackingId: 10\n        actions:\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 37\n              slot:\n                name: intro\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Placeholder\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Communicate\n              trackingId: 42\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Guten Tag. Ich bin der KI-Assistent der\\\\nLumea Energie & Smart Home GmbH.\\\\n\\\\nIch sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen.\\\")))\"\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 46\n              slot:\n                name: reason_for_contact\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Geht es es Ihnen nur um Ihre Rechnung oder auch um Ihren Vertrag?\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Erkennung\n              trackingId: 12\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Alles klar. Ich verbinde Sie umgehend mit der zuständigen Fachabteilung. \\\")))\"\n          - communicate:\n              name: Mitarbeiter kommt in Chat\n              trackingId: 45\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"-----------------------------------------\\\\nIhr Lumea-Berater ist dem Chat beigetreten\\\\n-----------------------------------------\\\")))\"\n          - setScreenPop:\n              name: Set Screen Pop\n              trackingId: 41\n              screenPopScript:\n                Website_Scripts:\n                  none: true\n          - transferToAcd:\n              name: Transfer to ACD\n              trackingId: 29\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              preTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              failureTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              failureOutputs:\n                errorType:\n                  noValue: true\n                errorMessage:\n                  noValue: true\n          - exitBotFlow:\n              name: Exit Bot Flow\n              trackingId: 30\n  settingsNaturalLanguageUnderstanding:\n    nluDomainVersion:\n      intents: []\n      entities:\n        - name: conversation\n          type: \"builtin:any\"\n        - name: identify_contract\n          type: \"builtin:any\"\n        - name: intro\n          type: \"builtin:any\"\n        - name: reason_for_contact\n          type: \"builtin:any\"\n      entityTypes: []\n      language: de-de\n      languageVersions: {}\n    mutedUtterances: []\n"
+        "yaml": "digitalBot:\n  name: Lumea WhatsApp AVA\n  description: \"Lumea-Demo: gespielter Agentic Virtual Agent. Freier Text statt Quick Replies, feste Zeilen, keine NLU.\"\n  division: Home\n  startUpRef: \"/digitalBot/bots/bot[Begrüßung_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  variables:\n    - knowledgeBaseDocumentCollectionVariable:\n        name: Flow.result1\n        initialValue:\n          noValue: true\n        isInput: false\n        isOutput: false\n    - stringVariable:\n        name: Slot.conversation\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.identify_contract\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.intro\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n    - stringVariable:\n        name: Slot.reason_for_contact\n        initialValue:\n          noValue: true\n        isInput: true\n        isOutput: true\n  settingsErrorHandling:\n    errorHandling:\n      exit:\n        none: true\n    enableAgentEscalation:\n      lit: true\n    errorEventHandover:\n      noValue: true\n    agentEscalationConfirmation:\n      noValue: true\n    agentEscalationHandover:\n      noValue: true\n    recognitionFailureEventHandover:\n      noValue: true\n    recognitionFailureEventHandling:\n      exit:\n        none: true\n    agentEscalationHandling:\n      exit:\n        none: true\n  settingsBotFlow:\n    virtualAgentEnabled: true\n  settingsUserInput:\n    noMatchesMax:\n      lit: 1\n    noInputsMax:\n      lit: 3\n    noInputsTimeout:\n      lit:\n        minutes: 1\n    endOfSessionMessage:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe eine Weile nichts von Ihnen gehört, deshalb schließe ich diesen Chat. Bitte kehren Sie zurück, wenn Sie meine Hilfe benötigen. Vielen Dank!\\\")))\"\n    confirmationRejectionsMax:\n      lit: 3\n    collectionLowConfidenceThreshold:\n      lit: 20\n    collectionHighConfidenceThreshold:\n      lit: 70\n    confirmationLowConfidenceThreshold:\n      lit: 40\n    noMatchApology:\n      exp: \"\\\"\\\"\"\n    noInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten.\\\")))\"\n    noToConfirmationApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Mir ist ein Fehler unterlaufen.\\\")))\"\n    confirmationNoMatchApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n    confirmationNoInputApology:\n      exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Ich habe leider keine Eingabe von Ihnen erhalten. Geben Sie \\\\\\\"Ja\\\\\\\" oder \\\\\\\"Nein\\\\\\\" ein.\\\")))\"\n  settingsKnowledge:\n    none: true\n  settingsVirtualAgent:\n    summarization:\n      lit: false\n    assignWrapupCodes:\n      lit: false\n  bots:\n    - bot:\n        name: Begrüßung\n        refId: Begrüßung_10\n        trackingId: 10\n        actions:\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 37\n              slot:\n                name: intro\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Placeholder\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Communicate\n              trackingId: 42\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Guten Tag. Ich bin der KI-Assistent der\\\\nLumea Energie & Smart Home GmbH.\\\\n\\\\nIch sehe Ihre Jahresabrechnung 2025 zum Tarif LumeaPrivat Klassik. Ihr Vertrag endet außerdem in 42 Tagen.\\\")))\"\n          - askForSlot:\n              name: Ask for Slot\n              trackingId: 46\n              slot:\n                name: reason_for_contact\n              question:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Geht es es Ihnen nur um Ihre Rechnung oder auch um Ihren Vertrag?\\\")))\"\n              customValidation:\n                noValue: true\n              confirmationMode:\n                lit: never\n              noMatch:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Bitte nennen Sie (Slot-Name hier einfügen)\\\")))\"\n              outputs:\n                maxNoInputs:\n                  enabled: false\n                maxNoMatches:\n                  enabled: false\n                skipResponseCapture:\n                  enabled: false\n          - communicate:\n              name: Erkennung\n              trackingId: 12\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"Alles klar. Ich verbinde Sie umgehend mit der zuständigen Fachabteilung. \\\")))\"\n          - communicate:\n              name: Mitarbeiter kommt in Chat\n              trackingId: 45\n              communication:\n                exp: \"MakeCommunication(\\n  ToCommunication(ToCommunication(\\\"-----------------------------------------\\\\nIhr Lumea-Berater ist dem Chat beigetreten\\\\n-----------------------------------------\\\")))\"\n          - setScreenPop:\n              name: Set Screen Pop\n              trackingId: 41\n              screenPopScript:\n                Website_Scripts:\n                  none: true\n          - transferToAcd:\n              name: Transfer to ACD\n              trackingId: 29\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              preTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              failureTransferCommunication:\n                exp: \"MakeCommunication(\\n  ToCommunication(NOT_SET))\"\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              failureOutputs:\n                errorType:\n                  noValue: true\n                errorMessage:\n                  noValue: true\n          - exitBotFlow:\n              name: Exit Bot Flow\n              trackingId: 30\n  settingsNaturalLanguageUnderstanding:\n    nluDomainVersion:\n      intents: []\n      entities:\n        - name: conversation\n          type: \"builtin:any\"\n        - name: identify_contract\n          type: \"builtin:any\"\n        - name: intro\n          type: \"builtin:any\"\n        - name: reason_for_contact\n          type: \"builtin:any\"\n      entityTypes: []\n      language: de-de\n      languageVersions: {}\n    mutedUtterances: []\n"
       }
     },
     {
@@ -3606,7 +3606,7 @@
       "name": "Lumea WhatsApp Einstieg",
       "spec": {
         "name": "Lumea WhatsApp Einstieg",
-        "yaml": "inboundShortMessage:\n  name: Lumea WhatsApp Einstieg\n  description: \"Vendor Battle: WhatsApp-Einstieg, ruft den Lumea-Bot und übergibt an den Kundenservice.\"\n  division: Home\n  startUpRef: \"/inboundShortMessage/states/state[Ausgangsstatus_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  settingsErrorHandling:\n    errorHandling:\n      disconnect:\n        none: true\n  states:\n    - state:\n        name: Ausgangsstatus\n        refId: Ausgangsstatus_10\n        trackingId: 10\n        actions:\n          - callDigitalBotFlow:\n              name: Lumea Bot aufrufen\n              inputText:\n                exp: Message.Message.body\n              exitReason:\n                noValue: true\n              intent:\n                noValue: true\n              digitalBotFlow:\n                Lumea WhatsApp AVA:\n                  ver_latestPublished:\n                    none: true\n              trackingId: 11\n          - transferToAcd:\n              name: An Kundenservice\n              trackingId: 12\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              skillExpressionFilters:\n                noValue: true\n  referencedObjects:\n    flows:\n      - flow:\n          name: Lumea WhatsApp AVA\n          type: digitalbot\n          defaultLanguage: de-de\n          variables: []\n          supportedLanguages:\n            - de-de\n"
+        "yaml": "inboundShortMessage:\n  name: Lumea WhatsApp Einstieg\n  description: \"Lumea-Demo: WhatsApp-Einstieg, ruft den Lumea-Bot und übergibt an den Kundenservice.\"\n  division: Home\n  startUpRef: \"/inboundShortMessage/states/state[Ausgangsstatus_10]\"\n  defaultLanguage: de-de\n  supportedLanguages:\n    de-de:\n      defaultLanguageSkill:\n        noValue: true\n  settingsErrorHandling:\n    errorHandling:\n      disconnect:\n        none: true\n  states:\n    - state:\n        name: Ausgangsstatus\n        refId: Ausgangsstatus_10\n        trackingId: 10\n        actions:\n          - callDigitalBotFlow:\n              name: Lumea Bot aufrufen\n              inputText:\n                exp: Message.Message.body\n              exitReason:\n                noValue: true\n              intent:\n                noValue: true\n              digitalBotFlow:\n                Lumea WhatsApp AVA:\n                  ver_latestPublished:\n                    none: true\n              trackingId: 11\n          - transferToAcd:\n              name: An Kundenservice\n              trackingId: 12\n              targetQueue:\n                lit:\n                  name: Lumea Kundenservice\n              priority:\n                lit: 0\n              preferredAgents:\n                noValue: true\n              languageSkill:\n                noValue: true\n              directAgent:\n                noValue: true\n              skillExpressionFilters:\n                noValue: true\n  referencedObjects:\n    flows:\n      - flow:\n          name: Lumea WhatsApp AVA\n          type: digitalbot\n          defaultLanguage: de-de\n          variables: []\n          supportedLanguages:\n            - de-de\n"
       }
     }
   ],
