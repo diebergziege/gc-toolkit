@@ -40562,7 +40562,16 @@ var TYPES = {
       if (st.status !== "Active") throw new GctkError("DEMO_MESSENGER", `The messenger deployment ${s.name} ended in status ${st.status}.`);
       return { id: dep.id };
     },
-    remove: (c, id) => del(c, `/api/v2/webdeployments/deployments/${id}`)
+    // Genesys deletes a deployment in the background ("Deleting"): its configuration and flow stay
+    // "in use" until it is gone, so Remove waits for that before it goes on.
+    remove: async (c, id) => {
+      await del(c, `/api/v2/webdeployments/deployments/${id}`);
+      for (let i = 0; i < 30; i++) {
+        const gone = await c.get(`/api/v2/webdeployments/deployments/${id}`).then(() => false, (err) => /HTTP_40[34]|HTTP_410/.test(err.code ?? ""));
+        if (gone) return;
+        await sleep2(2e3);
+      }
+    }
   }
 };
 var ORDER = Object.keys(TYPES);
@@ -53672,7 +53681,7 @@ async function startUi(opts = {}) {
 
 // src/ui/daemon.ts
 var VERSION3 = true ? "0.30.0" : "dev";
-var BUILD_ID = true ? "553b6ea" : "dev";
+var BUILD_ID = true ? "17e7a35" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto9.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path14.join(gctkHome(), "ui.json");

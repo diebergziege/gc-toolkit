@@ -834,7 +834,16 @@ const TYPES: Record<string, TypeDef> = {
       if (st.status !== "Active") throw new GctkError("DEMO_MESSENGER", `The messenger deployment ${s.name} ended in status ${st.status}.`);
       return { id: dep.id };
     },
-    remove: (c, id) => del(c, `/api/v2/webdeployments/deployments/${id}`),
+    // Genesys deletes a deployment in the background ("Deleting"): its configuration and flow stay
+    // "in use" until it is gone, so Remove waits for that before it goes on.
+    remove: async (c, id) => {
+      await del(c, `/api/v2/webdeployments/deployments/${id}`);
+      for (let i = 0; i < 30; i++) {
+        const gone = await c.get(`/api/v2/webdeployments/deployments/${id}`).then(() => false, (err) => /HTTP_40[34]|HTTP_410/.test((err as GctkError).code ?? ""));
+        if (gone) return;
+        await sleep(2000);
+      }
+    },
   },
 };
 const ORDER = Object.keys(TYPES);

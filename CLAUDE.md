@@ -85,7 +85,9 @@
   configuration and deployment for its Lumea website); a new snapshot leaves them alone. `channels`
   is the customer channel the presenter picks at deploy (`web`, `whatsapp`); `create[].channel` and
   `messageRouting.channel` tie objects and routing to one. Web deployments accept only public
-  domains in `allowedDomains`, so the localhost website needs `allowAllDomains`. Flows the demo
+  domains in `allowedDomains`, so the localhost website needs `allowAllDomains`. Genesys deletes a Messenger
+  deployment in the background, so its remove waits until it is gone (the configuration and flow stay
+  "in use" until then). Flows the demo
   created are re-imported on deploy only when the snapshot or the org's flow changed
   (`refreshed` hashes in the record: Architect rewrites some YAML on import).
   The Demos page lists the OAuth permissions a demo needs (`demoPermissions`), from
