@@ -130,6 +130,12 @@
   an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with what
   loads in every folder (tool → org → status, "use another org" = `setCredentials` with a profile);
   per-folder views belong to Projects, so folders with their own config link there ("Make it a project").
+  Versions (`src/core/updates.ts`, routes `/api/ai-setup/updates` and `/update`, a click only): uv
+  tools behind a server (receipt in uv's tool folder; GitHub release wheel of the same repository, or
+  PyPI) are reinstalled with uv, ava-mcp then refreshes the AVA skills (`ava-mcp update <dir> --yes`) in
+  `~/.cursor` and project folders that have them (not links: ava-mcp cannot replace those). gctk
+  started by `npx <tarball>` is updated by deleting its `_npx` cache folder, because npx never
+  downloads a cached tarball again; Cursor fetches the newest at its next start.
 - Projects (decision 2026-10-06, UI page "Projects", page id `axl`): a folder a consultant builds a demo
   in, with its own org (any tier; production only after a confirmation stored for exactly that org and
   checked at every start, `productionConfirmed`). An AXL workshop is a project with `lab` not false.

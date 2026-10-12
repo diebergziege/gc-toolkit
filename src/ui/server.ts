@@ -23,6 +23,7 @@ import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, run
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
+import { checkUpdates, type Program, updateProgram } from "../core/updates.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
@@ -266,6 +267,19 @@ route("POST", "/api/ai-setup/credentials", ({ body }) => {
   const keychain = body.keychain !== false;
   setCredentials(serverOf(body), { profile: str(body, "profile", false) || undefined, clientId: str(body, "clientId", false), secret: str(body, "secret", false), region: str(body, "region", false), keychain }, { gctkJs: installedGctk() });
   return scanAiSetup();
+});
+// Updates of the programs behind Cursor's servers (ava-mcp, gctk). The check asks GitHub and PyPI,
+// so the page loads it on its own; the update runs only on a click and names the program by id.
+const UPDATES_TTL_MS = 60 * 60 * 1000;
+let updatesCache: { at: number; programs: Program[] } | undefined;
+route("GET", "/api/ai-setup/updates", async ({ query }) => {
+  if (!updatesCache || query.get("refresh") === "1" || Date.now() - updatesCache.at > UPDATES_TTL_MS) updatesCache = { at: Date.now(), programs: await checkUpdates(scanAiSetup().servers) };
+  return { programs: updatesCache.programs };
+});
+route("POST", "/api/ai-setup/update", async ({ body }) => {
+  const result = await updateProgram(str(body, "id"), scanAiSetup().servers);
+  updatesCache = undefined;
+  return { result, programs: (updatesCache = { at: Date.now(), programs: await checkUpdates(scanAiSetup().servers) }).programs };
 });
 route("PUT", "/api/ai-setup/secrets/:account", ({ params, body }) => {
   const values = body.values;

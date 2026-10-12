@@ -2336,7 +2336,7 @@ async function viewAiSetup() {
       draw(s);
     } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
   };
-  refresh.addEventListener("click", () => { msg.replaceChildren(); load(); });
+  refresh.addEventListener("click", () => { msg.replaceChildren(); state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
   load();
   return h("div", {},
     h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Cursor setup"), h("span", { class: "spacer" }), refresh),
@@ -2401,7 +2401,45 @@ function aiSetupReport(s, msg, draw, projects) {
       s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),
         s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
       filesPanel(s, msg, draw)));
-  return [todoPanel(s, ctx), aiOverview(s, ctx), folderPanel(s, projects), details];
+  return [todoPanel(s, ctx), aiOverview(s, ctx), updatesPanel(msg), folderPanel(s, projects), details];
+}
+
+/** Programs behind the servers that gctk can update (ava-mcp, gctk). The check asks GitHub, so it loads on its own. */
+const PROGRAM_NAMES = { "ava-mcp": "AVA harness (ava-mcp)", gctk: "gctk" };
+function updatesPanel(msg) {
+  const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Versions"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Checking for newer versions…"));
+  const draw = (programs) => {
+    if (!programs.length) { box.remove(); return; }
+    const row = (p) => {
+      const ver = p.error ? h("span", { class: "muted", style: "font-size:13px" }, p.error)
+        : p.update ? h("span", {}, `${p.installed} → `, h("strong", {}, p.latest))
+        : p.installed ? h("span", { class: "muted" }, `${p.installed}, the newest`) : h("span", { class: "muted" }, p.latest ? `downloaded at Cursor's next start (${p.latest})` : "version unknown");
+      const btn = p.update ? h("button", { class: "btn primary" }, "Update") : null;
+      btn?.addEventListener("click", async () => {
+        const also = p.skills?.length ? `\n\nIt also refreshes the AVA skills and subagents in:\n${p.skills.join("\n")}` : "";
+        const what = p.kind === "gctk-npx" ? "gctk deletes the gctk Cursor downloaded; Cursor downloads the newest at its next start." : `${p.name} ${p.latest} is installed with uv.`;
+        if (!confirm(`Update ${PROGRAM_NAMES[p.name] || p.name} to ${p.latest}?\n\n${what}${also}`)) return;
+        btn.disabled = true; btn.textContent = "Updating…";
+        try {
+          const r = await api("/api/ai-setup/update", { method: "POST", body: { id: p.id } });
+          const x = r.result;
+          put(msg, h("div", { class: "okbox" }, `Updated ${PROGRAM_NAMES[x.program] || x.program}${x.from && x.to ? ` from ${x.from} to ${x.to}` : ""}.`,
+            x.skills.length ? ` AVA skills refreshed in ${x.skills.join(", ")}.` : "", " ", x.next,
+            x.skillErrors.length ? h("div", { class: "warn", style: "margin:6px 0 0" }, `Skills not refreshed: ${x.skillErrors.join("; ")}`) : null));
+          state.updates = Promise.resolve(r.programs);
+          draw(r.programs);
+        } catch (err) { put(msg, h("div", { class: "error" }, err.message)); btn.disabled = false; btn.textContent = "Update"; }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      return h("div", { class: "todo-row" },
+        h("strong", { style: "flex:0 0 200px" }, PROGRAM_NAMES[p.name] || p.name),
+        h("span", { class: "muted", style: "font-size:13px;flex:1;min-width:160px" }, `used by ${p.servers.join(", ")}`), ver, btn);
+    };
+    put(box, h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Versions"),
+      h("span", { class: "muted" }, "programs gctk can update for you; other servers update where they came from (plugins in Cursor)")), programs.map(row));
+  };
+  (state.updates ||= api("/api/ai-setup/updates").then((r) => r.programs)).then(draw).catch((err) => { state.updates = null; put(box, h("div", { class: "muted" }, `Could not check for updates: ${err.message}`)); });
+  return box;
 }
 
 /**

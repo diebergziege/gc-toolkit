@@ -11,6 +11,9 @@ itself.
   plugins), which gctk org each Genesys server's OAuth client belongs to, and whether it can start.
   The **Orgs** page is the one place for OAuth credentials: a server is linked to an org and takes
   client ID, secret and region from there at every start, so a rotated secret is entered once.
+  **Versions** shows when a newer AVA harness (ava-mcp) or gctk is out and updates it with one click
+  (ava-mcp with uv, together with the AVA skills in Cursor; gctk by deleting the copy npx keeps, so
+  Cursor downloads the newest at its next start).
   A plain-text secret in a config file becomes an org (or is linked to the org with the same OAuth
   client) with one click; **Use another org** switches a server to another of your orgs. Flags
   entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from
