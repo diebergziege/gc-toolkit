@@ -62,6 +62,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
   ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the Genesys tools of each folder (programs and settings, no credentials)."],
+  ["claude-app-skills", "Claude app: skill zips", "The zips of the AVA skills and the lab facilitator you upload in the Claude app, and which version of each you last zipped."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
   ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],
   ["cache", "Cache", "Website logos and staged schedule uploads; safe to delete."],

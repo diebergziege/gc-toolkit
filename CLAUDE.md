@@ -154,7 +154,11 @@
   the workshop the user picks (`useInClaudeApp` in `src/core/axl.ts`, the same `gctk axl-harness`
   entry, never a secret); saving a workshop syncs it (`syncClaudeApp`), removing the workshop removes
   it, and an ava-harness the user set up there is never overwritten. Skills for Cowork live in the
-  user's Claude account (uploaded in the app), so gctk does not list or ship them.
+  user's Claude account (uploaded in the app, one zip per skill), which gctk cannot reach: "Skills for
+  Cowork" (`src/core/claude-skills.ts`, Claude app only) zips the ava-* skills and axl-lab-facilitator
+  from ~/.cursor/skills into `claude-app-skills/` in the gctk home (tags in the frontmatter become
+  `{…}`, the upload refuses them; the source is never changed) and records a hash per skill, so the
+  page shows which skills changed since the last zips (e.g. after an ava-mcp update).
 - AXL workshops (`src/core/axl.ts`, a kind of project, MCP tool `gc_axl`, hidden CLI `gctk axl-harness`):
   the lab runs in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list of
   workshops in the UI, each with its own org and folder. Saving a workshop's org or folder (or "Set

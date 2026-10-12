@@ -2428,9 +2428,53 @@ function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, re
       filesPanel(s, msg, draw, editor)));
   if (editor === "claude-desktop") {
     if (!s.files.length) return h("div", { class: "panel empty" }, "gctk did not find the Claude app on this computer. Install it from claude.ai/download, then press Refresh.");
-    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), aiOverview(s, ctx), updatesPanel(msg, "claude-desktop"), details];
+    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), coworkSkillsPanel(msg), aiOverview(s, ctx), updatesPanel(msg, "claude-desktop", reload), details];
   }
   return [todoPanel(s, ctx), aiOverview(s, ctx), updatesPanel(msg), folderPanel(s, projects), details];
+}
+
+/**
+ * Skills for Cowork: the app keeps them in the user's account, uploaded as one zip per skill. gctk
+ * makes the zips and shows which skills changed since the last ones (an AVA harness update refreshes
+ * the skills in ~/.cursor/skills).
+ */
+function coworkSkillsPanel(msg) {
+  const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Skills for Cowork"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Reading the skills…"));
+  const STATUS = { new: ["not zipped by gctk yet", "s-pending"], changed: ["changed since your last zip", "s-failed"], same: ["same as your last zip", "s-applied"] };
+  const reveal = () => api("/api/claude-app/skills/reveal", { method: "POST", body: {} }).catch((err) => put(msg, h("div", { class: "error" }, err.message)));
+  const draw = (r) => {
+    const todo = r.skills.filter((x) => x.status !== "same");
+    const make = async (names, label) => {
+      try {
+        const next = await api("/api/claude-app/skills/export", { method: "POST", body: { names } });
+        put(msg, h("div", { class: "okbox" }, `Made ${next.exported.written.length} zip${next.exported.written.length > 1 ? "s" : ""} (${label}). Upload each one in the Claude app: Settings → Capabilities → Skills (one skill per upload; an upload with the same name replaces the old one). Then start a new Cowork session. `,
+          h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: reveal }, "Open the folder")));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        draw(next);
+      } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    };
+    const row = (x) => {
+      const [text, cls] = STATUS[x.status];
+      return h("div", { class: "todo-row" },
+        h("strong", { style: "flex:0 0 200px" }, x.name),
+        h("span", { class: "muted", style: "font-size:13px;flex:1;min-width:160px" }, `${x.files} file${x.files > 1 ? "s" : ""}${x.exportedAt ? ` · last zipped ${time(x.exportedAt)}` : ""}`,
+          x.fixes.length ? h("div", { style: "font-size:12px" }, `In the zip: ${x.fixes.join("; ")}`) : null,
+          x.problems.length ? h("div", { class: "warn", style: "margin:4px 0 0;font-size:12px" }, `The upload may refuse it: ${x.problems.join("; ")}`) : null),
+        pill(text, cls));
+    };
+    put(box,
+      h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Skills for Cowork"),
+        h("span", { class: "muted" }, todo.length ? `${todo.length} to upload` : r.skills.length ? "all uploaded as zipped last" : "")),
+      h("p", { class: "muted", style: "margin:6px 0 8px;font-size:13px" }, "The lab needs the AVA skills and the lab facilitator. Cowork keeps skills in your Claude account, so gctk cannot put them there: it makes one zip per skill, and you upload them in the Claude app. gctk remembers what it zipped, so after an AVA harness update (Versions below) you see here which skills changed."),
+      r.skills.length ? r.skills.map(row) : h("p", { class: "muted", style: "margin:0" }, `No AVA skills in ${r.source}. They come with the AVA harness; Update under Versions installs them for Cursor.`),
+      r.skills.length ? h("div", { class: "row", style: "margin-top:10px" },
+        todo.length ? h("button", { class: "btn primary", onclick: () => make(todo.map((x) => x.name), todo.every((x) => x.status === "new") ? "all skills" : "the changed ones") }, `Zip ${todo.length === r.skills.length ? "all" : `the ${todo.length} changed`} skill${todo.length > 1 ? "s" : ""}`) : null,
+        todo.length < r.skills.length ? h("button", { class: "btn", onclick: () => make(r.skills.map((x) => x.name), "all skills") }, "Zip all again") : null,
+        h("button", { class: "btn", onclick: reveal }, "Open the folder"),
+        h("span", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, r.out)) : null);
+  };
+  api("/api/claude-app/skills").then(draw).catch((err) => put(box, h("div", { class: "error" }, err.message)));
+  return box;
 }
 
 /**
@@ -2486,7 +2530,7 @@ function claudeHarnessPanel(s, axl, msg, reload) {
 /** Programs behind the servers that gctk can update (ava-mcp, gctk). The check asks GitHub, so it loads on its own. */
 const PROGRAM_NAMES = { "ava-mcp": "AVA harness (ava-mcp)", gctk: "gctk" };
 /** editor "claude-desktop": only what its servers run (the AVA harness), not gctk's npx copy for Cursor. */
-function updatesPanel(msg, editor = "cursor") {
+function updatesPanel(msg, editor = "cursor", onUpdated = null) {
   const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Versions"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Checking for newer versions…"));
   const draw = (all) => {
     const programs = editor === "cursor" ? all : all.filter((p) => p.kind !== "gctk-npx");
@@ -2498,7 +2542,7 @@ function updatesPanel(msg, editor = "cursor") {
       const btn = p.update ? h("button", { class: "btn primary" }, "Update") : null;
       btn?.addEventListener("click", async () => {
         const also = (p.skills?.length ? `\n\nIt also refreshes the AVA skills and subagents in:\n${p.skills.join("\n")}` : "")
-          + (p.name === "ava-mcp" && editor === "claude-desktop" ? "\n\nSkills you uploaded to the Claude app stay as they are; upload the new ones there again." : "");
+          + (p.name === "ava-mcp" && editor === "claude-desktop" ? "\n\nSkills you uploaded to the Claude app stay as they are: Skills for Cowork then shows which ones changed, to zip and upload again." : "");
         const what = p.kind === "gctk-npx" ? "gctk deletes the gctk Cursor downloaded; Cursor downloads the newest at its next start." : `${p.name} ${p.latest} is installed with uv.`;
         if (!confirm(`Update ${PROGRAM_NAMES[p.name] || p.name} to ${p.latest}?\n\n${what}${also}`)) return;
         btn.disabled = true; btn.textContent = "Updating…";
@@ -2510,6 +2554,7 @@ function updatesPanel(msg, editor = "cursor") {
             x.skillErrors.length ? h("div", { class: "warn", style: "margin:6px 0 0" }, `Skills not refreshed: ${x.skillErrors.join("; ")}`) : null));
           state.updates = Promise.resolve(r.programs);
           draw(r.programs);
+          onUpdated?.();
         } catch (err) { put(msg, h("div", { class: "error" }, err.message)); btn.disabled = false; btn.textContent = "Update"; }
         window.scrollTo({ top: 0, behavior: "smooth" });
       });

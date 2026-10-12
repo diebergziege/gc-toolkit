@@ -22,7 +22,9 @@ itself.
   (`claude_desktop_config.json`): org, status and the same fixes. The app has no folders of its own,
   so its one AVA harness works on the AXL workshop you pick there (org from the keychain at every
   start, no secret in the file); it follows that workshop's org and goes when the workshop is
-  removed. Skills for Cowork are uploaded in the Claude app itself (Settings → Capabilities)
+  removed. Skills for Cowork are uploaded in the Claude app itself (Settings → Capabilities): **Skills
+  for Cowork** zips the AVA skills and the lab facilitator for that, and shows which ones changed
+  since your last zips (for example after an AVA harness update)
 - **Demos**: deploy a whole demo into another org with one button. The demos ship with gctk
   (`demos/`, first: **Lumea Energie & Smart Home**), so anyone with the plugin can
   deploy them. A package is `demo.yaml` (what belongs to it,
@@ -140,6 +142,7 @@ Open button; this is the overview:
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
+| `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
 | `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
 | OS keychain, service `gctk` | org client IDs and secrets, AI setup secrets, the signing key, the UI token |

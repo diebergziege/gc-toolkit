@@ -26,6 +26,7 @@ import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { checkUpdates, type Program, updateProgram } from "../core/updates.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
+import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
@@ -235,6 +236,17 @@ route("POST", "/api/axl/workshops/:id/reveal", async ({ params, body }) => {
   const dir = sessionsDirOf(w)!;
   if (name && !listAxlSessions(dir).some((x) => x.name === name)) throw new HttpError(400, "Unknown session.");
   return { opened: await openBrowser(name ? path.join(dir, name) : w.folder!) };
+});
+// Skills for the Claude app: gctk zips them for the user to upload in the app (it cannot reach the account).
+route("GET", "/api/claude-app/skills", () => claudeAppSkills());
+route("POST", "/api/claude-app/skills/export", ({ body }) => {
+  const names = Array.isArray(body.names) ? body.names.filter((x): x is string => typeof x === "string") : [];
+  return { ...claudeAppSkills(), exported: exportClaudeAppSkills(names) };
+});
+route("POST", "/api/claude-app/skills/reveal", async () => {
+  const dir = claudeAppSkills().out;
+  if (!fs.existsSync(dir)) throw new HttpError(400, "No zips yet.");
+  return { opened: await openBrowser(dir) };
 });
 // AI setup: the editors' MCP config files and skills. Secrets reach the browser only masked; the
 // fixes below change the user's config files and exist only here, behind the user's click.
