@@ -54,7 +54,7 @@ function size(p: string): { bytes: number; items?: number } {
 
 const HOME_PLACES: Array<[string, string, string]> = [
   ["profiles", "Orgs", "One file per org: name, region and tier. No secrets; those are in the keychain."],
-  ["config.yaml", "The org you work on", "Which org the AI and the pages use by default."],
+  ["config.yaml", "The org you work on, the UI's port", "Which org the AI and the pages use by default, and the port the UI keeps so you can bookmark it."],
   ["mcp-launch.json", "Cursor setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
   ["ai-setup.json", "Cursor setup: added locations", "Config files and folders you added on the Cursor setup page."],
   ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (Cursor setup, Details) can put them back."],

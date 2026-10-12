@@ -89,6 +89,8 @@ export function removeProfile(name: string): void {
 
 interface ToolkitConfig {
   activeProfile?: string;
+  /** The UI's port, kept across starts so its address can be bookmarked. */
+  uiPort?: number;
 }
 
 function readConfig(): ToolkitConfig {
@@ -109,6 +111,22 @@ export function setActiveProfileName(name: string | undefined): void {
   } else {
     delete cfg.activeProfile;
   }
+  writeConfig(cfg);
+}
+
+export const validPort = (p: unknown): p is number => Number.isInteger(p) && (p as number) >= 1024 && (p as number) <= 65535;
+
+/** The port the UI keeps (undefined: not chosen yet). */
+export function getUiPort(): number | undefined {
+  const p = readConfig().uiPort;
+  return validPort(p) ? p : undefined;
+}
+
+export function setUiPort(port: number): void {
+  if (!validPort(port)) throw new GctkError("INVALID_INPUT", "Choose a port between 1024 and 65535.");
+  const cfg = readConfig();
+  if (cfg.uiPort === port) return;
+  cfg.uiPort = port;
   writeConfig(cfg);
 }
 

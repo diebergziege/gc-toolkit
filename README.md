@@ -126,7 +126,10 @@ with the new version by itself.
    plain-text secrets into the keychain.
 4. **Prepare the demo:** Website for the customer's side, Demo ready for the agent's home screen.
 
-The UI runs in the background, shared by every AI session on this computer, and keeps running after
+The UI runs in the background at `http://gctk.localhost:4285/`, shared by every AI session on this
+computer. It keeps that address (when another program has the port, the next free one, which it then
+keeps; **Your data** or `gctk ui --port <n>` change it), so you can bookmark it: the browser that once
+opened the UI may open it again. It keeps running after
 a session ends (it stops by itself after 12 idle hours, with **Stop UI** in the top bar, or
 `gctk ui --stop`).
 
@@ -138,7 +141,7 @@ Open button; this is the overview:
 | Where | What |
 |---|---|
 | `~/.config/gctk/profiles/` | your orgs (name, region, tier; no secrets) |
-| `~/.config/gctk/config.yaml` | the org you work on by default |
+| `~/.config/gctk/config.yaml` | the org you work on by default, the UI's port |
 | `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | Cursor setup: servers started through gctk, added locations, skills an earlier gctk removed |
 | `~/.config/gctk/demos/` | Demos: this computer's copy of each org's deployment (the org keeps the original in its data table "gctk demos"), logs |
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
@@ -177,7 +180,7 @@ Open button; this is the overview:
 
 | Command | Purpose |
 |---|---|
-| `gctk ui [page] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup`, `claude-app`, `demos`, `site`, `demo`, `axl`, `monitoring` |
+| `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup`, `claude-app`, `demos`, `site`, `demo`, `axl`, `monitoring` |
 | `gctk profile add/list/show/use/remove` | manage orgs from a terminal |
 | `gctk login [profile]` / `logout` | store or delete an org's credentials in the keychain (`--from-env` for CI) |
 | `gctk mcp` | run the MCP server (stdio) |

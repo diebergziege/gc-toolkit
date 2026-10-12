@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { readSecret, writeSecret } from "../core/credentials.js";
 import { gctkHome } from "../core/paths.js";
+import { getUiPort, setUiPort } from "../core/profiles.js";
 import { DEFAULT_UI_PORT, startUi, uiUrl } from "./server.js";
 
 declare const __GCTK_VERSION__: string;
@@ -16,6 +17,10 @@ const UI_BUILD = `${VERSION}+${BUILD_ID}`;
  * One shared UI per user: a detached background process that outlives agent sessions.
  * ui.json (no secrets) says where it runs; the session token lives in the OS keychain,
  * so the agent cannot read it with file or search tools.
+ *
+ * Its address stays the same, so users can bookmark it: the port is kept in config.yaml (4285 at
+ * first; when another program has it, the next free one, which is then kept), and the token is
+ * reused from the keychain at every start, so the browser that once opened the UI still has it.
  */
 export interface UiInfo {
   pid: number;
@@ -93,12 +98,27 @@ export function stopRunningUi(): boolean {
 /** Runs the shared UI in this process until stopped or idle for 12 hours. */
 export async function runUiDaemon(opts: { port?: number } = {}): Promise<void> {
   process.env.GCTK_UI_DAEMON = "1";
-  const token = crypto.randomBytes(24).toString("base64url");
+  const token = readToken() || crypto.randomBytes(24).toString("base64url");
   let last = Date.now();
-  const ui = await startUi({ port: opts.port, preferPort: DEFAULT_UI_PORT, token, onActivity: () => (last = Date.now()), onShutdown: () => stop() });
+  const startedAt = new Date().toISOString();
+  const writeInfo = (port: number) => {
+    fs.mkdirSync(gctkHome(), { recursive: true });
+    fs.writeFileSync(infoFile(), JSON.stringify({ pid: process.pid, port, version: UI_BUILD, startedAt } satisfies UiInfo), { mode: 0o600 });
+  };
+  const ui = await startUi({
+    preferPort: opts.port ?? getUiPort() ?? DEFAULT_UI_PORT,
+    token,
+    onActivity: () => (last = Date.now()),
+    onShutdown: () => stop(),
+    onPortChange: (port) => {
+      setUiPort(port);
+      writeInfo(port);
+    },
+  });
   saveToken(token);
-  fs.mkdirSync(gctkHome(), { recursive: true });
-  fs.writeFileSync(infoFile(), JSON.stringify({ pid: process.pid, port: ui.port, version: UI_BUILD, startedAt: new Date().toISOString() } satisfies UiInfo), { mode: 0o600 });
+  // The port it got is the one it keeps (also when the wanted one was taken).
+  setUiPort(ui.port);
+  writeInfo(ui.port);
   const timer = setInterval(() => {
     if (Date.now() - last > IDLE_MS) stop();
   }, 60_000);
@@ -122,7 +142,8 @@ export async function runUiDaemon(opts: { port?: number } = {}): Promise<void> {
  */
 export async function ensureSharedUi(): Promise<string> {
   const running = await findRunningUi();
-  if (running && running.info.version === UI_BUILD) return running.url;
+  // Same build on the kept port: reuse it. On another port (gctk ui --port): start it again there.
+  if (running && running.info.version === UI_BUILD && running.info.port === (getUiPort() ?? running.info.port)) return running.url;
   if (running) stopRunningUi();
   const script = process.argv[1]!;
   const child = spawn(process.execPath, [...process.execArgv, script, "ui", "--daemon"], { detached: true, stdio: "ignore" });

@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { saveProfile } from "../src/core/profiles.js";
-import { startUi, type UiServer } from "../src/ui/server.js";
+import { portFree, startUi, type UiServer, uiUrl } from "../src/ui/server.js";
 
 describe("UI server", () => {
   let ui: UiServer;
@@ -38,6 +38,33 @@ describe("UI server", () => {
     try {
       expect(second.port).not.toBe(ui.port);
       expect(second.url).toMatch(/^http:\/\/gctk\.localhost:\d+\/#token=t2$/);
+    } finally {
+      await second.close();
+    }
+  });
+
+  it("takes the next free port near the kept one, and moves to another port on request", async () => {
+    const moved: number[] = [];
+    const second = await startUi({ preferPort: ui.port, token: "t2", onPortChange: (p) => moved.push(p) });
+    const post = (port: number, body: unknown) =>
+      fetch(`http://127.0.0.1:${port}/api/ui/port`, { method: "POST", headers: { "x-gctk-token": "t2", "content-type": "application/json" }, body: JSON.stringify(body) });
+    try {
+      expect(second.port).toBeGreaterThan(ui.port);
+      expect(second.port).toBeLessThan(ui.port + 20);
+      let target = second.port + 100;
+      while (!(await portFree(target))) target++;
+      const before = second.port;
+      // A taken port changes nothing.
+      const taken = await post(before, { port: ui.port });
+      expect(taken.status).toBe(400);
+      expect((await taken.json()).error).toMatch(/in use/);
+      const r = await post(before, { port: target });
+      expect(await r.json()).toEqual({ url: uiUrl(target, "t2"), port: target });
+      expect(moved).toEqual([target]);
+      expect(second.port).toBe(target);
+      expect((await fetch(`http://127.0.0.1:${target}/api/overview`, { headers: { "x-gctk-token": "t2" } })).status).toBe(200);
+      await new Promise((res) => setTimeout(res, 700));
+      expect(await portFree(before)).toBe(true); // the old address closed
     } finally {
       await second.close();
     }

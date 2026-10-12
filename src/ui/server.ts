@@ -10,6 +10,7 @@ import { GenesysClient } from "../core/client.js";
 import {
   assertProfileName,
   getActiveProfileName,
+  getUiPort,
   listProfiles,
   loadProfile,
   removeProfile,
@@ -18,6 +19,7 @@ import {
   TIERS,
   type Profile,
   type Tier,
+  validPort,
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
@@ -45,6 +47,15 @@ export interface UiServer {
   port: number;
   token: string;
   close(): Promise<void>;
+}
+
+/** A port the UI may take: free on 127.0.0.1 now (the check closes again right away). */
+export function portFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = http.createServer();
+    probe.once("error", () => resolve(false));
+    probe.listen(port, "127.0.0.1", () => probe.close(() => resolve(true)));
+  });
 }
 
 type Json = Record<string, unknown>;
@@ -496,6 +507,19 @@ async function readBody(req: http.IncomingMessage, max = MAX_BODY): Promise<Json
 }
 
 let shutdownHook: (() => void) | undefined;
+let portMover: ((port: number) => Promise<string>) | undefined;
+// The UI's address: it keeps its port so it can be bookmarked; another free port moves it there now.
+route("GET", "/api/ui/port", async ({ query }) => {
+  const want = Number(query.get("check"));
+  return { port: currentPort, saved: getUiPort() ?? null, default: DEFAULT_UI_PORT, movable: Boolean(portMover), ...(query.has("check") ? { free: validPort(want) && (want === currentPort || (await portFree(want))) } : {}) };
+});
+route("POST", "/api/ui/port", async ({ body }) => {
+  const port = Number(body.port);
+  if (!validPort(port)) throw new HttpError(400, "Choose a port between 1024 and 65535.");
+  if (!portMover) throw new HttpError(400, "This UI cannot change its port.");
+  if (port === currentPort) return { url: null, port };
+  return { url: await portMover(port), port };
+});
 route("POST", "/api/shutdown", () => {
   if (!shutdownHook) throw new HttpError(400, "This UI runs in a terminal; stop it there with Ctrl+C.");
   setTimeout(shutdownHook, 200);
@@ -510,15 +534,25 @@ export const UI_HOST = "gctk.localhost";
 export const DEFAULT_UI_PORT = 4285;
 export const uiUrl = (port: number, token: string) => `http://${UI_HOST}:${port}/#token=${token}`;
 
+let currentPort = 0;
+
 export async function startUi(
-  opts: { port?: number; preferPort?: number; token?: string; onActivity?: () => void; onShutdown?: () => void } = {},
+  opts: {
+    port?: number;
+    preferPort?: number;
+    token?: string;
+    onActivity?: () => void;
+    onShutdown?: () => void;
+    /** The user moved the UI to another port (page "Your data"); undefined: it cannot move (tests). */
+    onPortChange?: (port: number) => void;
+  } = {},
 ): Promise<UiServer> {
   shutdownHook = opts.onShutdown;
   const token = opts.token ?? crypto.randomBytes(24).toString("base64url");
   let port = 0;
   const allowedHosts = () => [`${UI_HOST}:${port}`, `127.0.0.1:${port}`, `localhost:${port}`];
 
-  const server = http.createServer(async (req, res) => {
+  const handler = async (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
       // The demo website has its own origin: it serves only the page and its logos, never the API,
       // so the Messenger script it loads never shares an origin with the UI's session token.
@@ -573,30 +607,58 @@ export async function startUi(
       if (err instanceof GctkError) return send(res, 400, { error: err.format(), code: err.code });
       return send(res, 500, { error: formatError(err) });
     }
-  });
+  };
 
-  const listen = (p: number) =>
+  let server = http.createServer(handler);
+  const listen = (srv: http.Server, p: number) =>
     new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(p, "127.0.0.1", () => {
-        server.off("error", reject);
+      srv.once("error", reject);
+      srv.listen(p, "127.0.0.1", () => {
+        srv.off("error", reject);
         resolve();
       });
     });
-  if (opts.port !== undefined) await listen(opts.port);
+  const busy = (err: NodeJS.ErrnoException) => {
+    if (err.code !== "EADDRINUSE") throw err;
+  };
+  if (opts.port !== undefined) await listen(server, opts.port);
   else if (opts.preferPort !== undefined) {
-    // The readable default port, or any free one when it is taken (e.g. a second UI).
-    await listen(opts.preferPort).catch((err: NodeJS.ErrnoException) => {
-      if (err.code !== "EADDRINUSE") throw err;
-      return listen(0);
-    });
-  } else await listen(0);
+    // The kept port; when something else has it, the next free one nearby (still easy to read), else any.
+    let ok = false;
+    for (let p = opts.preferPort; p < opts.preferPort + 20 && p <= 65535 && !ok; p++) ok = await listen(server, p).then(() => true, (err) => (busy(err), false));
+    if (!ok) await listen(server, 0);
+  } else await listen(server, 0);
   port = (server.address() as AddressInfo).port;
+  currentPort = port;
+  portMover = opts.onPortChange
+    ? async (next) => {
+        // The new server listens first, so a taken port changes nothing; the old one closes after this answer.
+        const moved = http.createServer(handler);
+        await listen(moved, next).catch((err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE") throw new HttpError(400, `Port ${next} is in use by another program. Choose another one.`);
+          throw err;
+        });
+        const old = server;
+        server = moved;
+        port = next;
+        currentPort = next;
+        opts.onPortChange?.(next);
+        setTimeout(() => {
+          old.close();
+          old.closeIdleConnections();
+        }, 500).unref();
+        return uiUrl(next, token);
+      }
+    : undefined;
   return {
-    port,
+    get port() {
+      return port;
+    },
     token,
     // The token travels in the fragment, so it never reaches server logs or referrers.
-    url: uiUrl(port, token),
+    get url() {
+      return uiUrl(port, token);
+    },
     close: () =>
       new Promise((resolve) => {
         void stopAllLocal();

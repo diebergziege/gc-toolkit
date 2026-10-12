@@ -12,6 +12,10 @@
   region and tier; profile files hold no secrets. Never log or return tokens or credentials.
 - The UI (`src/ui/`) builds DOM from text nodes only. It listens on 127.0.0.1, needs the session
   token (URL fragment, keychain), refuses foreign Host headers, cross-origin and non-JSON writes.
+  Its address is bookmarkable: the background UI keeps its port (`uiPort` in config.yaml, 4285 first;
+  when taken, the next free one nearby, then kept; `gctk ui --port` or "Your data" change it, the page
+  moves to the new port in-process) and reuses its token from the keychain; the page keeps the token
+  per origin in localStorage and drops it on a 401.
 - After source changes: `npm run check`, then commit `dist/gctk.js` with the change.
 - `dist/gctk.js` bundles everything, so package.json has no runtime `dependencies` (all are
   devDependencies): `npx` then starts gctk in a second or two. Cursor without the plugin starts it as

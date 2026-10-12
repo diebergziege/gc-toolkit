@@ -11,12 +11,14 @@ import { paths } from "../core/paths.js";
 import {
   assertProfileName,
   getActiveProfileName,
+  getUiPort,
   listProfiles,
   loadProfile,
   removeProfile,
   resolveProfileName,
   saveProfile,
   setActiveProfileName,
+  setUiPort,
   TIERS,
   type Tier,
 } from "../core/profiles.js";
@@ -155,7 +157,7 @@ program
 program
   .command("ui [page]")
   .description(`open the local web UI (runs in the background, shared by all sessions); page: ${UI_PAGES.join(", ")}`)
-  .option("--port <n>", "port for --foreground (default: random free port)")
+  .option("--port <n>", "the port the UI keeps from now on (default 4285, or the one chosen before)")
   .option("--no-open", "do not open the browser")
   .option("--foreground", "run in this terminal instead of the background (stop with Ctrl+C)")
   .option("--stop", "stop the background UI")
@@ -165,8 +167,9 @@ program
     if (page && !(UI_PAGES as readonly string[]).includes(page)) throw new GctkError("INVALID_INPUT", `Unknown page "${page}". Pages: ${UI_PAGES.join(", ")}.`);
     const target = (url: string) => (page ? `${url}&view=${page}` : url);
     if (o.stop) return console.log(stopRunningUi() ? "Stopped the gctk UI." : "No gctk UI was running.");
+    if (o.port !== undefined && !o.foreground) setUiPort(Number(o.port));
     if (o.foreground) {
-      const ui = await startUi({ port: o.port ? Number(o.port) : undefined, preferPort: DEFAULT_UI_PORT });
+      const ui = await startUi({ port: o.port ? Number(o.port) : undefined, preferPort: getUiPort() ?? DEFAULT_UI_PORT });
       console.log(`gctk UI running at ${ui.url}`);
       console.log("This link contains a session token; do not share it. Stop with Ctrl+C.");
       if (o.open) await openBrowser(target(ui.url));

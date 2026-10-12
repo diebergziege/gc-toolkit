@@ -215,7 +215,8 @@ function renderThemeToggle() {
   // Without an explicit choice, follow system changes live.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!document.documentElement.dataset.theme) renderThemeToggle(); });
 })();
-// Token arrives in the URL fragment; keep it for this tab only and remove it from the address bar.
+// Token arrives in the URL fragment and leaves the address bar right away. This browser keeps it for
+// this address (the UI keeps its port and token), so a bookmark of the plain address opens the UI.
 const TOKEN = (() => {
   const m = location.hash.match(/token=([\w-]+)/);
   if (m) {
@@ -223,14 +224,16 @@ const TOKEN = (() => {
     const demo = location.hash.match(/[#&]demo=([\w-]+)/);
     try {
       sessionStorage.setItem("gctk-token", m[1]);
+      localStorage.setItem("gctk-token", m[1]);
       if (view) sessionStorage.setItem("gctk-view", view[1]);
       if (demo) sessionStorage.setItem("gctk-open-demo", demo[1]);
     } catch {}
     history.replaceState(null, "", "/");
     return m[1];
   }
-  try { return sessionStorage.getItem("gctk-token") || ""; } catch { return ""; }
+  try { return sessionStorage.getItem("gctk-token") || localStorage.getItem("gctk-token") || ""; } catch { return ""; }
 })();
+const STALE_LINK = "This browser's link to gctk is out of date. Ask the AI to open the gctk UI, or run `gctk ui` in a terminal: this address then works again.";
 
 async function api(path, opts = {}) {
   const method = opts.method || "GET";
@@ -242,6 +245,10 @@ async function api(path, opts = {}) {
     body,
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    try { localStorage.removeItem("gctk-token"); sessionStorage.removeItem("gctk-token"); } catch {}
+    throw new Error(STALE_LINK);
+  }
   if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.code });
   return data;
 }
@@ -2313,6 +2320,36 @@ function demoDetail(d, data, pick, keep, msg) {
 // it wrote elsewhere. Nothing here leaves the computer.
 const fmtBytes = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 
+/** The UI's address: it stays the same, so it can be bookmarked; another port moves this tab there. */
+function addressPanel() {
+  const box = h("div", { class: "panel" }, h("strong", {}, "Address of gctk"));
+  api("/api/ui/port").then((p) => {
+    const address = `http://${location.hostname}:${p.port}/`;
+    const input = h("input", { type: "number", min: "1024", max: "65535", value: String(p.port), style: "width:110px", "aria-label": "Port" });
+    const note = h("span", { class: "muted", style: "font-size:13px" });
+    const save = h("button", { class: "btn" }, "Change port");
+    save.addEventListener("click", async () => {
+      const port = Number(input.value);
+      if (port === p.port) return;
+      save.disabled = true;
+      try {
+        const check = await api(`/api/ui/port?check=${port}`);
+        if (!check.free) { put(note, h("span", { style: "color:var(--bad)" }, `Port ${port} is in use by another program. Choose another one.`)); return; }
+        if (!confirm(`Move gctk to port ${port}?\n\nIts address becomes http://${location.hostname}:${port}/ from now on, also after a restart. Update your bookmark.`)) return;
+        const r = await api("/api/ui/port", { method: "POST", body: { port } });
+        // The token moves along in the fragment; the new address keeps it in this browser again.
+        if (r.url) location.href = `${r.url}&view=data`;
+      } catch (err) { put(note, h("span", { style: "color:var(--bad)" }, err.message)); } finally { save.disabled = false; }
+    });
+    put(box,
+      h("div", { class: "row" }, h("strong", {}, "Address of gctk"), h("span", { class: "mono" }, address), copyButton(address)),
+      h("p", { class: "muted", style: "font-size:13px;margin:6px 0 8px" }, "Bookmark it: gctk keeps this address, also after a restart, and this browser remembers it may open it. It answers while the gctk UI runs; the AI or `gctk ui` starts it."),
+      p.movable ? h("div", { class: "row" }, h("span", { class: "muted", style: "font-size:13px" }, "Port"), input, save, note)
+        : h("p", { class: "muted", style: "font-size:13px;margin:0" }, "This UI runs in a terminal; start it with `gctk ui --port <n>` to change the port."));
+  }).catch((err) => put(box, h("div", { class: "error" }, err.message)));
+  return box;
+}
+
 async function viewData() {
   const d = await api("/api/data");
   const tilde = (p) => (d.userHome && p.startsWith(d.userHome + "/") ? `~${p.slice(d.userHome.length)}` : p);
@@ -2330,6 +2367,7 @@ async function viewData() {
     h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Your data"),
     h("p", { class: "lead" }, "Everything gctk keeps stays on this computer: settings and records in one folder, secrets in the keychain. The AI never sees the secrets."),
     msg,
+    addressPanel(),
     h("div", { class: "panel" },
       h("div", { class: "row" }, h("strong", {}, "gctk's folder"), h("span", { class: "mono", title: d.home }, tilde(d.home)), h("span", { class: "muted" }, fmtBytes(total)), h("span", { class: "spacer" }),
         h("button", { class: "btn primary", onclick: () => open("home") }, "Open in Finder")),
@@ -2872,7 +2910,7 @@ function filesPanel(s, msg, draw, editor = "cursor") {
 
 // ---------------------------------------------------------------- start
 (async () => {
-  if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "No session token. Ask the AI to open the gctk UI again, or run `gctk ui`.")); return; }
+  if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "This browser has not opened gctk yet. Ask the AI to open the gctk UI, or run `gctk ui` in a terminal; after that this address works as a bookmark.")); return; }
   try {
     await refreshOverview();
     // A page this tab remembers that no longer exists opens Orgs.
