@@ -23,7 +23,7 @@ import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, run
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
-import { checkUpdates, type Program, updateProgram } from "../core/updates.js";
+import { checkGctk, checkUpdates, type GctkVersion, type Program, updateGctk, updateProgram } from "../core/updates.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
@@ -116,6 +116,21 @@ route("GET", "/api/overview", () => ({
   persistent: Boolean(process.env.GCTK_UI_DAEMON),
   tiers: TIERS,
 }));
+
+// Is a newer gctk out? The top bar asks once an hour (GitHub); an update by click only for npx.
+const GCTK_TTL_MS = 60 * 60 * 1000;
+let gctkCache: { at: number; value: Promise<GctkVersion> } | undefined;
+const gctkVersion = (refresh = false) => {
+  if (refresh || !gctkCache || Date.now() - gctkCache.at > GCTK_TTL_MS) gctkCache = { at: Date.now(), value: checkGctk(VERSION) };
+  return gctkCache.value;
+};
+route("GET", "/api/gctk-version", ({ query }) => gctkVersion(query.get("refresh") === "1"));
+route("POST", "/api/gctk-version/update", async () => {
+  const v = await gctkVersion();
+  const r = updateGctk(v.install);
+  gctkCache = undefined;
+  return r;
+});
 
 // Demo ready: fills one agent's home screen with demo data. A run writes to the org as soon as the
 // user pressed the button and records what it did, so Clean up can undo it.

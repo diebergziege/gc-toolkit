@@ -46,6 +46,12 @@ nav .sep { flex: 1; min-width: 12px; }
 nav .minor button { font-size: 13px; padding: 6px 9px; }
 .count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; text-align: center; }
 .who { margin-left: auto; color: var(--muted); font-size: 12px; }
+.update-btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 4px 12px; margin-right: 8px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.update-btn:hover { filter: brightness(1.08); }
+.update-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+dialog.gctk-update { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); max-width: min(520px, calc(100vw - 32px)); padding: 20px; }
+dialog.gctk-update::backdrop { background: rgba(0, 0, 0, 0.35); }
+dialog.gctk-update ol { padding-left: 20px; margin: 8px 0; } dialog.gctk-update li { margin: 4px 0; }
 main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
 h2 { font-size: 18px; margin: 8px 0 12px; }
 h3 { font-size: 15px; margin: 18px 0 8px; }
@@ -282,7 +288,10 @@ function renderNav() {
   const btn = ([id, label, title]) => h("button", { "aria-current": state.view === id ? "page" : null, title, onclick: () => go(id) }, label);
   nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));
   const o = state.overview;
-  document.getElementById("who").replaceChildren(o ? `${o.user} · gctk ${o.version}` : "",
+  const v = state.gctkVersion;
+  document.getElementById("who").replaceChildren(
+    v?.update ? h("button", { class: "update-btn", title: `You have gctk ${v.running}; ${v.latest} is out.`, onclick: () => gctkUpdateDialog(v) }, `Update gctk to ${v.latest}`) : "",
+    o ? `${o.user} · gctk ${o.version}` : "",
     o?.persistent ? h("button", { class: "btn", style: "padding:2px 8px;font-size:12px;margin-left:8px", title: "Stops the background UI; the AI or `gctk ui` starts it again", onclick: stopUi }, "Stop UI") : "");
   renderOrg();
 }
@@ -312,7 +321,44 @@ function renderOrg() {
   box.replaceChildren(...[h("span", {}, "Working on"), sel, active ? pill(active.tier, `t-${active.tier}`) : null].filter(Boolean));
 }
 
+/** How to get the newer gctk depends on how this one was installed; npx is the one gctk updates itself. */
+function gctkUpdateDialog(v) {
+  const reopen = "Then ask the AI to open the gctk UI: the new version replaces this one.";
+  const steps = {
+    npx: null,
+    "claude-plugin": ["In Claude Code, type /plugin and update the genesys-cloud-toolkit marketplace (or its plugin).", "Restart Claude Code.", reopen],
+    "cursor-plugin": ["Quit Cursor and open it again; it updates its plugins at the start. If it still runs the old version, update the gctk plugin in Cursor's settings (Plugins).", reopen],
+  }[v.install] || ["Update gctk where you installed it (the plugin in Cursor or Claude Code), then restart that editor.", reopen];
+  const out = h("div");
+  const close = h("button", { class: "btn" }, "Close");
+  const run = h("button", { class: "btn primary" }, "Update gctk");
+  run.addEventListener("click", async () => {
+    run.disabled = true; run.textContent = "Updating…";
+    try {
+      const r = await api("/api/gctk-version/update", { method: "POST", body: {} });
+      run.remove();
+      put(out, h("div", { class: "okbox" }, `Done. ${r.next}`));
+      state.gctkVersion = null;
+    } catch (err) { put(out, h("div", { class: "error" }, err.message)); run.disabled = false; run.textContent = "Update gctk"; }
+  });
+  const dlg = h("dialog", { class: "gctk-update", "aria-labelledby": "gctk-update-title" },
+    h("h3", { id: "gctk-update-title", style: "margin-top:0" }, `gctk ${v.latest} is out`),
+    h("p", { class: "muted", style: "margin:0 0 8px" }, `You have ${v.running}. Updating keeps your orgs, projects and settings.`),
+    steps ? h("ol", {}, steps.map((x) => h("li", {}, x))) : h("p", {}, "gctk deletes the copy Cursor downloaded; Cursor downloads the newest at its next start."),
+    out,
+    h("div", { class: "row", style: "margin-top:12px;justify-content:flex-end" }, steps ? null : run, close));
+  close.addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => { dlg.remove(); renderNav(); });
+  document.body.append(dlg);
+  dlg.showModal();
+}
+
 async function refreshOverview() {
+  if (state.gctkVersion === undefined) {
+    // Asked once per page load (the server asks GitHub at most once an hour).
+    state.gctkVersion = null;
+    api("/api/gctk-version").then((v) => { state.gctkVersion = v; renderNav(); }).catch(() => {});
+  }
   state.overview = await api("/api/overview");
   if (!state.profile) state.profile = state.overview.activeProfile || state.overview.profiles[0]?.name || null;
   renderNav();

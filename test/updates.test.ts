@@ -3,7 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { GCTK_PACKAGE, type ServerInfo } from "../src/core/ai-setup.js";
-import { checkUpdates, GCTK_LATEST, type UpdateOptions, updateProgram } from "../src/core/updates.js";
+import { checkGctk, checkUpdates, GCTK_LATEST, gctkInstall, type UpdateOptions, updateGctk, updateProgram } from "../src/core/updates.js";
+import { stableGctkJs } from "../src/core/stable-gctk.js";
 
 let tmp: string;
 let home: string;
@@ -152,6 +153,36 @@ describe("gctk started by npx", () => {
     expect(fs.existsSync(old)).toBe(false);
     expect(fs.existsSync(other)).toBe(true);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("gctk itself (top bar)", () => {
+  it("tells how the running gctk was installed", () => {
+    expect(gctkInstall(path.join(home, ".npm", "_npx", "a9b117469d3013c1", "node_modules", "genesys-cloud-toolkit", "dist", "gctk.js"), home)).toBe("npx");
+    expect(gctkInstall(path.join(home, ".claude", "plugins", "cache", "genesys-cloud-toolkit", "genesys-cloud-toolkit", "0.32.0", "dist", "gctk.js"), home)).toBe("claude-plugin");
+    expect(gctkInstall(path.join(home, ".cursor", "plugins", "cache", "market", "gctk", "abc", "dist", "gctk.js"), home)).toBe("cursor-plugin");
+    expect(gctkInstall(stableGctkJs(), home)).toBe("editor-copy");
+    expect(gctkInstall(undefined, home)).toBe("dev");
+    expect(gctkInstall("/opt/x/dist/gctk.js", home)).toBe("other");
+  });
+
+  it("says when GitHub has a newer gctk, never for a development run, and reports a failed check", async () => {
+    const js = path.join(home, ".claude", "plugins", "cache", "x", "dist", "gctk.js");
+    opts.fetch = fakeFetch({ [GCTK_LATEST]: { version: "0.33.0" } });
+    expect(await checkGctk("0.32.0", { ...opts, js })).toEqual({ running: "0.32.0", latest: "0.33.0", update: true, install: "claude-plugin" });
+    expect(await checkGctk("0.33.0", { ...opts, js })).toMatchObject({ update: false });
+    expect(await checkGctk("dev", { ...opts, js: undefined })).toEqual({ running: "dev", update: false, install: "dev" });
+    opts.fetch = fakeFetch({});
+    expect(await checkGctk("0.32.0", { ...opts, js })).toMatchObject({ update: false, error: expect.stringMatching(/404/) });
+  });
+
+  it("updates only gctk from npx by itself; plugins update in their editor", () => {
+    const dir = path.join(home, ".npm", "_npx", "a9b117469d3013c1");
+    write(path.join(dir, "package.json"), JSON.stringify({ dependencies: { "genesys-cloud-toolkit": GCTK_PACKAGE } }));
+    write(path.join(dir, "node_modules", "genesys-cloud-toolkit", "package.json"), JSON.stringify({ version: "0.32.0" }));
+    expect(() => updateGctk("claude-plugin", opts)).toThrow(/in the editor/);
+    expect(updateGctk("npx", opts)).toMatchObject({ from: "0.32.0", next: expect.stringMatching(/Quit Cursor/) });
+    expect(fs.existsSync(dir)).toBe(false);
   });
 });
 

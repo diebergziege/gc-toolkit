@@ -14,6 +14,8 @@ itself.
   **Versions** shows when a newer AVA harness (ava-mcp) or gctk is out and updates it with one click
   (ava-mcp with uv, together with the AVA skills in Cursor; gctk by deleting the copy npx keeps, so
   Cursor downloads the newest at its next start).
+  When a newer gctk is out, the top bar says so on every page (**Update gctk to …**) and explains how
+  to get it for the way you installed it (a click for Cursor without the plugin).
   A plain-text secret in a config file becomes an org (or is linked to the org with the same OAuth
   client) with one click; **Use another org** switches a server to another of your orgs. Flags
   entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from

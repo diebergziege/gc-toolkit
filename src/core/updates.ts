@@ -5,7 +5,7 @@ import path from "node:path";
 import { GCTK_PACKAGE, type ServerInfo } from "./ai-setup.js";
 import { harnessCommandOf, loadAxlSettings } from "./axl.js";
 import { GctkError } from "./errors.js";
-import { olderVersion } from "./stable-gctk.js";
+import { olderVersion, runningGctkJs, stableGctkJs } from "./stable-gctk.js";
 
 /**
  * Updates of the programs behind the MCP servers of Cursor and the Claude app (UI pages "Cursor setup"
@@ -301,6 +301,58 @@ export async function checkUpdates(servers: ServerInfo[], o: UpdateOptions = {})
   );
 }
 
+const NPX_NEXT = "Quit Cursor and open it again: it then downloads the newest gctk, and the next time the AI opens this UI it runs the new version.";
+
+/** Deletes the gctk downloads npx keeps (it never downloads a cached tarball again); returns the version they had. */
+function dropGctkNpx(o: UpdateOptions): string | undefined {
+  const folders = gctkNpxFolders(o);
+  const from = (folders.find((f) => f.current && f.version) ?? folders.find((f) => f.version))?.version;
+  for (const f of folders) fs.rmSync(f.dir, { recursive: true, force: true });
+  return from;
+}
+
+// ------------------------------------------------------- gctk itself (top bar)
+
+/** How the gctk that runs this UI was installed, which decides how it is updated. */
+export type GctkInstall = "npx" | "claude-plugin" | "cursor-plugin" | "editor-copy" | "dev" | "other";
+
+export interface GctkVersion {
+  running: string;
+  latest?: string;
+  update: boolean;
+  install: GctkInstall;
+  error?: string;
+}
+
+export function gctkInstall(js: string | undefined = runningGctkJs(), home = os.homedir()): GctkInstall {
+  if (!js) return "dev";
+  const p = path.resolve(js);
+  const under = (...parts: string[]) => p.startsWith(`${path.join(home, ...parts)}${path.sep}`);
+  if (p.split(path.sep).includes("_npx")) return "npx";
+  if (under(".claude", "plugins")) return "claude-plugin";
+  if (under(".cursor", "plugins")) return "cursor-plugin";
+  if (p === path.resolve(stableGctkJs())) return "editor-copy";
+  return "other";
+}
+
+/** Is a newer gctk on GitHub than the one running this UI? A development run never asks. */
+export async function checkGctk(running: string, o: UpdateOptions & { js?: string } = {}): Promise<GctkVersion> {
+  const install = gctkInstall("js" in o ? o.js : runningGctkJs(), homeOf(o));
+  if (install === "dev" || !/^\d+\.\d+\.\d+/.test(running)) return { running, update: false, install };
+  try {
+    const latest = ((await getJson(GCTK_LATEST, o)) as { version?: string }).version;
+    return { running, latest, update: Boolean(latest && olderVersion(running, latest)), install };
+  } catch (err) {
+    return { running, update: false, install, error: (err as Error).message };
+  }
+}
+
+/** The update a click can do: gctk from npx (Cursor without the plugin). Plugins update in their editor. */
+export function updateGctk(install: GctkInstall, o: UpdateOptions = {}): { from?: string; next: string } {
+  if (install !== "npx") throw new GctkError("INVALID_INPUT", "This gctk is updated in the editor it came with; the page says how.");
+  return { from: dropGctkNpx(o), next: NPX_NEXT };
+}
+
 function runProgram(command: string, args: string[]): Promise<{ code: number; output: string }> {
   return new Promise((resolve) => {
     let output = "";
@@ -342,12 +394,7 @@ export async function updateProgram(id: string, servers: ServerInfo[], o: Update
   const l = locate(servers, o).find((x) => x.id === id);
   if (!l) throw new GctkError("INVALID_INPUT", "gctk does not know how to update this program (any more); refresh the page.");
   const run = o.run ?? runProgram;
-  if (l.kind === "gctk-npx") {
-    const folders = gctkNpxFolders(o);
-    const from = (folders.find((f) => f.current && f.version) ?? folders.find((f) => f.version))?.version;
-    for (const f of folders) fs.rmSync(f.dir, { recursive: true, force: true });
-    return { program: "gctk", from, skills: [], skillErrors: [], next: "Quit Cursor and open it again: it then downloads the newest gctk, and the next time the AI opens this UI it runs the new version." };
-  }
+  if (l.kind === "gctk-npx") return { program: "gctk", from: dropGctkNpx(o), skills: [], skillErrors: [], next: NPX_NEXT };
   const t = l.uv!;
   const from = uvInstalled(t);
   const uv = findUv(o);

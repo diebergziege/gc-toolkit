@@ -138,6 +138,10 @@
   `~/.cursor` and project folders that have them (not links: ava-mcp cannot replace those). gctk
   started by `npx <tarball>` is updated by deleting its `_npx` cache folder, because npx never
   downloads a cached tarball again; Cursor fetches the newest at its next start.
+  The top bar shows "Update gctk to x" when GitHub's main has a newer version than the running UI
+  (`checkGctk`, route `/api/gctk-version`, asked at most once an hour). Its dialog depends on how this
+  gctk runs (`gctkInstall`): npx is updated with a click (`updateGctk`), plugins are updated in their
+  editor (the dialog says how); a development run never asks.
 - Projects (decision 2026-10-06, UI page "Projects", page id `axl`): a folder a consultant builds a demo
   in, with its own org (any tier; production only after a confirmation stored for exactly that org and
   checked at every start, `productionConfirmed`). An AXL workshop is a project with `lab` not false.
