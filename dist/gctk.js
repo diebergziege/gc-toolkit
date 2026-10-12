@@ -38736,7 +38736,7 @@ import crypto2 from "node:crypto";
 import fs5 from "node:fs";
 import path5 from "node:path";
 import { fileURLToPath } from "node:url";
-var VERSION = true ? "0.33.0" : "0.0.0";
+var VERSION = true ? "0.34.0" : "0.0.0";
 var stableGctkJs = () => path5.join(gctkHome(), "bin", "gctk.js");
 function runningGctkJs(argv1 = process.argv[1]) {
   const here = fileURLToPath(import.meta.url);
@@ -40879,7 +40879,7 @@ function parameterValues(params, input2 = {}) {
   }
   return out;
 }
-var GCTK_VERSION = true ? "0.33.0" : "dev";
+var GCTK_VERSION = true ? "0.34.0" : "dev";
 var shared = (r) => {
   const { profile: _p, ...rest } = r;
   return rest;
@@ -53805,7 +53805,7 @@ function readLogo(name) {
 }
 
 // src/ui/server.ts
-var VERSION2 = true ? "0.33.0" : "dev";
+var VERSION2 = true ? "0.34.0" : "dev";
 var MAX_BODY = 1024 * 1024;
 var MAX_UPLOAD_BODY = 4 * 1024 * 1024;
 function portFree(port) {
@@ -54327,8 +54327,8 @@ async function startUi(opts = {}) {
 }
 
 // src/ui/daemon.ts
-var VERSION3 = true ? "0.33.0" : "dev";
-var BUILD_ID = true ? "e0634b2" : "dev";
+var VERSION3 = true ? "0.34.0" : "dev";
+var BUILD_ID = true ? "90c1551" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto10.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path16.join(gctkHome(), "ui.json");
@@ -54439,7 +54439,7 @@ async function ensureSharedUi() {
 }
 
 // src/mcp/server.ts
-var VERSION4 = true ? "0.33.0" : "dev";
+var VERSION4 = true ? "0.34.0" : "dev";
 var INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
 transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
 monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and Genesys tools a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
@@ -54519,7 +54519,7 @@ async function ask(question, opts = {}) {
 }
 
 // src/cli/index.ts
-var VERSION5 = true ? "0.33.0" : "dev";
+var VERSION5 = true ? "0.34.0" : "dev";
 var program2 = new Command().name("gctk").description("Genesys Cloud Toolkit: a local UI that makes your AI setup and Genesys Cloud demos transparent").version(VERSION5).option("-p, --profile <name>", "profile to use (default: GCTK_PROFILE or the active profile)");
 var profile = program2.command("profile").description("manage org connections (profiles)");
 profile.command("add <name>").description("create a profile and store its OAuth client credentials in the keychain").requiredOption("-r, --region <region>", "domain (mypurecloud.de) or region key (eu-central-1)").addOption(new Option("-t, --tier <tier>", "environment tier").choices([...TIERS]).makeOptionMandatory()).option("-d, --description <text>", "free text, e.g. customer or purpose").option("--env-credentials", "read credentials from GCTK_CLIENT_ID / GCTK_CLIENT_SECRET instead of the keychain (CI)").option("--no-login", "do not ask for credentials now").action(async (name, o) => {
