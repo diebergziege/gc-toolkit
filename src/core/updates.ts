@@ -3,13 +3,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { GCTK_PACKAGE, type ServerInfo } from "./ai-setup.js";
-import { loadAxlSettings } from "./axl.js";
+import { harnessCommandOf, loadAxlSettings } from "./axl.js";
 import { GctkError } from "./errors.js";
 import { olderVersion } from "./stable-gctk.js";
 
 /**
- * Updates of the programs behind Cursor's MCP servers (UI page "Cursor setup", a click only, never an
- * MCP tool). gctk knows two ways they get installed:
+ * Updates of the programs behind the MCP servers of Cursor and the Claude app (UI pages "Cursor setup"
+ * and "Claude app", a click only, never an MCP tool). An ava-harness started through gctk (workshops,
+ * the Claude app) runs the AVA harness command of the Projects page. gctk knows two ways they get installed:
  * - uv tools (ava-mcp): the receipt in uv's tool folder names the source, a GitHub release wheel or a
  *   PyPI package. An update installs the newest release the same way; for ava-mcp it then refreshes
  *   the AVA skills and subagents in every Cursor folder that has them (`ava-mcp update <dir> --yes`).
@@ -45,6 +46,8 @@ export interface UpdateOptions {
   run?: (command: string, args: string[]) => Promise<{ code: number; output: string }>;
   /** The Cursor folders of the user's projects (default: from the Projects page). */
   projectFolders?: string[];
+  /** The ava-mcp that `gctk axl-harness` starts (default: from the Projects page). */
+  harnessCommand?: string;
 }
 
 interface UvTool {
@@ -192,7 +195,7 @@ function gctkNpxFolders(o: UpdateOptions): Array<{ dir: string; version?: string
 
 const isNpx = (cmd: string | undefined) => Boolean(cmd && /^npx(\.cmd|\.exe)?$/i.test(path.basename(cmd)));
 
-/** The programs behind the given Cursor servers that gctk can update. */
+/** The programs behind the given servers that gctk can update. */
 function locate(servers: ServerInfo[], o: UpdateOptions): Located[] {
   const tools = uvTools(o);
   const found = new Map<string, Located>();
@@ -207,7 +210,9 @@ function locate(servers: ServerInfo[], o: UpdateOptions): Located[] {
       add({ id: "gctk", name: "gctk", kind: "gctk-npx" }, s.name);
       continue;
     }
-    const cmd = path.isAbsolute(s.command) ? s.command : which(s.command, o);
+    // gctk axl-harness starts the AVA harness command, not the node in the entry.
+    const command = s.credentials === "axl" ? (o.harnessCommand ?? harnessCommandOf(loadAxlSettings())) : s.command;
+    const cmd = path.isAbsolute(command) ? command : which(command, o);
     const t = cmd ? toolOf(cmd, tools) : undefined;
     if (t) add({ id: `uv:${t.name}`, name: t.name, kind: t.url ? "uv-github" : "uv-pypi", uv: t }, s.name);
   }
@@ -373,5 +378,5 @@ export async function updateProgram(id: string, servers: ServerInfo[], o: Update
       else skillErrors.push(`${dir}: ${lastLines(s.output)}`);
     }
   }
-  return { program: t.name, from, to, skills, skillErrors, next: "Restart the server in Cursor so it runs the new version: Settings → MCP, switch it off and on (or quit and reopen Cursor)." };
+  return { program: t.name, from, to, skills, skillErrors, next: "Restart the server so it runs the new version: in Cursor Settings → MCP, switch it off and on; quit and reopen the Claude app." };
 }

@@ -131,7 +131,8 @@
   an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with what
   loads in every folder (tool → org → status, "use another org" = `setCredentials` with a profile);
   per-folder views belong to Projects, so folders with their own config link there ("Make it a project").
-  Versions (`src/core/updates.ts`, routes `/api/ai-setup/updates` and `/update`, a click only): uv
+  Versions (`src/core/updates.ts`, routes `/api/ai-setup/updates` and `/update`, a click only, also on
+  the Claude app page; an `axl-harness` entry runs the Projects page's harness command): uv
   tools behind a server (receipt in uv's tool folder; GitHub release wheel of the same repository, or
   PyPI) are reinstalled with uv, ava-mcp then refreshes the AVA skills (`ava-mcp update <dir> --yes`) in
   `~/.cursor` and project folders that have them (not links: ava-mcp cannot replace those). gctk

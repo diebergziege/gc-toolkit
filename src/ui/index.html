@@ -2360,7 +2360,7 @@ async function viewAiSetup(editor = "cursor") {
       draw(s);
     } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
   };
-  refresh.addEventListener("click", () => { msg.replaceChildren(); if (editor === "cursor") state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
+  refresh.addEventListener("click", () => { msg.replaceChildren(); state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
   load();
   return h("div", {},
     h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, T.title), h("span", { class: "spacer" }), refresh),
@@ -2428,7 +2428,7 @@ function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, re
       filesPanel(s, msg, draw, editor)));
   if (editor === "claude-desktop") {
     if (!s.files.length) return h("div", { class: "panel empty" }, "gctk did not find the Claude app on this computer. Install it from claude.ai/download, then press Refresh.");
-    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), aiOverview(s, ctx), details];
+    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), aiOverview(s, ctx), updatesPanel(msg, "claude-desktop"), details];
   }
   return [todoPanel(s, ctx), aiOverview(s, ctx), updatesPanel(msg), folderPanel(s, projects), details];
 }
@@ -2485,9 +2485,11 @@ function claudeHarnessPanel(s, axl, msg, reload) {
 
 /** Programs behind the servers that gctk can update (ava-mcp, gctk). The check asks GitHub, so it loads on its own. */
 const PROGRAM_NAMES = { "ava-mcp": "AVA harness (ava-mcp)", gctk: "gctk" };
-function updatesPanel(msg) {
+/** editor "claude-desktop": only what its servers run (the AVA harness), not gctk's npx copy for Cursor. */
+function updatesPanel(msg, editor = "cursor") {
   const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Versions"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Checking for newer versions…"));
-  const draw = (programs) => {
+  const draw = (all) => {
+    const programs = editor === "cursor" ? all : all.filter((p) => p.kind !== "gctk-npx");
     if (!programs.length) { box.remove(); return; }
     const row = (p) => {
       const ver = p.error ? h("span", { class: "muted", style: "font-size:13px" }, p.error)
@@ -2495,7 +2497,8 @@ function updatesPanel(msg) {
         : p.installed ? h("span", { class: "muted" }, `${p.installed}, the newest`) : h("span", { class: "muted" }, p.latest ? `downloaded at Cursor's next start (${p.latest})` : "version unknown");
       const btn = p.update ? h("button", { class: "btn primary" }, "Update") : null;
       btn?.addEventListener("click", async () => {
-        const also = p.skills?.length ? `\n\nIt also refreshes the AVA skills and subagents in:\n${p.skills.join("\n")}` : "";
+        const also = (p.skills?.length ? `\n\nIt also refreshes the AVA skills and subagents in:\n${p.skills.join("\n")}` : "")
+          + (p.name === "ava-mcp" && editor === "claude-desktop" ? "\n\nSkills you uploaded to the Claude app stay as they are; upload the new ones there again." : "");
         const what = p.kind === "gctk-npx" ? "gctk deletes the gctk Cursor downloaded; Cursor downloads the newest at its next start." : `${p.name} ${p.latest} is installed with uv.`;
         if (!confirm(`Update ${PROGRAM_NAMES[p.name] || p.name} to ${p.latest}?\n\n${what}${also}`)) return;
         btn.disabled = true; btn.textContent = "Updating…";
@@ -2515,7 +2518,7 @@ function updatesPanel(msg) {
         h("span", { class: "muted", style: "font-size:13px;flex:1;min-width:160px" }, `used by ${p.servers.join(", ")}`), ver, btn);
     };
     put(box, h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Versions"),
-      h("span", { class: "muted" }, "programs gctk can update for you; other servers update where they came from (plugins in Cursor)")), programs.map(row));
+      h("span", { class: "muted" }, editor === "cursor" ? "programs gctk can update for you; other servers update where they came from (plugins in Cursor)" : "programs gctk can update for you; the Claude app's own extensions update in the app")), programs.map(row));
   };
   (state.updates ||= api("/api/ai-setup/updates").then((r) => r.programs)).then(draw).catch((err) => { state.updates = null; put(box, h("div", { class: "muted" }, `Could not check for updates: ${err.message}`)); });
   return box;

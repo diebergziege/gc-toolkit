@@ -63,6 +63,14 @@ describe("uv tools from GitHub releases (ava-mcp)", () => {
     expect(p).toMatchObject({ id: "uv:ava-mcp", kind: "uv-github", installed: "1.5.4", latest: "1.6.0", update: true, servers: ["ava-harness"] });
   });
 
+  it("finds the harness behind an entry gctk starts (workshops, the Claude app)", async () => {
+    opts.fetch = fakeFetch({ "https://api.github.com/repos/purecloudlabs/genesys-ava-skills/releases/latest": release("1.6.0") });
+    opts.harnessCommand = path.join(home, ".local", "bin", "ava-mcp");
+    const viaGctk = { ...server("ava-harness", process.execPath, ["/x/gctk.js", "axl-harness", "--workshop", "lab", "--org", "lab"]), editor: "claude-desktop", credentials: "axl" } as ServerInfo;
+    const [p] = await checkUpdates([viaGctk], opts);
+    expect(p).toMatchObject({ id: "uv:ava-mcp", installed: "1.5.4", latest: "1.6.0", update: true, servers: ["ava-harness"] });
+  });
+
   it("finds a bare command on PATH and says when it is the newest", async () => {
     opts.fetch = fakeFetch({ "https://api.github.com/repos/purecloudlabs/genesys-ava-skills/releases/latest": release("1.5.4") });
     const [p] = await checkUpdates([server("ava-harness", "ava-mcp", ["serve"])], opts);
