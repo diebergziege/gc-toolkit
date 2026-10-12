@@ -2,7 +2,7 @@
 
 - Scope (maintainer decisions 2026-09-30 and 2026-10-01): gctk is a local UI that makes the user's AI
   setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, Cursor setup,
-  Projects (with AXL), Demos, Website, Demo ready, Monitoring. The UI runs no AI and depends on no coding assistant; do not
+  Claude app, Projects (with AXL), Demos, Website, Demo ready, Monitoring. The UI runs no AI and depends on no coding assistant; do not
   add a page or route that starts an agent. The plugin ships no skills and no hooks, and its MCP
   server only opens the UI and reads the setup (`gc_ui`, `gc_ai_setup`, `gc_axl`); it gives the AI
   no tools to read or change an org. Removed on purpose: the Chat page, bot tests, AI agent briefs,
@@ -107,7 +107,8 @@
   the org and writes nothing to it.
 - Cursor setup (`src/core/ai-setup.ts`, UI page "Cursor setup", page id `ai-setup`, MCP tool
   `gc_ai_setup`, hidden CLI `gctk mcp-launch`, decisions 2026-10-01 and 2026-10-06): reads Cursor's MCP
-  configs only (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json); no other editor, no
+  configs (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json) and, for the page "Claude app",
+  the Claude app's (see below); no other editor, no
   skills (skills an earlier gctk moved aside can still be restored). Secrets
   leave the module only masked (page and tool). Fixes change the user's config files and exist only
   as UI routes (a click), never as MCP tools; plugin files and JSON with comments are never
@@ -144,6 +145,15 @@
   `gctk project-tool --project <id> --tool <name>`. Command, arguments and which variables get the
   credentials live in `axl.json`, never in the folder; the page sends template ids, not commands.
   Cursor only (no Claude Code project config).
+- Claude app (decision 2026-10-12, UI page "Claude app", page id `claude-app`): the Cursor setup page's
+  parts for `claude_desktop_config.json` (`claudeAppConfigFile` in `src/core/paths.ts`, read only where
+  the app's settings folder exists; `GCTK_CLAUDE_APP_CONFIG` overrides it, and vitest points it to a
+  missing file so tests never touch the real one). gctk rewrites only `mcpServers` and keeps the app's
+  own keys (preferences). The app (chat and Cowork) has no folders, so its one `ava-harness` works on
+  the workshop the user picks (`useInClaudeApp` in `src/core/axl.ts`, the same `gctk axl-harness`
+  entry, never a secret); saving a workshop syncs it (`syncClaudeApp`), removing the workshop removes
+  it, and an ava-harness the user set up there is never overwritten. Skills for Cowork live in the
+  user's Claude account (uploaded in the app), so gctk does not list or ship them.
 - AXL workshops (`src/core/axl.ts`, a kind of project, MCP tool `gc_axl`, hidden CLI `gctk axl-harness`):
   the lab runs in the Cursor app (skill axl-lab-facilitator, AVA harness). The user keeps a list of
   workshops in the UI, each with its own org and folder. Saving a workshop's org or folder (or "Set

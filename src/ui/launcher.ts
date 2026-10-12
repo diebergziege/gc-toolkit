@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-export const UI_PAGES = ["profiles", "ai-setup", "demos", "site", "demo", "axl", "monitoring", "data"] as const;
+export const UI_PAGES = ["profiles", "ai-setup", "claude-app", "demos", "site", "demo", "axl", "monitoring", "data"] as const;
 export type UiPage = (typeof UI_PAGES)[number];
 
 /** Opens a folder in the Cursor app (macOS: the app; elsewhere Cursor's `cursor` command). */

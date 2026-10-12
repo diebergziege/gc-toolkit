@@ -266,6 +266,7 @@ const state = { view: (() => { try { return sessionStorage.getItem("gctk-view") 
 const VIEWS = [
   ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],
   ["ai-setup", "Cursor setup", "The MCP servers Cursor loads in every folder: which org each one works on, and fixes"],
+  ["claude-app", "Claude app", "The MCP servers the Claude app loads in chat and Cowork: which org each one works on, and the workshop of its AVA harness"],
   ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],
   ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
   ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
@@ -334,7 +335,7 @@ async function render() {
   renderNav();
   state.cleanup?.();
   state.cleanup = null;
-  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
+  const view = { site: viewSite, "ai-setup": () => viewAiSetup("cursor"), "claude-app": () => viewAiSetup("claude-desktop"), demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
   try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }
 }
 
@@ -1276,13 +1277,13 @@ async function viewProfiles() {
     const add = (name, text) => (use[name] ||= []).push(text);
     for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} (${whereText(x)})`);
     for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "project" : "AXL workshop"} ${w.name}`);
-    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" · ")] : h("span", { class: "muted" }, "Not used by Cursor or a project yet."));
+    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" · ")] : h("span", { class: "muted" }, "Not used by Cursor, the Claude app or a project yet."));
     state.orgUse = use;
   });
   state.orgUseEls = {};
   return h("div", {},
     h("h2", {}, "Orgs"),
-    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; Cursor's servers and your projects use them from here."),
+    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; the servers of Cursor and the Claude app and your projects use them from here."),
     h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),
     o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),
     addProfileForm(o));
@@ -1409,6 +1410,7 @@ function axlOverview(st, draw) {
     const latest = x.sessions[0];
     return h("tr", {},
       h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), isLabProject(w) ? [" ", pill("AXL workshop", "")] : null,
+        st.claudeApp?.ours && st.claudeApp.workshop === w.id ? [" ", h("span", { class: "pill", title: "The Claude app's AVA harness works on this one (page Claude app)" }, "Claude app")] : null,
         h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),
       h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),
       h("td", {}, projectTools(w).join(", ") || h("span", { class: "muted" }, "–"),
@@ -2301,9 +2303,11 @@ async function viewData() {
 // ------------------------------------------------------------- AI setup
 // The MCP servers and skills of the user's editors, read from their config files by the gctk server.
 // Secrets arrive masked; the fix buttons change the user's config files (server side).
-// Cursor setup (page id ai-setup; decision 2026-10-06: Cursor only, no skills). What Cursor loads in
-// every folder, the org each Genesys server works on, and one-click fixes. A folder's own servers and
-// org belong to the Projects page; folders with their own config are offered as projects.
+// Cursor setup (page id ai-setup; decision 2026-10-06: no skills). What Cursor loads in every folder,
+// the org each Genesys server works on, and one-click fixes. A folder's own servers and org belong to
+// the Projects page; folders with their own config are offered as projects.
+// Claude app (page id claude-app): the same for claude_desktop_config.json, which the Claude app loads
+// in every chat and Cowork session; it has no folders, so its one AVA harness gets a workshop here.
 const CREDS = {
   none: ["no credentials", ""],
   plain: ["secret in plain text in the file", "s-failed"],
@@ -2317,39 +2321,60 @@ const CREDS = {
 const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };
 /** Plain names for the Genesys tools people meet most. */
 const TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };
-const RELOAD_HINT = "Restart the server in Cursor so it picks up the change: Settings → MCP, switch it off and on.";
+const RELOAD_HINTS = {
+  cursor: "Restart the server in Cursor so it picks up the change: Settings → MCP, switch it off and on.",
+  "claude-desktop": "Quit the Claude app (Cmd+Q on a Mac, not just the window) and open it again: it reads its servers only when it starts.",
+};
+const EDITOR_TEXT = {
+  cursor: { title: "Cursor setup", app: "Cursor", reading: "Reading Cursor's config files…",
+    lead: "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder's own servers and org are set on the Projects page." },
+  "claude-desktop": { title: "Claude app", app: "the Claude app", reading: "Reading the Claude app's config…",
+    lead: "The MCP servers the Claude app loads in every chat and Cowork session, which Genesys Cloud org each one works on, and whether it can start. The app has no folders of its own, so its AVA harness works on the AXL workshop you choose here. Skills are not on this computer: you upload them in the Claude app (Settings → Capabilities)." },
+};
 const projName = (p) => (p ? p.split(/[\\/]/).filter(Boolean).pop() : "");
-const whereText = (x) => x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";
+const whereText = (x) => x.editor === "claude-desktop" ? "Claude app" : x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";
 const sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || whereText(a).localeCompare(whereText(b)));
 
-async function viewAiSetup() {
+/** Only what one app loads: its config files, their servers and the keychain items those use. */
+function forEditor(s, editor) {
+  const files = s.files.filter((f) => f.editor === editor);
+  const paths = new Set(files.map((f) => f.path));
+  return { ...s, files, servers: s.servers.filter((x) => x.editor === editor), secrets: s.secrets.filter((m) => m.usedBy.some((u) => paths.has(u.file))) };
+}
+
+/** editor: "cursor" (page Cursor setup) or "claude-desktop" (page Claude app). */
+async function viewAiSetup(editor = "cursor") {
+  const T = EDITOR_TEXT[editor];
   const msg = h("div");
-  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading Cursor's config files…"));
+  const body = h("div", {}, h("div", { class: "panel empty" }, T.reading));
   const refresh = h("button", { class: "btn" }, "Refresh");
   let projects = [];
-  const draw = (s) => put(body, aiSetupReport(s, msg, draw, projects));
+  let axl = null;
+  const draw = (s) => put(body, aiSetupReport(forEditor(s, editor), msg, draw, projects, editor, axl, load));
   const load = async () => {
     refresh.disabled = true;
     try {
-      const [s, axl] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);
-      projects = axl.workshops.map((x) => x.workshop);
+      const [s, a] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);
+      axl = a;
+      projects = a.workshops.map((x) => x.workshop);
       draw(s);
     } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
   };
-  refresh.addEventListener("click", () => { msg.replaceChildren(); state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
+  refresh.addEventListener("click", () => { msg.replaceChildren(); if (editor === "cursor") state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
   load();
   return h("div", {},
-    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Cursor setup"), h("span", { class: "spacer" }), refresh),
-    h("p", { class: "lead" }, "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder's own servers and org are set on the Projects page."),
+    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, T.title), h("span", { class: "spacer" }), refresh),
+    h("p", { class: "lead" }, T.lead),
     msg, body);
 }
 
-function aiSetupReport(s, msg, draw, projects) {
-  const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINT)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
+function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, reload = null) {
+  const hint = RELOAD_HINTS[editor];
+  const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", hint)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });
   const ctx = {
-    msg, draw,
+    msg, draw, editor, hint,
     async fix(x, kind) {
       const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");
       const ask = {
@@ -2397,11 +2422,65 @@ function aiSetupReport(s, msg, draw, projects) {
       h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Every entry"),
       h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "Open an entry for its file, command and variables (secrets masked) and the fixes for it."),
       sortServers(s.servers).map((x) => serverRow(x, ctx)),
-      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw))] : null,
-      s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),
+      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw, hint))] : null,
+      editor === "cursor" && s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),
         s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
-      filesPanel(s, msg, draw)));
+      filesPanel(s, msg, draw, editor)));
+  if (editor === "claude-desktop") {
+    if (!s.files.length) return h("div", { class: "panel empty" }, "gctk did not find the Claude app on this computer. Install it from claude.ai/download, then press Refresh.");
+    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), aiOverview(s, ctx), details];
+  }
   return [todoPanel(s, ctx), aiOverview(s, ctx), updatesPanel(msg), folderPanel(s, projects), details];
+}
+
+/**
+ * The Claude app has one ava-harness for every chat and Cowork session. It works on one AXL workshop
+ * (or project with the harness) at a time: its org from the keychain at every start, as in Cursor.
+ */
+function claudeHarnessPanel(s, axl, msg, reload) {
+  const c = axl?.claudeApp;
+  if (!c) return null;
+  const list = (axl.workshops || []).map((x) => x.workshop).filter((w) => (w.lab !== false || w.harness) && w.profile);
+  const now = list.find((w) => w.id === c.workshop) || (axl.workshops || []).map((x) => x.workshop).find((w) => w.id === c.workshop);
+  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
+  const call = async (workshop, text) => {
+    try {
+      await api("/api/axl/claude-app", { method: "POST", body: { workshop } });
+      put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINTS["claude-desktop"]));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      reload?.();
+    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  };
+  const orgText = (name) => { const t = tierOf(name); return h("span", {}, h("strong", {}, name), t ? [" ", pill(t, `t-${t}`)] : null); };
+  let current;
+  if (c.error) current = h("div", { class: "error" }, c.error);
+  else if (c.present && !c.ours) current = h("div", { class: "warn", style: "margin:0" }, "The Claude app has an AVA harness of its own that gctk did not set up (see below). Remove it there to let gctk start it with a workshop's org.");
+  else if (c.ours) current = h("div", { class: "todo-row" },
+    h("span", { style: "flex:1;min-width:220px" }, "Works on ", h("strong", {}, now ? now.name : c.workshop), now?.lab === false ? " (project)" : "", " with ", orgText(c.org)),
+    c.stale ? pill("out of date", "s-failed") : pill("ready", "s-applied"),
+    c.stale && now && list.includes(now) ? h("button", { class: "btn primary", onclick: () => call(now.id, `The Claude app's AVA harness now works on ${now.name} with ${now.profile}.`) }, "Update") : null,
+    h("button", { class: "btn danger", onclick: () => { if (confirm("Remove the AVA harness from the Claude app?")) call("", "Removed the AVA harness from the Claude app."); } }, "Remove"));
+  else current = h("p", { class: "muted", style: "margin:6px 0 0" }, "The Claude app has no AVA harness yet.");
+  const choices = list.filter((w) => w.id !== c.workshop);
+  const sel = h("select", { style: "min-width:260px", "aria-label": "Workshop" }, h("option", { value: "" }, c.ours ? "Switch to another workshop…" : "Choose a workshop…"),
+    choices.map((w) => h("option", { value: w.id }, `${w.name} (${w.profile})`)));
+  const use = h("button", { class: "btn primary", disabled: true }, "Use in the Claude app");
+  sel.addEventListener("change", () => { use.disabled = !sel.value; });
+  use.addEventListener("click", () => {
+    const w = list.find((x) => x.id === sel.value);
+    if (!w) return;
+    if (!confirm(`Let the Claude app's AVA harness work on "${w.name}" with the org ${w.profile}?\n\nIt then applies to every chat and Cowork session in the Claude app.\n${c.file}`)) return;
+    call(w.id, `The Claude app's AVA harness now works on ${w.name} with ${w.profile}.`);
+  });
+  const blocked = c.error || (c.present && !c.ours);
+  return h("div", { class: "panel" },
+    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "AVA harness"),
+      h("span", { class: "muted" }, "builds and tests AI agents; one for every chat and Cowork session")),
+    current,
+    blocked ? null : list.length
+      ? choices.length ? h("div", { class: "row", style: "margin-top:10px" }, sel, use) : null
+      : h("p", { class: "muted", style: "margin:8px 0 0" }, "No AXL workshop with an org yet. ", navLink("axl", "Add one on the Projects page"), "."),
+    h("p", { class: "muted", style: "margin:8px 0 0;font-size:13px" }, "Its org comes from the workshop and is read from the keychain at every start; no secret is written into the Claude app's config. When you change the workshop's org on the Projects page, gctk updates the Claude app too."));
 }
 
 /** Programs behind the servers that gctk can update (ava-mcp, gctk). The check asks GitHub, so it loads on its own. */
@@ -2504,7 +2583,7 @@ function todoPanel(s, ctx) {
       secrets.map((x) => row(x, "plain-secret", x.linkOrg ? linkControl(x, ctx) : canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null))),
     group("Credentials not on the Orgs page", "Each has a keychain entry of its own, so the Orgs page does not show it. Link it to an org: one place for every OAuth client, and a new secret is entered once.",
       having("not-linked").map((x) => row(x, "not-linked", linkControl(x, ctx)))),
-    group("Entries that cannot start", "The program or script they point to is gone, so Cursor shows an error for them.",
+    group("Entries that cannot start", `The program or script they point to is gone, so ${ctx.editor === "claude-desktop" ? "the Claude app" : "Cursor"} shows an error for them.`,
       broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "link") ? linkControl({ ...x, linkOrg: x.linkOrg || {} }, ctx) : x.problems.some((p) => p.fix === "repair")
         ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")
         : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),
@@ -2514,7 +2593,7 @@ function todoPanel(s, ctx) {
     group("Entries that only work on this computer", "They start gctk from a development checkout or a plugin version an update deletes. Repair points them to the copy every computer with gctk has.",
       having("unstable-path").map((x) => row(x, "unstable-path", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),
     group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
-    group("Secrets in headers", "Remote servers: gctk cannot move these. Use Cursor's variables (for example ${env:NAME}) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),
+    group("Secrets in headers", "Remote servers: gctk cannot move these. Use the app's variables (for example ${env:NAME} in Cursor) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),
     group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),
   ].filter(Boolean);
   return groups.length
@@ -2542,7 +2621,7 @@ function serverRow(x, ctx) {
       vars.length ? h("table", {}, vars.map((v) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, v.name), h("td", { class: "v" }, v.value, v.plain ? [" ", pill("plain text", "s-failed")] : "")))) : null,
       x.problems.length ? x.problems.map((p) => h("div", { class: p.level === "warn" ? "warn" : "muted", style: p.level === "warn" ? "margin:0" : "font-size:13px" }, p.text)) : null,
       x.credentialKeys ? credentialsForm(x, ctx)
-        : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, "Its org is set on the Projects page.") : null,
+        : x.credentials === "axl" || x.credentials === "project" ? h("div", { class: "muted", style: "font-size:13px" }, x.editor === "claude-desktop" ? "Its workshop is chosen under AVA harness above; the org comes from that workshop." : "Its org is set on the Projects page.") : null,
       x.editable ? h("div", { class: "row" },
         x.problems.some((p) => p.fix === "keychain") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "keychain") }, FIX_LABELS.keychain) : null,
         x.problems.some((p) => p.fix === "repair") ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, FIX_LABELS.repair) : null,
@@ -2578,8 +2657,9 @@ function credentialsForm(x, ctx) {
       h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));
 }
 
-/** What Cursor loads in every folder: the Genesys tools with their org and status, then the rest. */
+/** What the app loads (Cursor: in every folder): the Genesys tools with their org and status, then the rest. */
 function aiOverview(s, ctx) {
+  const claude = ctx.editor === "claude-desktop";
   const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
   const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
   const everywhere = s.servers.filter((x) => x.scope !== "project");
@@ -2611,20 +2691,20 @@ function aiOverview(s, ctx) {
     return sel;
   };
   const toolRow = (x) => h("div", { class: "todo-row" },
-    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : "~/.cursor/mcp.json"),
+    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : claude ? "claude_desktop_config.json" : "~/.cursor/mcp.json"),
     h("span", { style: "flex:1;min-width:200px" }, orgOf(x)), status(x), useOrg(x));
   const genesys = everywhere.filter((x) => x.genesys);
   const others = everywhere.filter((x) => !x.genesys);
   const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));
   return h("div", { class: "panel" },
-    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "In every folder"),
-      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ~/.cursor/mcp.json and plugins` : "no Genesys tools")),
+    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, claude ? "In every chat and Cowork session" : "In every folder"),
+      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ${claude ? "claude_desktop_config.json" : "~/.cursor/mcp.json and plugins"}` : "no Genesys tools")),
     genesys.length ? names.map((n) => {
       const [title, what] = TOOL_NAMES[n] || [n, ""];
       return h("div", { style: "margin-top:10px" },
         h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `· ${what}`) : null),
         sortServers(genesys.filter((x) => x.name === n)).map(toolRow));
-    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),
+    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, claude ? "The Claude app has no Genesys Cloud tools yet." : "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),
     others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);
 }
 
@@ -2655,12 +2735,12 @@ function folderPanel(s, projects) {
 }
 
 /** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */
-function secretCard(m, msg, draw) {
+function secretCard(m, msg, draw, hint = RELOAD_HINTS.cursor) {
   const inputs = m.names.map((n) => [n, h("input", { type: "password", autocomplete: "new-password", placeholder: "new value", style: "flex:1;min-width:220px" })]);
   const save = async () => {
     try {
       const next = await api(`/api/ai-setup/secrets/${encodeURIComponent(m.account)}`, { method: "PUT", body: { values: Object.fromEntries(inputs.map(([n, el]) => [n, el.value])) } });
-      put(msg, h("div", { class: "okbox" }, `Saved the new secret for ${m.usedBy.map((u) => u.server).join(", ")}. `, RELOAD_HINT));
+      put(msg, h("div", { class: "okbox" }, `Saved the new secret for ${m.usedBy.map((u) => u.server).join(", ")}. `, hint));
       draw(next);
     } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
   };
@@ -2672,13 +2752,17 @@ function secretCard(m, msg, draw) {
       h("button", { class: "btn primary", onclick: save }, "Save in the keychain")));
 }
 
-function filesPanel(s, msg, draw) {
+function filesPanel(s, msg, draw, editor = "cursor") {
   const input = h("input", { placeholder: "~/projects/demo or ~/somewhere/.cursor/mcp.json", style: "flex:1;min-width:280px" });
   const call = async (url, body) => {
     try { draw(await api(url, { method: "POST", body })); msg.replaceChildren(); } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   };
   const status = (f) => !f.exists ? h("span", { class: "muted" }, "not there") : f.error ? h("span", { class: "muted" }, f.error) : f.scope === "plugin" ? h("span", { class: "muted" }, "read-only (plugin)") : pill("found", "s-applied");
   const added = s.locations.filter((l) => !s.files.some((f) => f.path === l && f.added));
+  if (editor === "claude-desktop") return h("div", { style: "margin-top:16px" },
+    h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Config file"),
+    h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "The Claude app keeps its local MCP servers next to its own settings, which gctk leaves as they are. Extensions you install in the app are not listed here."),
+    h("table", {}, s.files.map((f) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px;overflow-wrap:anywhere" }, f.path), h("td", { style: "white-space:nowrap" }, status(f))))));
   return h("div", { style: "margin-top:16px" },
     h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Config files"),
     h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk reads ~/.cursor/mcp.json, Cursor's plugins and the .cursor/mcp.json of the folders Cursor knows (its recent folders and your projects). Add a folder or file that is somewhere else."),

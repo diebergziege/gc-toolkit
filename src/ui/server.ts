@@ -26,7 +26,7 @@ import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { checkUpdates, type Program, updateProgram } from "../core/updates.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
-import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder } from "../core/axl.js";
+import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
 import indexHtml from "./index.html";
@@ -168,10 +168,11 @@ const installedGctk = () => {
   const js = runningGctkJs();
   return js ? ensureStableGctk(js) : undefined;
 };
-/** After a change of org or folder: rewrite the folder's harness server right away. */
+/** After a change of org or folder: rewrite the folder's harness server right away, and the Claude app's when it works on this workshop. */
 const applyWorkshop = (id: string) => {
   const w = getWorkshop(id);
   const gctkJs = installedGctk();
+  if (gctkJs) syncClaudeApp(id, gctkJs);
   return gctkJs && w.profile && w.folder ? setupWorkshopFolder(id, gctkJs) : false;
 };
 const pickStr = (body: Json, k: string) => (typeof body[k] === "string" ? (body[k] as string) : undefined);
@@ -212,7 +213,17 @@ route("PUT", "/api/axl/workshops/:id", ({ params, body }) => {
   const touched = pickStr(body, "profile") !== undefined || pickStr(body, "folder") !== undefined || fields.harness !== undefined || fields.tools !== undefined;
   return { ...axlStatus(), id: w.id, folderUpdated: touched ? applyWorkshop(w.id) : false };
 });
-route("DELETE", "/api/axl/workshops/:id", ({ params }) => ({ ...axlStatus(), ...removeWorkshop(params.id!) }));
+route("DELETE", "/api/axl/workshops/:id", ({ params }) => {
+  const r = removeWorkshop(params.id!);
+  return { ...axlStatus(), ...r };
+});
+// The Claude app has one ava-harness for every chat and Cowork session: the workshop it works on ("" removes gctk's entry).
+route("POST", "/api/axl/claude-app", ({ body }) => {
+  const gctkJs = installedGctk();
+  if (!gctkJs) throw new HttpError(400, "Setting up the Claude app needs the installed gctk (dist/gctk.js), not a development run.");
+  const changed = useInClaudeApp(pickStr(body, "workshop") || undefined, gctkJs);
+  return { ...axlStatus(), changed };
+});
 route("POST", "/api/axl/workshops/:id/setup-folder", ({ params }) => {
   const gctkJs = installedGctk();
   if (!gctkJs) throw new HttpError(400, "Setting up the folder needs the installed gctk (dist/gctk.js), not a development run.");

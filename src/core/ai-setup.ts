@@ -7,15 +7,16 @@ import { sign, verify } from "./approval.js";
 import { loadAxlSettings, HABITATS } from "./axl.js";
 import { type ClientCredentials, deleteCredentials, loadCredentials, readSecret, removeSecret, storeCredentials, writeSecret } from "./credentials.js";
 import { GctkError } from "./errors.js";
-import { gctkHome } from "./paths.js";
+import { appSupportDir, claudeAppConfigFile, gctkHome } from "./paths.js";
 import { assertProfileName, listProfiles, loadProfile, type Profile, removeProfile, saveProfile, TIERS, type Tier } from "./profiles.js";
 import { stableGctkJs } from "./stable-gctk.js";
 import { resolveRegion } from "./regions.js";
 
 /**
- * Cursor setup (UI page "Cursor setup", MCP tool gc_ai_setup): the MCP servers Cursor loads, read
- * from its config files, with the Genesys Cloud org each server works on. Cursor only, no skills
- * (decision 2026-10-06).
+ * Cursor setup and Claude app (UI pages "Cursor setup" and "Claude app", MCP tool gc_ai_setup): the
+ * MCP servers Cursor and the Claude app (chat and Cowork) load, read from their config files, with
+ * the Genesys Cloud org each server works on. No skills (decision 2026-10-06; the Claude app keeps
+ * its skills in the user's account, not on this computer).
  *
  * Secrets never leave this module unmasked: the page and the tool get `••••` plus the last four
  * characters. Fixes change the user's config files and run only from the UI (a click):
@@ -132,7 +133,7 @@ export interface ManagedSecret {
   stored: boolean;
 }
 
-/** What Cursor loads (decision 2026-10-06: gctk covers Cursor only; skills are not listed). */
+/** What Cursor and the Claude app load (skills are not listed). */
 export interface AiSetup {
   files: ConfigFile[];
   servers: ServerInfo[];
@@ -261,11 +262,7 @@ function writeJson(file: string, value: unknown, indent: string | number): void 
   fs.renameSync(tmp, file);
 }
 
-function appSupport(home: string, platform: NodeJS.Platform, appData?: string): string {
-  if (platform === "darwin") return path.join(home, "Library", "Application Support");
-  if (platform === "win32") return appData ?? path.join(home, "AppData", "Roaming");
-  return process.env.XDG_CONFIG_HOME || path.join(home, ".config");
-}
+const appSupport = (home: string, platform: NodeJS.Platform, appData?: string) => appSupportDir(home, platform, appData);
 
 function newestDir(dir: string): string | undefined {
   try {
@@ -345,7 +342,10 @@ export function projectFolders(o: ScanOptions = {}): string[] {
   return [...out].filter(isDir).sort();
 }
 
-/** Every Cursor MCP config gctk knows of: the global one, those of known folders, plugins, added files. */
+/**
+ * Every MCP config gctk knows of: Cursor's global one, those of known folders, plugins, added files,
+ * and the Claude app's (only where the app is installed).
+ */
 export function configFiles(o: ScanOptions = {}): ConfigFile[] {
   const home = o.home ?? os.homedir();
   const list: Array<Omit<ConfigFile, "exists" | "editable" | "error">> = [{ path: path.join(home, ".cursor", "mcp.json"), editor: "cursor", scope: "user" }];
@@ -359,6 +359,8 @@ export function configFiles(o: ScanOptions = {}): ConfigFile[] {
     }
   }
   for (const l of loadLocations()) if (!isDir(l)) list.push({ path: l, editor: "cursor", scope: "user", added: true });
+  const claude = claudeAppConfigFile(home, o.platform ?? process.platform, o.appData);
+  if (isDir(path.dirname(claude))) list.push({ path: claude, editor: "claude-desktop", scope: "user" });
 
   const seen = new Set<string>();
   const out: ConfigFile[] = [];
@@ -767,7 +769,7 @@ export function toolTemplates(o: ScanOptions = {}): ToolTemplate[] {
 
 function locate(a: ServerAddress, o: ScanOptions = {}): { file: ConfigFile; json: Record<string, unknown>; indent: string | number; servers: Record<string, Entry>; entry: Entry } {
   const file = configFiles(o).find((f) => f.path === a.file);
-  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files on the Cursor setup page.`);
+  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files gctk shows (Cursor setup, Claude app).`);
   if (!file.editable) throw new GctkError("INVALID_INPUT", `gctk does not change ${a.file}${file.error ? ` (${file.error})` : file.scope === "plugin" ? " (it belongs to a plugin)" : ""}.`);
   const r = readJson(a.file);
   if (!r.value) throw new GctkError("INVALID_INPUT", `${a.file} could not be read: ${r.error}.`);
@@ -1038,7 +1040,7 @@ function orgValues(r: LaunchRecord, orgs: OrgStore): Record<string, string> {
   try {
     p = loadProfile(r.profile);
   } catch {
-    throw new GctkError("MCP_LAUNCH", `${r.server} is linked to the org ${r.profile}, which is no longer on the Orgs page. Link it to another org on the Cursor setup page of the gctk UI.`);
+    throw new GctkError("MCP_LAUNCH", `${r.server} is linked to the org ${r.profile}, which is no longer on the Orgs page. Link it to another org on the Cursor setup or Claude app page of the gctk UI.`);
   }
   const c = orgs.load(p);
   const out: Record<string, string> = {};
@@ -1180,9 +1182,9 @@ const PASS_THROUGH = /^(LANG|LC_[A-Z]+|TERM|TZ|HTTPS?_PROXY|NO_PROXY|https?_prox
 /** Environment and command for `gctk mcp-launch <id>`; refuses unsigned or edited records. */
 export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, store: SecretStore = keychainStore, orgs: OrgStore = keychainOrgs): { command: string; args: string[]; env: NodeJS.ProcessEnv; cwd?: string; record: LaunchRecord } {
   const r = loadRecords()[id];
-  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the Cursor setup page of the gctk UI and set the server up again.`);
+  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the Cursor setup or Claude app page of the gctk UI and set the server up again.`);
   const raw = r.account ? store.get(r.account) : "{}";
-  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the Cursor setup page of the gctk UI.`);
+  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the Cursor setup or Claude app page of the gctk UI.`);
   const secrets = JSON.parse(raw) as Record<string, string>;
   const fromOrg = r.profile ? orgValues(r, orgs) : {};
   const user = os.userInfo();
@@ -1224,9 +1226,10 @@ const CRED_TEXT: Record<ServerInfo["credentials"], string> = {
   project: "gctk project org (keychain, through gctk)",
 };
 
-/** What gc_ai_setup tells the AI: Cursor's MCP servers (Genesys first) and their problems; secrets masked. */
+/** What gc_ai_setup tells the AI: the MCP servers of Cursor and the Claude app (Genesys first) and their problems; secrets masked. */
 export function formatAiSetup(s: AiSetup): string {
-  const where = (x: ServerInfo) => (x.scope === "project" ? `folder ${x.project}` : x.scope === "plugin" ? `plugin ${x.plugin}` : "every folder (~/.cursor/mcp.json)");
+  const where = (x: ServerInfo) =>
+    x.editor === "claude-desktop" ? "Claude app (every chat and Cowork session)" : x.scope === "project" ? `Cursor, folder ${x.project}` : x.scope === "plugin" ? `Cursor plugin ${x.plugin}` : "Cursor, every folder (~/.cursor/mcp.json)";
   const line = (x: ServerInfo) =>
     [
       `- ${x.name}${x.disabled ? " (disabled)" : ""} · ${where(x)} · ${x.file}`,
@@ -1237,7 +1240,7 @@ export function formatAiSetup(s: AiSetup): string {
   const genesys = s.servers.filter((x) => x.genesys);
   const other = s.servers.filter((x) => !x.genesys);
   return [
-    `Cursor: ${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, another org, removing an entry) are the user's: they press them on the Cursor setup page of the gctk UI (gc_ui page ai-setup); a folder's own org and tools are set on the Projects page.`,
+    `Cursor and the Claude app: ${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, another org, removing an entry) are the user's: they press them on the Cursor setup page (gc_ui page ai-setup) or the Claude app page (gc_ui page claude-app) of the gctk UI; a Cursor folder's own org and tools are set on the Projects page, the AXL workshop the Claude app's AVA harness works on on the Claude app page.`,
     "",
     "Genesys Cloud servers:",
     ...(genesys.length ? genesys.map(line) : ["- none"]),

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TokenProvider } from "../src/core/auth.js";
 import {
   axlStatus,
+  claudeAppHarness,
   formatAxlStatus,
   harnessEnv,
   lastHarnessStart,
@@ -17,6 +18,8 @@ import {
   saveHarnessCommand,
   saveWorkshop,
   setupWorkshopFolder,
+  syncClaudeApp,
+  useInClaudeApp,
   workshopFolderStatus,
   workshopMcpFile,
 } from "../src/core/axl.js";
@@ -363,5 +366,54 @@ describe("projects (folders that are not AXL workshops)", () => {
     // A production org needs its confirmation at every start.
     profile("sbx", "production", "euw2.pure.cloud");
     expect(() => projectToolSpec({ project: w.id, tool: "genesys-cloud-architect-mcp" })).toThrow(/production org/);
+  });
+});
+
+describe("in the Claude app", () => {
+  const appFile = () => path.join(tmp, "Claude", "claude_desktop_config.json");
+  const read = () => JSON.parse(fs.readFileSync(appFile(), "utf8"));
+
+  it("lets its one harness work on a chosen workshop, follows the workshop's org and goes with the workshop", () => {
+    profile("lab", "sandbox");
+    profile("lab2", "dev");
+    const w = saveWorkshop({ name: "Lab", profile: "lab" });
+    const js = fakeGctk();
+    expect(() => useInClaudeApp(w.id, js, process.execPath, appFile())).toThrow(/not installed/);
+
+    fs.mkdirSync(path.dirname(appFile()), { recursive: true });
+    fs.writeFileSync(appFile(), JSON.stringify({ preferences: { a: 1 }, mcpServers: { other: { command: "x" } } }, null, 2), { mode: 0o600 });
+    expect(useInClaudeApp(w.id, js, process.execPath, appFile())).toBe(true);
+    expect(read()).toEqual({ preferences: { a: 1 }, mcpServers: { other: { command: "x" }, "ava-harness": { command: process.execPath, args: [js, "axl-harness", "--workshop", "lab", "--org", "lab"], env: { FASTMCP_LOG_LEVEL: "ERROR" } } } });
+    expect(fs.readFileSync(appFile(), "utf8")).not.toMatch(/SECRET|CLIENT_ID/);
+    expect(fs.statSync(appFile()).mode & 0o777).toBe(0o600);
+    expect(claudeAppHarness(appFile())).toMatchObject({ installed: true, present: true, ours: true, workshop: "lab", org: "lab", stale: false });
+    expect(useInClaudeApp(w.id, js, process.execPath, appFile())).toBe(false);
+
+    // Another org for the workshop: the Claude app follows.
+    saveWorkshop({ id: w.id, profile: "lab2" });
+    expect(claudeAppHarness(appFile()).stale).toBe(true);
+    expect(syncClaudeApp(w.id, js, process.execPath, appFile())).toBe(true);
+    expect(claudeAppHarness(appFile())).toMatchObject({ org: "lab2", stale: false });
+
+    // No workshop: gctk's entry goes, the app's other servers stay.
+    expect(useInClaudeApp(undefined, js, process.execPath, appFile())).toBe(true);
+    expect(read().mcpServers).toEqual({ other: { command: "x" } });
+    useInClaudeApp(w.id, js, process.execPath, appFile());
+    process.env.GCTK_CLAUDE_APP_CONFIG = appFile();
+    expect(axlStatus(noGlobal()).claudeApp).toMatchObject({ ours: true, workshop: "lab" });
+    expect(formatAxlStatus(axlStatus(noGlobal()), undefined)).toContain("Lab");
+    removeWorkshop(w.id);
+    expect(read()).toEqual({ preferences: { a: 1 }, mcpServers: { other: { command: "x" } } });
+  });
+
+  it("never overwrites an ava-harness the user set up in the app", () => {
+    profile("lab", "sandbox");
+    const w = saveWorkshop({ name: "Lab", profile: "lab" });
+    fs.mkdirSync(path.dirname(appFile()), { recursive: true });
+    const own = { mcpServers: { "ava-harness": { command: "/x/ava-mcp", args: ["serve"], env: { GENESYS_CLIENT_SECRET: "s" } } } };
+    fs.writeFileSync(appFile(), JSON.stringify(own));
+    expect(claudeAppHarness(appFile())).toMatchObject({ present: true, ours: false, stale: false });
+    expect(() => useInClaudeApp(w.id, fakeGctk(), process.execPath, appFile())).toThrow(/of its own/);
+    expect(read()).toEqual(own);
   });
 });

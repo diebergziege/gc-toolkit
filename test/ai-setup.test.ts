@@ -113,6 +113,35 @@ describe("discovery", () => {
   });
 });
 
+describe("the Claude app", () => {
+  const appFile = () => path.join(tmp, "Claude", "claude_desktop_config.json");
+  beforeEach(() => {
+    process.env.GCTK_CLAUDE_APP_CONFIG = appFile();
+  });
+
+  it("is read only where the app is installed; its fixes keep the app's own settings", () => {
+    expect(configFiles(opts).some((f) => f.editor === "claude-desktop")).toBe(false);
+    fs.mkdirSync(path.dirname(appFile()), { recursive: true });
+    expect(configFiles(opts).find((f) => f.editor === "claude-desktop")).toMatchObject({ path: appFile(), scope: "user", exists: false });
+
+    const cmd = fakeCommand();
+    write(appFile(), { preferences: { sidebarMode: "chat" }, mcpServers: { "ava-harness": harness(cmd) } });
+    const s = scanAiSetup(opts);
+    const x = s.servers.find((y) => y.editor === "claude-desktop")!;
+    expect(x).toMatchObject({ name: "ava-harness", file: appFile(), editable: true, credentials: "plain", org: { profile: "sandbox-org" } });
+    expect(x.problems.map((p) => p.kind)).toContain("plain-secret");
+    expect(formatAiSetup(s)).toContain("Claude app (every chat and Cowork session)");
+
+    const js = path.join(tmp, "dist", "gctk.js");
+    write(js, "");
+    moveToKeychain({ file: appFile(), section: "mcpServers", name: "ava-harness" }, { ...opts, gctkJs: js, node: "/usr/bin/node" });
+    const after = read(appFile());
+    expect(after.preferences).toEqual({ sidebarMode: "chat" });
+    expect(JSON.stringify(after)).not.toContain(SECRET);
+    expect(after.mcpServers["ava-harness"].args.slice(0, 2)).toEqual([js, "mcp-launch"]);
+  });
+});
+
 describe("servers", () => {
   it("masks secrets, names the org and flags plain text, copies, old variables and missing commands", () => {
     const cmd = fakeCommand();

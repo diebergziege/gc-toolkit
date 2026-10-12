@@ -5,7 +5,7 @@ import path from "node:path";
 import { GenesysClient } from "./client.js";
 import { hasStoredCredentials, loadCredentials } from "./credentials.js";
 import { GctkError } from "./errors.js";
-import { gctkHome } from "./paths.js";
+import { claudeAppConfigFile, gctkHome } from "./paths.js";
 import { listProfiles, loadProfile, type Profile } from "./profiles.js";
 
 /**
@@ -31,6 +31,11 @@ import { listProfiles, loadProfile, type Profile } from "./profiles.js";
  * which variables carry the credentials live here in the gctk home, never in the folder, so an
  * edited folder file cannot hand the credentials to another program. Projects take any org; a
  * production org needs a confirmation for exactly that org, checked again at every start.
+ *
+ * The Claude app (chat and Cowork) has no folders of its own: its config holds one ava-harness for
+ * every session. The user picks the workshop it works on (UI page "Claude app"); gctk writes the same
+ * `gctk axl-harness --workshop <id> --org <profile>` entry there, keeps it in step when the
+ * workshop's org changes, and removes it with the workshop.
  */
 
 export const AXL_TIERS = ["sandbox", "dev"] as const;
@@ -303,6 +308,7 @@ export function removeWorkshop(id: string): { removedServer: boolean } {
       // unreadable file: leave it alone
     }
   }
+  if (dropFromClaudeApp(id)) removedServer = true;
   s.workshops = s.workshops.filter((x) => x.id !== id);
   writeSettings(s);
   return { removedServer };
@@ -452,6 +458,109 @@ export function setupWorkshopFolder(id: string, gctkJs: string, node = process.e
   return true;
 }
 
+// ----------------------------------------------------------- Claude app
+
+/** The Claude app's ava-harness: one server for every chat and Cowork session. */
+export interface ClaudeAppHarness {
+  /** The Claude app is installed (its settings folder exists). */
+  installed: boolean;
+  file: string;
+  /** Its config has an ava-harness server. */
+  present: boolean;
+  /** Started through gctk; workshop and org are then its arguments. */
+  ours: boolean;
+  workshop?: string;
+  org?: string;
+  /** Started through gctk, but not what the workshop has now: another org, workshop gone or without harness, gctk gone. */
+  stale: boolean;
+  error?: string;
+}
+
+export function claudeAppHarness(file = claudeAppConfigFile(), settings = loadAxlSettings()): ClaudeAppHarness {
+  let e: McpEntry | undefined;
+  let error: string | undefined;
+  try {
+    e = readMcp(file).mcpServers?.[HARNESS_SERVER];
+  } catch (err) {
+    error = (err as Error).message;
+  }
+  const ours = isOurs(e);
+  const workshop = ours ? workshopArg(e) : undefined;
+  const org = ours ? argOf(e, "--org") : undefined;
+  const w = settings.workshops.find((x) => x.id === workshop);
+  const stale = ours && (!w || !usesHarness(w) || w.profile !== org || !runnable(e!));
+  return { installed: fs.existsSync(path.dirname(file)), file, present: Boolean(e), ours, ...(workshop ? { workshop } : {}), ...(org ? { org } : {}), stale, ...(error ? { error } : {}) };
+}
+
+/** Rewrites a config the app also writes (its preferences): whole file at once, same mode and indent. */
+function writeAppConfig(file: string, value: McpFile): void {
+  let mode = 0o600;
+  let indent: string | number = 2;
+  try {
+    mode = fs.statSync(file).mode & 0o777;
+    const text = fs.readFileSync(file, "utf8");
+    indent = /^\{\s*\n(\t)/.test(text) ? "\t" : (/^\{\s*\n( +)/.exec(text)?.[1]?.length ?? 2);
+  } catch {
+    // new file
+  }
+  const tmp = `${file}.gctk-${process.pid}.tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(value, null, indent)}\n`, { mode });
+  fs.renameSync(tmp, file);
+}
+
+/**
+ * Lets the Claude app's ava-harness work on this workshop (its org from the keychain at every start),
+ * or removes gctk's entry (no id). The app's other servers and settings stay. An ava-harness the
+ * user set up there themselves is never overwritten. Returns true when the file changed.
+ */
+export function useInClaudeApp(id: string | undefined, gctkJs: string, node = process.execPath, file = claudeAppConfigFile()): boolean {
+  if (!fs.existsSync(path.dirname(file))) throw new GctkError("INVALID_INPUT", "The Claude app is not installed on this computer.");
+  const mcp = readMcp(file);
+  const before = JSON.stringify(mcp.mcpServers ?? {});
+  const servers: Record<string, McpEntry> = { ...(mcp.mcpServers ?? {}) };
+  const old = servers[HARNESS_SERVER];
+  if (old && !isOurs(old)) throw new GctkError("INVALID_INPUT", `The Claude app has an ${HARNESS_SERVER} of its own that gctk did not set up. Remove it on the Claude app page first.`);
+  if (id) {
+    const w = getWorkshop(id);
+    if (!usesHarness(w)) throw new GctkError("AXL_NO_HARNESS", `The project "${w.name}" has no AVA harness. Switch it on on the Projects page.`);
+    if (!w.profile) throw new GctkError("INVALID_INPUT", `Choose the org of "${w.name}" on the Projects page first.`);
+    assertProjectOrg(w, loadProfile(w.profile));
+    const env: Record<string, string> = { FASTMCP_LOG_LEVEL: "ERROR", ...(old?.env ?? {}) };
+    servers[HARNESS_SERVER] = { ...(old ?? {}), command: node, args: [gctkJs, "axl-harness", "--workshop", id, "--org", w.profile], env };
+  } else delete servers[HARNESS_SERVER];
+  if (JSON.stringify(servers) === before) return false;
+  mcp.mcpServers = servers;
+  writeAppConfig(file, mcp);
+  return true;
+}
+
+/** After a workshop changed: the Claude app's harness follows it (new org), or goes when it has none. */
+export function syncClaudeApp(id: string, gctkJs: string, node = process.execPath, file = claudeAppConfigFile()): boolean {
+  const now = claudeAppHarness(file);
+  if (!now.ours || now.workshop !== id || !now.stale) return false;
+  const w = loadAxlSettings().workshops.find((x) => x.id === id);
+  try {
+    return useInClaudeApp(w && usesHarness(w) && w.profile ? id : undefined, gctkJs, node, file);
+  } catch {
+    // e.g. an org the harness may not use: the entry stays and the page shows it as out of date
+    return false;
+  }
+}
+
+/** Removes the Claude app's harness when it works on this workshop. */
+function dropFromClaudeApp(id: string, file = claudeAppConfigFile()): boolean {
+  try {
+    const mcp = readMcp(file);
+    const e = mcp.mcpServers?.[HARNESS_SERVER];
+    if (!isOurs(e) || workshopArg(e) !== id) return false;
+    delete mcp.mcpServers![HARNESS_SERVER];
+    writeAppConfig(file, mcp);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // -------------------------------------------------------------- status
 
 /** The last time Cursor started a workshop's harness through gctk (harness-starts.json). */
@@ -493,6 +602,8 @@ export interface AxlStatus {
   choices: Array<{ name: string; tier: string; region: string }>;
   /** Every profile, for projects (any tier; a production org needs a confirmation). */
   orgs: Array<{ name: string; tier: string; region: string; harness: boolean }>;
+  /** The Claude app's ava-harness (one for every chat and Cowork session). */
+  claudeApp: ClaudeAppHarness;
 }
 
 function orgOf(w: AxlWorkshop): WorkshopOrg | undefined {
@@ -560,6 +671,7 @@ export function axlStatus(globalMcp = globalCursorMcpFile()): AxlStatus {
     harnessInstalled: fs.existsSync(cmd),
     choices,
     orgs,
+    claudeApp: claudeAppHarness(claudeAppConfigFile(), settings),
   };
 }
 
@@ -609,6 +721,7 @@ function describeWorkshop(x: WorkshopStatus, st: AxlStatus): string[] {
         : "Its ava-harness server is not set up by gctk yet (button \"Set up folder\" on the AXL page), so the harness uses whatever org Cursor's own settings give it.",
     );
   }
+  if (st.claudeApp.ours && st.claudeApp.workshop === w.id) lines.push(`The Claude app (chat and Cowork) starts its ava-harness for this workshop with ${st.claudeApp.org ?? "?"}${st.claudeApp.stale ? ", but that entry is out of date: the user fixes it on the Claude app page of the gctk UI" : ""}.`);
   if (x.sessions.length) {
     lines.push("Sessions (newest first; only read the one the facilitator picks):");
     for (const s of x.sessions.slice(0, 30)) lines.push(`- ${s.name}  ${s.stage}${s.artifacts.length ? ` (${s.artifacts.join(", ")})` : ""}  ${s.modified.slice(0, 10)}`);
