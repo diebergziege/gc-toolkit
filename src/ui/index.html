@@ -286,6 +286,7 @@ const VIEWS = [
   ["demo", "Demo ready", "Fill the agent's home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],
 ];
 const MINOR_VIEWS = [
+  ["pricing", "Pricing", "Genesys Cloud licences, AI tokens and prices explained with sources, a calculator, and an org's live billing broken down"],
   ["monitoring", "Monitoring", "How many queues, flows, data actions … an org has, next to its limits"],
   ["data", "Your data", "Where gctk keeps your orgs, settings and records on this computer"],
 ];
@@ -388,7 +389,7 @@ async function render() {
   renderNav();
   state.cleanup?.();
   state.cleanup = null;
-  const view = { site: viewSite, "ai-setup": () => viewAiSetup("cursor"), "claude-app": () => viewAiSetup("claude-desktop"), demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
+  const view = { site: viewSite, "ai-setup": () => viewAiSetup("cursor"), "claude-app": () => viewAiSetup("claude-desktop"), demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, pricing: viewPricing, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
   try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }
 }
 
@@ -1892,6 +1893,473 @@ function axlDetail(st, x, draw) {
     h("div", { class: "row", style: "margin-bottom:12px" }, name, lab ? pill("AXL workshop", "") : null, pill(label, cls), h("span", { class: "spacer" }), remove),
     usesHarnessUi(w) ? axlHarnessMissing(st, draw) : null,
     orgPanel, folderPanel, toolsPanel, loadsPanel, cursorPanel, sessionsPanel, lab ? axlGuide(x) : null);
+}
+
+// -------------------------------------------------------------- pricing
+// Licences, AI tokens and prices explained from Genesys' public pages (every block links its
+// source), a calculator (computed by the server from the same figures), and one org's live billing
+// broken down (read-only, the endpoint behind Admin → Billing & Usage).
+const PRICING_TABS = [
+  ["start", "Start here"], ["models", "Licence models"], ["licences", "Licences & add-ons"], ["tokens", "AI tokens"], ["how", "Rules & combinations"],
+  ["cases", "Use cases"], ["calc", "Calculator"], ["live", "Live billing"], ["sources", "Sources"],
+];
+const CALC_KEY = "gctk-pricing-calc";
+const usd = (v, cur = "USD") => {
+  const x = Number(v) || 0;
+  const small = x !== 0 && Math.abs(x) < 1;
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: small ? 2 : 0, maximumFractionDigits: small ? 4 : 2 }).format(x); }
+  catch { return `${x.toFixed(2)} ${cur}`; }
+};
+const numFmt = (v, digits = 2) => (Number(v) || 0).toLocaleString("en-US", { maximumFractionDigits: digits });
+const extLink = (doc) => h("a", { href: doc.url, target: "_blank", rel: "noopener noreferrer" }, doc.title);
+function docLinks(cat, ids) {
+  const docs = (ids || []).map((id) => cat.docs[id]).filter(Boolean);
+  return docs.length ? h("div", { class: "muted", style: "font-size:12px;margin-top:4px" }, docs.length > 1 ? "Sources: " : "Source: ", docs.map((d, i) => [i ? " · " : "", extLink(d)])) : null;
+}
+function pricingTabState() {
+  if (!state.pricingTab) { try { state.pricingTab = sessionStorage.getItem("gctk-pricing-tab") || "start"; } catch { state.pricingTab = "start"; } }
+  if (!PRICING_TABS.some(([id]) => id === state.pricingTab)) state.pricingTab = "start";
+  return state.pricingTab;
+}
+function calcInput(cat) {
+  if (state.calcInput) return state.calcInput;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(CALC_KEY) || "null"); } catch {}
+  return (state.calcInput = saved && typeof saved === "object" ? { model: "named", seats: {}, hourly: {}, addOns: {}, usage: {}, fairUse: {}, tokenPrice: cat.tokenPrice, ...saved } : structuredClone(cat.useCases[0].input));
+}
+
+async function viewPricing() {
+  const cat = state.pricingCatalog || (state.pricingCatalog = await api("/api/pricing"));
+  const tab = pricingTabState();
+  const body = h("div");
+  const tabs = h("div", { class: "dtabs", role: "tablist" });
+  const show = (id) => {
+    state.pricingTab = id;
+    try { sessionStorage.setItem("gctk-pricing-tab", id); } catch {}
+    put(tabs, PRICING_TABS.map(([t, label]) => h("button", { role: "tab", "aria-selected": String(t === id), onclick: () => show(t) }, label)));
+    const draw = { start: pricingStart, models: pricingModels, how: pricingHow, licences: pricingLicences, tokens: pricingTokens, cases: pricingCases, calc: pricingCalc, live: pricingLive, sources: pricingSources }[id] || pricingStart;
+    put(body, draw(cat, show));
+  };
+  show(tab);
+  return h("div", {},
+    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Genesys Cloud pricing"),
+    h("p", { class: "lead" }, `What Genesys Cloud costs and why, explained step by step: licences, how users are counted, add-ons, included allowances and AI tokens. Prices are public list prices in USD as of ${cat.asOf}, each with a link to Genesys' own page. Real contracts are usually discounted, so use this to understand and estimate, not to quote. New to this? Start with the first tab and go left to right.`),
+    tabs, body);
+}
+
+const exampleBox = (text) => text ? h("div", { style: "background:var(--bg);border-left:3px solid var(--accent);border-radius:6px;padding:6px 10px;font-size:13px" }, h("strong", {}, "Example: "), text) : null;
+const tabLink = (show, id, text) => h("a", { href: "#", onclick: (e) => { e.preventDefault(); show(id); } }, text);
+
+function billSteps(cat) {
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "What a monthly bill is made of"),
+    h("ol", { style: "margin:0;padding-left:20px;display:grid;gap:6px" },
+      h("li", {}, h("strong", {}, "Licences: "), "number of users × the price of their licence. Example: 50 agents on CX 1 = 50 × ", usd(cat.licences[0].named), " = ", usd(50 * cat.licences[0].named), "."),
+      h("li", {}, h("strong", {}, "Add-ons: "), "number of users who have the add-on × its price."),
+      h("li", {}, h("strong", {}, "AI tokens: "), `the tokens AI features used this month, minus the free ones (${cat.freeTokens.named} per org, plus ${cat.cx4Tokens.named} per CX 4 agent), × ${usd(cat.tokenPrice)}. If the free tokens cover it, this line is zero.`),
+      h("li", {}, h("strong", {}, "Extra usage: "), "only if the org uses more IVR minutes, storage or API calls than its pooled allowance."),
+      h("li", {}, h("strong", {}, "Separate price lists: "), "phone calls and numbers, SMS, WhatsApp's Meta fees, text-to-speech.")),
+    docLinks(cat, ["hub", "tokens", "fairUse"]));
+}
+
+function pricingStart(cat, show) {
+  return h("div", {},
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Genesys Cloud pricing in six steps"),
+      h("div", { style: "display:grid;gap:10px" }, cat.basics.map((b) => h("div", {}, h("strong", {}, b.title), h("div", {}, b.text))))),
+    billSteps(cat),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Where to go next"),
+      h("ul", { style: "margin:0;padding-left:20px;display:grid;gap:4px" },
+        h("li", {}, tabLink(show, "models", "Licence models"), ": named, concurrent or hourly, and which is cheaper for a team."),
+        h("li", {}, tabLink(show, "licences", "Licences & add-ons"), ": what CX 1 to CX 4 include and cost."),
+        h("li", {}, tabLink(show, "tokens", "AI tokens"), ": what each AI feature costs."),
+        h("li", {}, tabLink(show, "how", "Rules & combinations"), ": the rules that surprise people, and smart combinations."),
+        h("li", {}, tabLink(show, "cases", "Use cases"), " and the ", tabLink(show, "calc", "Calculator"), ": try it with real numbers."),
+        h("li", {}, tabLink(show, "live", "Live billing"), ": what one of your orgs really uses."))),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Words you will meet"),
+      h("dl", { class: "kv", style: "grid-template-columns:minmax(140px,220px) minmax(0,1fr);gap:6px 14px;font-size:14px;margin:0" },
+        cat.glossary.map(([term, text]) => [h("dt", { style: "font-weight:600;color:var(--text)" }, term), h("dd", {}, text)]))));
+}
+
+function pricingModels(cat) {
+  const rows = [["counts", "What is counted"], ["example", "Example"], ["fits", "Good for"], ["watch", "Watch out"]];
+  const licSel = h("select", { "aria-label": "Licence" }, cat.licences.filter((l) => l.concurrent !== null).map((l) => h("option", { value: l.id, selected: l.id === "cx2" }, l.name)));
+  const people = h("input", { type: "number", min: "1", value: "300", style: "width:100px" });
+  const peak = h("input", { type: "number", min: "1", value: "120", style: "width:100px" });
+  const out = h("div", { style: "margin-top:10px" });
+  const compare = () => {
+    const l = cat.licences.find((x) => x.id === licSel.value);
+    const p = Math.max(0, Number(people.value) || 0);
+    const k = Math.min(p, Math.max(0, Number(peak.value) || 0));
+    const named = p * l.named, conc = k * l.concurrent;
+    const ratio = Math.round((l.concurrent / l.named) * 100) / 100;
+    put(out,
+      h("table", {},
+        h("tr", {}, h("th", {}, "Model"), h("th", {}, "Users billed"), h("th", {}, "Price per user"), h("th", { style: "text-align:right" }, "Per month")),
+        h("tr", { style: named <= conc ? "font-weight:600" : "" }, h("td", {}, "Named"), h("td", {}, `${numFmt(p, 0)} (everyone who logs in)`), h("td", {}, usd(l.named)), h("td", { style: "text-align:right" }, usd(named))),
+        h("tr", { style: conc < named ? "font-weight:600" : "" }, h("td", {}, "Concurrent"), h("td", {}, `${numFmt(k, 0)} (most at the same time)`), h("td", {}, usd(l.concurrent)), h("td", { style: "text-align:right" }, usd(conc)))),
+      h("div", { class: named === conc ? "muted" : "okbox" }, p && k ? (named === conc ? "Both cost the same." : `${named < conc ? "Named" : "Concurrent"} is ${usd(Math.abs(named - conc))} a month cheaper.`) : "Enter the numbers."),
+      h("p", { class: "muted", style: "font-size:13px;margin:6px 0 0" }, `Rule of thumb for ${l.name}: a concurrent user costs ${ratio} × a named one, so concurrent is cheaper when more than ${ratio} people share each seat (here ${k ? numFmt(p / k, 2) : "–"} people per seat).`));
+  };
+  for (const el of [licSel, people, peak]) el.addEventListener("input", compare);
+  compare();
+  return h("div", {},
+    h("p", { class: "muted", style: "margin-top:0" }, "A licence model is the way Genesys counts how many users to bill. The licence (CX 1, CX 2 …) decides what a user can do; the model decides how users are counted. An org picks named or concurrent for all its users; hourly can be added for occasional users."),
+    h("div", { class: "cards" }, cat.licenceModels.map((m) => h("div", { class: "panel" },
+      h("strong", { style: "font-size:16px" }, m.name),
+      rows.map(([k, label]) => k === "example" ? exampleBox(m[k]) : h("div", {}, h("div", { class: "sub-head" }, label), h("div", {}, m[k]))),
+      docLinks(cat, m.docs)))),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Named or concurrent: which is cheaper for this team?"),
+      h("div", { class: "row" },
+        h("label", {}, "Licence", licSel),
+        h("label", {}, "People who log in during the month", people),
+        h("label", {}, "Most logged in at the same time", peak)),
+      out,
+      docLinks(cat, ["named", "concurrent", "concurrentCatalogue"])));
+}
+
+function pricingHow(cat) {
+  return h("div", {},
+    billSteps(cat),
+    h("h3", {}, "Rules worth knowing"),
+    h("div", { class: "cards" }, cat.rules.map((r) => h("div", { class: "panel" }, h("strong", {}, r.title), h("div", {}, r.text), exampleBox(r.example), docLinks(cat, r.docs)))),
+    h("h3", {}, "Smart and less smart combinations"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Simple sums with the named list prices that show which combination of licences and add-ons pays off."),
+    h("div", { class: "cards" }, cat.insights.map((x) => h("div", { class: "panel" }, h("strong", {}, x.title), h("div", {}, x.text)))),
+    h("p", { class: "muted", style: "font-size:13px" }, "Try any of these in the Calculator tab; the Use cases tab has ready-made mixes."));
+}
+
+function pricingLicences(cat, show) {
+  const cx1 = cat.licences.find((l) => l.id === "cx1");
+  const ways = h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Three ways to pay for the same licence"),
+    h("p", { style: "margin:0 0 8px" }, "Every licence below (CX 1, CX 2 …) has up to three prices. They buy the same features; they differ in how Genesys counts the user:"),
+    h("ul", { style: "margin:0 0 8px;padding-left:20px;display:grid;gap:4px" },
+      h("li", {}, h("strong", {}, "Named: "), "a fixed price per person per month, for everyone who logs in during the month."),
+      h("li", {}, h("strong", {}, "Concurrent: "), "a higher price per user, but only for the most people logged in at the same time. Good for shift work."),
+      h("li", {}, h("strong", {}, "Hourly (Hourly Interacting): "), "a price per hour the user spends on customer interactions, for occasional agents next to a named or concurrent team.")),
+    exampleBox(`A CX 1 agent who handles calls for 20 hours a month costs ${usd(20 * cx1.hourly)} hourly, against ${usd(cx1.named)} for a named licence. At about ${numFmt(cx1.named / cx1.hourly, 0)} hours a month both cost the same.`),
+    h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, "The org chooses named or concurrent for all its users; hourly users can be added on top. ", tabLink(show, "models", "Licence models"), " explains each with examples and a comparison."),
+    docLinks(cat, ["named", "concurrent", "hourly", "hourlyPrices"]));
+  const lic = (id) => cat.licences.find((l) => l.id === id)?.name.replace("Genesys Cloud ", "") || id;
+  const fuIds = ["cx1", "cx2", "cx3", "cx4", "cx2d", "cx3d", "communicate"];
+  const fuModel = state.fuModel || "named";
+  const fuBox = h("div");
+  const drawFu = () => put(fuBox, h("table", {},
+    h("tr", {}, h("th", {}, "Allowance per user and month"), fuIds.map((id) => h("th", {}, lic(id))), h("th", {}, "Above the pool")),
+    cat.fairUse.map((f) => h("tr", {}, h("td", {}, h("strong", {}, `${f.name} (${f.unit})`), h("div", { class: "muted", style: "font-size:12px;max-width:260px" }, f.what)), fuIds.map((id) => h("td", {}, f[state.fuModel || "named"][id] === undefined ? "–" : numFmt(f[state.fuModel || "named"][id]))), h("td", {}, `${usd(f.overageUsd)} per ${f.unit.replace(/s$/, "")}`)))));
+  const fuSel = h("select", { "aria-label": "Licence model", onchange: () => { state.fuModel = fuSel.value; drawFu(); } },
+    h("option", { value: "named", selected: fuModel === "named" }, "named"), h("option", { value: "concurrent", selected: fuModel === "concurrent" }, "concurrent"));
+  drawFu();
+  return h("div", {},
+    ways,
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Licences: each user has exactly one"),
+      h("p", { class: "muted", style: "font-size:13px;margin-top:-4px" }, "From CX 1 to CX 4 each licence includes everything of the one before and adds more. Pick the smallest licence that covers what the user does: phone only, also digital channels, also shift planning, also AI help."),
+      h("table", {},
+        h("tr", {}, h("th", {}, "Licence"), h("th", {}, "For"), h("th", {}, "Named", h("div", { style: "font-weight:400" }, "per user / month")), h("th", {}, "Concurrent", h("div", { style: "font-weight:400" }, "per user / month")), h("th", {}, "Hourly", h("div", { style: "font-weight:400" }, "per interaction hour")), h("th", {}, "Includes")),
+        cat.licences.map((l) => h("tr", {},
+          h("td", {}, h("strong", {}, l.name), l.voice ? null : [" ", pill("digital only", "")]),
+          h("td", {}, l.for, l.note ? h("div", { class: "muted", style: "font-size:12px" }, l.note) : null),
+          h("td", { style: "white-space:nowrap" }, usd(l.named)),
+          h("td", { style: "white-space:nowrap" }, l.concurrent === null ? "–" : usd(l.concurrent)),
+          h("td", { style: "white-space:nowrap" }, l.hourly === null ? "–" : usd(l.hourly)),
+          h("td", { style: "font-size:13px" }, l.includes.join(", "), l.aiIncluded.length ? h("div", { style: "margin-top:4px" }, "AI without tokens: ", l.aiIncluded.join(", ")) : null, docLinks(cat, l.docs))))),
+      h("p", { class: "muted", style: "font-size:12px;margin:8px 0 0" }, "Named and concurrent: per user and month with an annual commitment. Hourly: per hour on interactions, month-to-month (Genesys' hourly price list). Genesys publishes named and hourly prices; the concurrent column comes from a reseller's catalogue and is a guide only. A dash means there is no such option or no public price. AI features such as bots, Virtual Agent, AVA and Copilot are available on every CX licence (some need digital) and are paid with tokens.")),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Add-ons: extras for some users"),
+      h("p", { class: "muted", style: "font-size:13px;margin-top:-4px" }, "An add-on gives users a feature their licence lacks, without upgrading everyone. It is paid per user who has it, on top of their licence."),
+      exampleBox("Only the 40 agents who are scheduled need workforce management: give them the CX 2 WEM add-on instead of moving all 150 agents to CX 3."),
+      h("table", {},
+        h("tr", {}, h("th", {}, "Add-on"), h("th", {}, "For users on"), h("th", {}, "Named"), h("th", {}, "Concurrent"), h("th", {}, "Hourly"), h("th", {}, "What it adds")),
+        cat.addOns.map((a) => h("tr", {},
+          h("td", {}, h("strong", {}, a.name)),
+          h("td", {}, a.on.length ? a.on.map(lic).join(", ") : "any"),
+          h("td", { style: "white-space:nowrap" }, usd(a.named)),
+          h("td", { style: "white-space:nowrap" }, a.concurrent === null ? "–" : usd(a.concurrent)),
+          h("td", { style: "white-space:nowrap" }, a.hourly === null ? "–" : usd(a.hourly)),
+          h("td", { style: "font-size:13px" }, a.what, a.oneTime ? h("div", { class: "muted" }, `${a.oneTime.label}: ${usd(a.oneTime.usd)}`) : null, docLinks(cat, a.docs)))))),
+    h("div", { class: "panel" },
+      h("div", { class: "row" }, h("h3", { style: "margin:0" }, "Fair use allowances (pooled over the org)"), h("span", { class: "spacer" }), fuSel),
+      h("p", { class: "muted", style: "font-size:13px" }, "Each licence includes a monthly amount of these. The amounts of all users are added up into one pool for the org; only what the whole org uses above the pool costs extra. Most orgs never go over."),
+      exampleBox("20 named CX 3 users bring 20 × 3,250 = 65,000 IVR minutes a month. If callers spend 70,000 minutes in the IVR, 5,000 minutes × 0.01 USD = 50 USD is charged."),
+      fuBox, docLinks(cat, ["fairUse"])));
+}
+
+function pricingTokens(cat) {
+  return h("div", {},
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "What is an AI Experience token?"),
+      h("p", { style: "margin:0 0 6px" }, "A token is a credit, like a prepaid voucher, that pays for AI features. It has nothing to do with the tokens a language model reads and writes."),
+      h("p", { style: "margin:0 0 6px" }, "Each feature is measured in something easy to count (minutes of a bot call, conversations, users) and Genesys converts that to tokens at a fixed rate. Cheap features need many units per token; expensive ones take one or more tokens per unit."),
+      exampleBox("A voicebot talks for 34 minutes in total = 2 tokens. 10 Virtual Agent conversations = 5 tokens. 1 agent with Agent Copilot for a month = 40 tokens."),
+      docLinks(cat, ["tokens", "aiBilling"])),
+    h("h3", {}, "What tokens cost, and how many you get free"),
+    h("div", { class: "cards", style: "grid-template-columns:repeat(auto-fill,minmax(280px,1fr))" },
+      h("div", { class: "panel" },
+        h("div", { class: "muted", style: "font-size:13px" }, "Price of one token"),
+        h("div", { style: "font-size:24px;font-weight:700" }, usd(cat.tokenPrice)),
+        h("div", {}, "This is the list price for tokens used beyond the free ones. Customers who buy a bundle of tokens in advance with their contract pay less per token."),
+        docLinks(cat, ["hub"])),
+      h("div", { class: "panel" },
+        h("div", { class: "muted", style: "font-size:13px" }, "Free tokens for every org"),
+        h("div", { style: "font-size:24px;font-weight:700" }, `${cat.freeTokens.named} a month`),
+        h("div", {}, `Every Genesys Cloud org gets ${cat.freeTokens.named} tokens free each month, shared by all its users (not per user). Orgs that count users concurrently get ${cat.freeTokens.concurrent}. Free tokens not used by the end of the month are lost; they do not move to the next month.`),
+        docLinks(cat, ["freeAllocation"])),
+      h("div", { class: "panel" },
+        h("div", { class: "muted", style: "font-size:13px" }, "Extra free tokens with CX 4"),
+        h("div", { style: "font-size:24px;font-weight:700" }, `+${cat.cx4Tokens.named} per CX 4 agent`),
+        h("div", {}, `Each agent with a CX 4 licence adds ${cat.cx4Tokens.named} tokens a month to the org's free tokens (${cat.cx4Tokens.concurrent} per concurrent CX 4 user). They go into the same shared pool and also expire at the end of the month.`),
+        exampleBox(`50 CX 4 agents: ${cat.freeTokens.named} + 50 × ${cat.cx4Tokens.named} = ${numFmt(cat.freeTokens.named + 50 * cat.cx4Tokens.named, 0)} free tokens a month.`),
+        docLinks(cat, ["hub"]))),
+    h("p", { class: "muted", style: "font-size:13px;margin-top:0" }, "So each month: tokens used − free tokens = tokens paid for. If the free tokens cover everything, AI costs nothing extra that month."),
+    h("div", { class: "panel", style: "margin-top:12px" },
+      h("h3", { style: "margin-top:0" }, "What each AI feature costs in tokens"),
+      h("table", {},
+        h("tr", {}, h("th", {}, "Feature"), h("th", {}, "Rate"), h("th", {}, "Example"), h("th", {}, "Good to know")),
+        cat.tokenRates.map((r) => {
+          const per = r.tokensPerUnit.named;
+          const example = per >= 1 ? `10 users → ${numFmt(10 * per)} tokens` : `1,000 ${r.unit.replace(/ \(.*\)/, "")} → ${numFmt(1000 * per, 1)} tokens`;
+          return h("tr", {},
+            h("td", {}, h("strong", {}, r.name), r.what ? h("div", { style: "font-size:13px" }, r.what) : null, r.needsDigital ? h("div", { class: "muted", style: "font-size:12px" }, "needs a licence with digital channels") : null),
+            h("td", {}, r.rate),
+            h("td", { class: "muted", style: "white-space:nowrap" }, example),
+            h("td", { style: "font-size:13px" }, r.note || "", docLinks(cat, r.docs)));
+        })),
+      h("p", { class: "muted", style: "font-size:12px;margin:8px 0 0" }, "Predictive Engagement costs no tokens. The month's total is rounded up to whole tokens.")),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "One interaction, several AI features"),
+      h("table", {},
+        h("tr", {}, h("th", {}, "The interaction uses"), h("th", {}, "Charged")),
+        [["a bot flow only", "per minute (voice, 17 per token) or session (digital, 51 per token)"],
+          ["a bot flow, then a Virtual Agent", "0.5 tokens (the Virtual Agent's rate only)"],
+          ["a bot flow, then an AVA", "1.2 tokens (the AVA's rate only)"],
+          ["a bot flow, a Virtual Agent and an AVA", "1.2 tokens"],
+          ["a flow containing an AVA block that is never reached", "1.2 tokens: the visit counts"]].map(([a, b]) => h("tr", {}, h("td", {}, a), h("td", {}, b)))),
+      docLinks(cat, ["aiScenarios"])));
+}
+
+function pricingCases(cat, show) {
+  const totals = new Map();
+  const cards = cat.useCases.map((u) => {
+    const total = h("div", { class: "muted", style: "font-size:13px" }, "Calculating…");
+    totals.set(u.id, total);
+    return h("div", { class: "panel" },
+      h("strong", { style: "font-size:15px" }, u.title),
+      h("div", { class: "muted" }, u.customer),
+      h("ul", { style: "margin:4px 0;padding-left:18px" }, u.combination.map((c) => h("li", {}, c))),
+      h("div", { style: "font-size:13px" }, h("strong", {}, "Tokens: "), u.tokens),
+      total,
+      h("div", {}, h("button", { class: "btn primary", onclick: () => { state.calcInput = structuredClone(u.input); saveCalc(); show("calc"); } }, "Open in the calculator")));
+  });
+  for (const u of cat.useCases) {
+    api("/api/pricing/estimate", { method: "POST", body: u.input }).then((e) => {
+      put(totals.get(u.id), `≈ ${usd(e.monthly)} a month at list price`, e.perAgent ? ` (${usd(e.perAgent)} per agent)` : "", ` · ${numFmt(e.tokens.total, 0)} tokens, ${numFmt(e.tokens.billable, 0)} above the allocation`);
+    }).catch(() => put(totals.get(u.id), ""));
+  }
+  return h("div", {},
+    h("p", { class: "muted", style: "margin-top:0" }, "Typical customers and the licence mix that fits them. Open one in the calculator and change the numbers to the customer's."),
+    h("div", { class: "cards" }, cards));
+}
+
+function saveCalc() { try { localStorage.setItem(CALC_KEY, JSON.stringify(state.calcInput)); } catch {} }
+
+function pricingCalc(cat) {
+  const inp = calcInput(cat);
+  const result = h("div", {}, h("div", { class: "panel empty" }, "Calculating…"));
+  let timer = 0;
+  let seq = 0;
+  const recalc = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const mine = ++seq;
+      saveCalc();
+      try { const e = await api("/api/pricing/estimate", { method: "POST", body: inp }); if (mine === seq) put(result, calcResult(cat, e, inp)); }
+      catch (err) { put(result, h("div", { class: "error" }, err.message)); }
+    }, 200);
+  };
+  const field = (group, id, label, hint) => {
+    inp[group] ??= {};
+    const el = h("input", { type: "number", min: "0", step: "any", value: inp[group][id] ?? "", placeholder: "0", style: "width:100%" });
+    el.addEventListener("input", () => { const v = Number(el.value); if (v > 0) inp[group][id] = v; else delete inp[group][id]; recalc(); });
+    return h("label", { title: hint || null }, label, el);
+  };
+  const model = h("select", { "aria-label": "Licence model", onchange: () => { inp.model = model.value; recalc(); } },
+    h("option", { value: "named", selected: inp.model === "named" }, "Named users"), h("option", { value: "concurrent", selected: inp.model === "concurrent" }, "Concurrent users"));
+  const price = h("input", { type: "number", min: "0", step: "0.01", value: inp.tokenPrice, style: "width:90px" });
+  price.addEventListener("input", () => { inp.tokenPrice = Math.max(0, Number(price.value) || 0); recalc(); });
+  const presets = h("select", { "aria-label": "Use case", onchange: () => {
+    const u = cat.useCases.find((x) => x.id === presets.value);
+    if (u) { state.calcInput = structuredClone(u.input); saveCalc(); render(); }
+  } }, h("option", { value: "" }, "Start from a use case…"), cat.useCases.map((u) => h("option", { value: u.id }, u.title)));
+  const clear = h("button", { class: "btn", onclick: () => { state.calcInput = { model: inp.model, seats: {}, hourly: {}, addOns: {}, usage: {}, fairUse: {}, tokenPrice: cat.tokenPrice }; saveCalc(); render(); } }, "Clear");
+  recalc();
+  const section = (title, hint, kids) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, title), hint ? h("p", { class: "muted", style: "font-size:13px;margin-top:-4px" }, hint) : null, h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fill,minmax(170px,1fr))" }, kids));
+  return h("div", {},
+    h("p", { class: "muted", style: "margin-top:0" }, "Enter how many users have which licence and how much AI they use in a month; the total on the right updates as you type. Not sure where to start? Choose one under \"Start from a use case…\" and change its numbers. Hover over a field for its rate."),
+    h("div", { class: "row", style: "margin-bottom:12px" }, model, h("label", { style: "display:flex;align-items:center;gap:6px", title: "1 USD is the list price; contracts that buy tokens upfront pay less" }, "USD per token", price), h("span", { class: "spacer" }), presets, clear),
+    h("div", { style: "display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start" },
+      h("div", {},
+        section("Users per licence", "Each agent has one base licence.", cat.licences.map((l) => field("seats", l.id, l.name.replace("Genesys Cloud ", ""), l.for))),
+        section("Hourly agents (optional)", "Occasional agents on Hourly Interacting, on top of the users above: enter the hours they spend on interactions per month, all of them together.",
+          cat.licences.filter((l) => l.hourly !== null).map((l) => field("hourly", l.id, `${l.name.replace("Genesys Cloud ", "")}: hours`, `${usd(l.hourly)} per interaction hour`))),
+        section("Add-ons", "How many users have the add-on (they also count in a base licence above).", cat.addOns.map((a) => field("addOns", a.id, a.name, a.what))),
+        section("AI usage per month", "An interaction that uses several AI features counts once, at the highest: enter it under AVA if it reaches an AVA flow, else under Virtual Agent, else as bot minutes or sessions.",
+          cat.tokenRates.map((r) => field("usage", r.id, `${r.name}: ${r.unit}`, r.rate))),
+        section("Fair use (optional)", "Only needed when the customer may exceed the pooled allowance.", cat.fairUse.map((f) => field("fairUse", f.id, `${f.name} (${f.unit})`)))),
+      h("div", { style: "position:sticky;top:110px" }, result)));
+}
+
+function calcResult(cat, e, inp) {
+  const t = e.tokens;
+  const pct = t.allocation ? Math.min(100, Math.round((t.total / t.allocation) * 100)) : t.total ? 100 : 0;
+  const group = (g, title) => {
+    const ls = e.lines.filter((l) => l.group === g);
+    return ls.length ? [h("tr", {}, h("th", { colspan: "4", style: "padding-top:12px" }, title)), ls.map((l) => h("tr", {},
+      h("td", {}, l.label, l.note ? h("div", { class: "muted", style: "font-size:12px" }, l.note) : null),
+      h("td", { style: "white-space:nowrap" }, `${numFmt(l.qty, 0)} ${l.unit}`),
+      h("td", { style: "white-space:nowrap" }, `× ${usd(l.unitPrice)}`),
+      h("td", { style: "white-space:nowrap;text-align:right" }, usd(l.monthly))))] : null;
+  };
+  return h("div", {},
+    h("div", { class: "panel" },
+      h("div", { class: "muted", style: "font-size:13px" }, "Estimated monthly total at list price"),
+      h("div", { style: "font-size:30px;font-weight:700;line-height:1.2" }, usd(e.monthly)),
+      h("div", { class: "muted" }, e.perAgent ? `${usd(e.perAgent)} per agent · ${e.agents} agents · ${usd(e.monthly * 12)} a year` : "Add users to see a per-agent price."),
+      e.oneTime.length ? h("div", { class: "muted", style: "font-size:13px" }, "Once: ", e.oneTime.map((o) => `${o.label} ${usd(o.usd)}`).join(", ")) : null,
+      e.warnings.length ? h("div", { class: "warn" }, h("ul", { style: "margin:0;padding-left:18px" }, e.warnings.map((w) => h("li", {}, w)))) : null,
+      e.lines.length ? h("table", {}, group("licences", "Licences"), group("addOns", "Add-ons"), group("tokens", "AI tokens"), group("fairUse", "Fair use overage")) : null),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "AI Experience tokens"),
+      h("div", { class: "row" }, h("strong", {}, `${numFmt(t.total, 0)} tokens a month`), h("span", { class: "muted" }, `allocation ${numFmt(t.allocation, 0)} (${t.free} free${t.cx4 ? ` + ${numFmt(t.cx4, 0)} from CX 4` : ""})`)),
+      h("div", { class: `meter`, style: "margin:6px 0" }, h("i", { style: `width:${pct}%;${t.total > t.allocation ? "background:var(--warn)" : ""}` })),
+      h("div", { class: "muted", style: "font-size:13px" }, t.billable ? `${numFmt(t.billable, 0)} above the allocation × ${usd(t.price)} = ${usd(t.cost)}` : `Within the allocation; ${numFmt(t.unused, 0)} tokens unused this month (they do not carry over).`),
+      t.rows.length ? h("table", { style: "margin-top:8px" },
+        h("tr", {}, h("th", {}, "Feature"), h("th", {}, "Per month"), h("th", { style: "text-align:right" }, "Tokens")),
+        [...t.rows].sort((a, b) => b.tokens - a.tokens).map((r) => h("tr", {}, h("td", {}, r.label), h("td", { class: "muted" }, `${numFmt(r.amount, 0)} ${r.unit}`), h("td", { style: "text-align:right" }, numFmt(r.tokens, 1))))) : h("p", { class: "muted", style: "margin:8px 0 0" }, "No AI usage entered."),
+      docLinks(cat, ["tokens", "aiScenarios"])),
+    e.fairUse.some((f) => f.used) ? h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Fair use"),
+      h("table", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "Pool"), h("th", {}, "Used"), h("th", { style: "text-align:right" }, "Overage")),
+        e.fairUse.filter((f) => f.used).map((f) => h("tr", {}, h("td", {}, f.name || f.label), h("td", {}, `${numFmt(f.allocation, 0)} ${f.unit}`), h("td", {}, numFmt(f.used, 0)), h("td", { style: "text-align:right" }, f.cost ? usd(f.cost) : "–")))),
+      docLinks(cat, ["fairUse"])) : null,
+    h("p", { class: "muted", style: "font-size:12px" }, `List prices in USD as of ${cat.asOf}. Excludes telephony, SMS, WhatsApp's Meta fees, TTS, taxes and discounts. Model: ${inp.model}.`));
+}
+
+function pricingLive(cat) {
+  const o = state.overview;
+  const usable = (o?.profiles || []).filter((p) => !p.error);
+  if (!usable.length) return h("div", { class: "warn" }, "Connect an org under ", navLink("profiles", "Orgs"), " first.");
+  if (!usable.some((p) => p.name === state.profile)) state.profile = usable[0].name;
+  const sel = h("select", { "aria-label": "Org" }, usable.map((p) => h("option", { value: p.name, selected: p.name === state.profile }, `${p.name} (${p.tier})`)));
+  const period = h("input", { type: "date", value: state.billingPeriod || "", title: "A day in an earlier billing period; empty = the current period" });
+  const out = h("div", {}, h("div", { class: "panel empty" }, "Reading the org's billing…"));
+  const refresh = h("button", { class: "btn" }, "Refresh");
+  const load = async (fresh) => {
+    const profile = state.profile;
+    refresh.disabled = true;
+    put(out, h("div", { class: "panel empty" }, "Reading the org's billing…"));
+    try {
+      const r = await api(`/api/pricing/billing?profile=${encodeURIComponent(profile)}${state.billingPeriod ? `&periodEnding=${state.billingPeriod}` : ""}${fresh ? "&refresh=1" : ""}`);
+      if (profile === state.profile && state.view === "pricing" && state.pricingTab === "live") put(out, billingReport(cat, r));
+    } catch (err) {
+      put(out, h("div", { class: "error" }, err.message), /403|permission/i.test(err.message) ? h("div", { class: "warn" }, "The org's OAuth client needs the role permission Billing > Subscription > View (or Billing > All Permissions) and the scope billing:readonly.") : null);
+    } finally { refresh.disabled = false; }
+  };
+  sel.addEventListener("change", () => { state.profile = sel.value; load(false); });
+  period.addEventListener("change", () => { state.billingPeriod = period.value; load(false); });
+  refresh.addEventListener("click", () => load(true));
+  load(false);
+  return h("div", {},
+    h("div", { class: "row", style: "margin-bottom:8px" }, sel, h("label", { style: "display:flex;align-items:center;gap:6px" }, "Period containing", period), h("span", { class: "spacer" }), refresh),
+    h("p", { class: "muted", style: "font-size:13px;margin-top:0" }, "Read-only: the same numbers as Admin → Account → Subscription → Billing & Usage, sorted and explained. gctk reads them through the endpoint that Admin page uses, which Genesys does not document publicly yet, so its fields may change. Usage trails by about two days; the invoice is what counts."),
+    h("details", { class: "panel", style: "padding:8px 16px" },
+      h("summary", { style: "margin:4px 0" }, "How to read this page"),
+      h("dl", { class: "kv", style: "grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:6px 14px;margin:6px 0" },
+        [["Used", "How much of it the org used in this billing period: users for licences, minutes, messages, gigabytes for usage."],
+          ["Committed", "How much the contract buys in advance. Committed licences are paid even if unused; use above them is charged at the price \"above\"."],
+          ["Free allocation", "The tokens Genesys gives this org every month (250 named, 350 concurrent, plus 30 or 39 per CX 4 agent)."],
+          ["Reported / Units / Tokens", "Genesys lists each AI feature's use. gctk converts it with the published rate, so you see both the natural unit (minutes, conversations) and the tokens it costs."],
+          ["Fair use meters", "How much of the org's included allowance is used. Amber from 80 %, red when the org goes over and pays extra."],
+          ["Estimated", "gctk's sum of commitments and usage above them. A dev or demo org usually shows 0."]].map(([k, v]) => [h("dt", { style: "font-weight:600;color:var(--text)" }, k), h("dd", {}, v)]))),
+    out);
+}
+
+function billingReport(cat, r) {
+  const cur = r.currency;
+  const money = (v) => usd(v, cur);
+  const t = r.tokens;
+  const kindLabel = { named: "named", concurrent: "concurrent", hourly: "hourly", device: "device", other: "" };
+  const tokenPct = t && t.allocation + t.prepaid ? Math.min(100, Math.round((t.used / (t.allocation + t.prepaid)) * 100)) : t?.used ? 100 : 0;
+  const quantities = {
+    tokens: "Genesys reports these rows in tokens; the units column is worked out from the published rate.",
+    units: "Genesys reports these rows in the feature's own unit (minutes, sessions, interactions); tokens are worked out from the published rate.",
+    unknown: "Not enough use yet to tell whether Genesys reports these rows in tokens or in the feature's own unit, so they are shown as reported.",
+  }[t?.quantities || "unknown"];
+  return h("div", {},
+    h("div", { class: "muted", style: "margin:-2px 0 10px;font-size:12px" }, `${r.profile} · ${r.periodEnding ? `period containing ${r.periodEnding}` : "current period"} · read ${time(r.at)} · ${r.rows} billing rows`),
+    h("div", { class: "mon" },
+      h("div", {}, h("div", { class: "muted", style: "font-size:13px" }, "Estimated this period"), h("div", { class: "n" }, money(r.estimated)), h("div", { class: "muted", style: "font-size:12px" }, "commitments + usage above them")),
+      h("div", {}, h("div", { class: "muted", style: "font-size:13px" }, "AI tokens used"), h("div", { class: "n" }, t ? numFmt(t.used, 0) : "–", t ? h("small", {}, ` / ${numFmt(t.allocation + t.prepaid, 0)}`) : null),
+        t ? h("div", { class: "meter" }, h("i", { style: `width:${tokenPct}%;${t.used > t.allocation + t.prepaid ? "background:var(--warn)" : ""}` })) : null,
+        h("div", { class: "muted", style: "font-size:12px" }, t ? `${numFmt(t.allocation, 0)} free${t.prepaid ? ` + ${numFmt(t.prepaid, 0)} prepaid` : ""}` : "no token line in this subscription")),
+      h("div", {}, h("div", { class: "muted", style: "font-size:13px" }, "Subscription"), h("div", { style: "font-weight:600" }, r.subscriptionType || "–"),
+        h("div", { class: "muted", style: "font-size:12px" }, `${cur}${r.minimumMonthly ? ` · minimum ${money(r.minimumMonthly)} a month` : ""}${r.ramp?.inRamp ? " · in ramp period" : ""}`))),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "AI Experience tokens by feature"),
+      t ? [
+        h("div", { class: "muted", style: "font-size:13px" }, `${t.name}: ${numFmt(t.used, 2)} used, ${numFmt(t.allocation, 0)} free allocation${t.prepaid ? `, ${numFmt(t.prepaid, 0)} prepaid` : ""}. ${t.above ? `${numFmt(t.above, 0)} above that × ${money(t.price)} = ${money(t.cost)}.` : "Nothing above the allocation."}`),
+        h("table", { style: "margin-top:8px" },
+          h("tr", {}, h("th", {}, "Feature"), h("th", {}, "Rate"), h("th", {}, "Reported"), h("th", {}, "Units"), h("th", { style: "text-align:right" }, "Tokens")),
+          t.features.map((f) => h("tr", { style: f.reported ? "" : "color:var(--muted)" },
+            h("td", {}, f.name), h("td", { style: "font-size:13px" }, f.rate), h("td", {}, numFmt(f.reported)),
+            h("td", {}, f.units === null ? "–" : numFmt(f.units)), h("td", { style: "text-align:right" }, f.tokens === null ? "–" : numFmt(f.tokens)))),
+          t.perUser ? h("tr", {}, h("td", {}, "Per-user features (Agent Copilot, speech and text analytics …)"), h("td", { style: "font-size:13px" }, "per user and month"), h("td", {}, "–"), h("td", {}, "–"), h("td", { style: "text-align:right" }, numFmt(t.perUser))) : null),
+        h("p", { class: "muted", style: "font-size:12px;margin:8px 0 0" }, quantities, " Rows in grey had no use."),
+        docLinks(cat, ["tokens", "aiScenarios"])]
+        : h("p", { class: "muted" }, "This subscription has no AI Experience token line.")),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Licences and devices"),
+      r.licences.length ? h("table", {},
+        h("tr", {}, h("th", {}, "Part"), h("th", {}, "Type"), h("th", {}, "Used"), h("th", {}, "Committed"), h("th", {}, "Price"), h("th", { style: "text-align:right" }, "Cost")),
+        r.licences.map((l) => h("tr", {},
+          h("td", {}, l.name, l.partNumber ? h("div", { class: "muted mono", style: "font-size:11px" }, l.partNumber) : null),
+          h("td", {}, kindLabel[l.kind] ?? l.kind),
+          h("td", {}, `${numFmt(l.used)} ${l.unit}`),
+          h("td", {}, numFmt(l.committed)),
+          h("td", { style: "font-size:13px" }, `${money(l.prepayPrice)} committed, ${money(l.overagePrice)} above`),
+          h("td", { style: "text-align:right" }, money(l.cost), l.above ? h("div", { class: "muted", style: "font-size:12px" }, `${numFmt(l.above)} above commitment`) : null))))
+        : h("p", { class: "muted" }, "No licences with use or commitment in this period."),
+      h("p", { class: "muted", style: "font-size:12px;margin:8px 0 0" }, "Committed = what the contract prepays; use above it is charged at the price above. Compare the names with the Licences tab."),
+      docLinks(cat, ["pricing", "hub"])),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Fair use"),
+      r.fairUse.length ? h("div", { class: "mon" }, r.fairUse.map((f) => {
+        const pct = f.allocation ? Math.min(100, Math.round((f.used / f.allocation) * 100)) : f.used ? 100 : 0;
+        return h("div", { class: f.overage ? "m-alert" : pct >= 80 ? "m-warn" : "" },
+          h("div", { class: "muted", style: "font-size:13px" }, f.name),
+          h("div", { class: "n" }, numFmt(f.used), h("small", {}, ` / ${numFmt(f.allocation)} ${f.unit}`)),
+          h("div", { class: "meter" }, h("i", { style: `width:${Math.max(f.used ? 2 : 0, pct)}%` })),
+          h("div", { class: "muted", style: "font-size:12px" }, f.overage ? `${numFmt(f.overage)} above × ${money(f.price)} = ${money(f.cost)}` : `${pct} % of the pool`));
+      })) : h("p", { class: "muted" }, "No fair use rows."),
+      r.storage.length ? h("div", { class: "muted", style: "font-size:13px" }, "Storage by kind: ", r.storage.map((s) => `${s.name} ${numFmt(s.gb, 3)} GB`).join(", ")) : null,
+      docLinks(cat, ["fairUse"])),
+    r.other.length ? h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Other usage this period"),
+      h("table", {}, h("tr", {}, h("th", {}, "Part"), h("th", {}, "Kind"), h("th", {}, "Used"), h("th", {}, "Price"), h("th", { style: "text-align:right" }, "Cost")),
+        r.other.map((x) => h("tr", {}, h("td", {}, x.name), h("td", { class: "muted" }, x.grouping), h("td", {}, `${numFmt(x.used)} ${x.unit}`), h("td", {}, money(x.price)), h("td", { style: "text-align:right" }, money(x.cost))))),
+      docLinks(cat, ["hub"])) : null,
+    h("p", { class: "muted", style: "font-size:12px" }, "More detail per user and resource: ", r.docs.map((d, i) => [i ? " · " : "", extLink(d)])));
+}
+
+function pricingSources(cat) {
+  return h("div", { class: "panel" },
+    h("h3", { style: "margin-top:0" }, "Where the figures come from"),
+    h("p", { class: "muted", style: "font-size:13px" }, `Checked on ${cat.asOf}. Genesys changes prices and rates now and then; each page has a revision history.`),
+    h("ul", {}, Object.values(cat.docs).map((d) => h("li", {}, extLink(d)))));
 }
 
 // ----------------------------------------------------------- monitoring

@@ -2,7 +2,7 @@
 
 - Scope (maintainer decisions 2026-09-30 and 2026-10-01): gctk is a local UI that makes the user's AI
   setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, Cursor setup,
-  Claude app, Projects (with AXL), Demos, Website, Demo ready, Monitoring. The UI runs no AI and depends on no coding assistant; do not
+  Claude app, Projects (with AXL), Demos, Website, Demo ready, Pricing, Monitoring. The UI runs no AI and depends on no coding assistant; do not
   add a page or route that starts an agent. The plugin ships no skills and no hooks, and its MCP
   server only opens the UI and reads the setup (`gc_ui`, `gc_ai_setup`, `gc_axl`); it gives the AI
   no tools to read or change an org. Removed on purpose: the Chat page, bot tests, AI agent briefs,
@@ -109,6 +109,19 @@
   on the UI's origin. Every query value is escaped; logos are raster only (no SVG) and served
   sandboxed. The user only enters the deployment ID (and the region); the page reads nothing from
   the org and writes nothing to it.
+- Pricing (UI page "Pricing", page id `pricing`, decision 2026-11-02): `src/core/pricing.ts` holds
+  Genesys Cloud list prices (USD), add-ons, AI Experience token rates, fair use allowances, rules,
+  use cases and the calculator (`estimate`, run by the server so tests cover it). Every licence,
+  add-on, rate and rule names its official page in `docs`; update `PRICING_AS_OF` with the figures.
+  Genesys publishes named and Hourly Interacting prices; the concurrent ones come from a reseller
+  catalogue and the page says so. "Live billing" (`src/core/billing.ts`) reads one org read-only through
+  `GET /api/v2/billing/subscriptionoverview` (internal: the Admin Billing & Usage page's endpoint, not
+  in the public spec; checked in the test org 2026-11-02) and sorts its rows by `grouping`: licences,
+  `rollup` / `rollup-usage` (token total and per feature; `bundleQuantity` = units per token),
+  `fair-use` (free tokens), ivr / api / storage. Whether feature rows count tokens or units was not
+  visible in a dev org (no use), so `breakDown` infers it from the sums and says "unknown" otherwise.
+  Needs Billing > Subscription > View and the scope billing:readonly. Replace it with the announced
+  public Contract and Billing API once that exists.
 - Cursor setup (`src/core/ai-setup.ts`, UI page "Cursor setup", page id `ai-setup`, MCP tool
   `gc_ai_setup`, hidden CLI `gctk mcp-launch`, decisions 2026-10-01 and 2026-10-06): reads Cursor's MCP
   configs (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json) and, for the page "Claude app",

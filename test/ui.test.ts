@@ -106,6 +106,15 @@ describe("UI server", () => {
     expect(run.status).toBe(400);
   });
 
+  it("Pricing: serves the catalogue and estimates, and checks the billing period", async () => {
+    const cat = (await (await call("/api/pricing")).json()) as { licences: unknown[]; docs: Record<string, { url: string }> };
+    expect(cat.licences.length).toBeGreaterThan(4);
+    expect(cat.docs.tokens?.url).toMatch(/^https:\/\/help\.genesys\.cloud\//);
+    const e = await call("/api/pricing/estimate", { method: "POST", body: JSON.stringify({ seats: { cx1: 2 }, usage: { voiceBotMinutes: 17 * 300 } }) });
+    expect(await e.json()).toMatchObject({ monthly: 150 + 50, tokens: { total: 300, billable: 50 } });
+    expect((await call("/api/pricing/billing?profile=prod-de&periodEnding=yesterday")).status).toBe(400);
+  });
+
   it("has no routes for plans, approvals or policies any more", async () => {
     for (const p of ["/api/plans", "/api/trust", "/api/audit"]) expect((await call(p)).status).toBe(404);
   });

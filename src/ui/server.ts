@@ -23,6 +23,8 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
+import { readBilling, type BillingReport } from "../core/billing.js";
+import { estimate, parseEstimateInput, pricingCatalog } from "../core/pricing.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { checkGctk, checkUpdates, type GctkVersion, type Program, updateGctk, updateProgram } from "../core/updates.js";
@@ -183,6 +185,23 @@ route("GET", "/api/monitoring", async ({ query }) => {
   if (cached && query.get("refresh") !== "1" && Date.now() - cached.at < MONITOR_TTL_MS) return cached.report;
   const report = await monitorOrg(clientFor(profile));
   monitorCache.set(profile, { at: Date.now(), report });
+  return report;
+});
+
+// Pricing: list prices, token rates and a calculator (no org), and one org's live billing (read-only,
+// cached like Monitoring; Refresh passes refresh=1).
+route("GET", "/api/pricing", () => pricingCatalog());
+route("POST", "/api/pricing/estimate", ({ body }) => estimate(parseEstimateInput(body)));
+const billingCache = new Map<string, { at: number; report: BillingReport }>();
+route("GET", "/api/pricing/billing", async ({ query }) => {
+  const profile = str(Object.fromEntries(query), "profile");
+  const period = query.get("periodEnding") ?? "";
+  if (period && !/^\d{4}-\d{2}-\d{2}$/.test(period)) throw new HttpError(400, "periodEnding must be a date (YYYY-MM-DD).");
+  const key = `${profile}|${period}`;
+  const cached = billingCache.get(key);
+  if (cached && query.get("refresh") !== "1" && Date.now() - cached.at < MONITOR_TTL_MS) return cached.report;
+  const report = await readBilling(clientFor(profile), profile, period || undefined);
+  billingCache.set(key, { at: Date.now(), report });
   return report;
 });
 

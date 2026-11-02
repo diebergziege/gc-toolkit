@@ -57,6 +57,10 @@ itself.
   each with its own org (sandbox or dev) and folder. gctk gives that folder its own AVA harness
   server, started with the org's credentials from the keychain, and lists the sessions with the
   artifacts they reached
+- **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
+  link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
+  at list price; and **Live billing**, an org's real licences, token use per AI feature and fair use
+  from Billing & Usage, broken down. Read-only; Live billing needs Billing > Subscription > View
 - **Monitoring**: how many data actions, flows, data tables, queues, skills, roles, AI agents,
   Messenger deployments … an org has, next to the limits the org itself reports. Read-only
 
@@ -191,7 +195,7 @@ Global option: `-p, --profile <name>`.
 
 | Path | Contents |
 |---|---|
-| `src/core/` | profiles, keychain, Genesys Cloud client, Demos, Demo ready, monitoring, AXL, AI setup |
+| `src/core/` | profiles, keychain, Genesys Cloud client, Demos, Demo ready, pricing and live billing, monitoring, AXL, AI setup |
 | `src/ui/` | local web UI (server + single-page app, no external assets, no AI) and the demo website |
 | `src/mcp/server.ts` | the three MCP tools |
 | `src/cli/` | `gctk` command |
