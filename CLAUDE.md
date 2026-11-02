@@ -120,6 +120,18 @@
   `rollup` / `rollup-usage` (token total and per feature; `bundleQuantity` = units per token),
   `fair-use` (free tokens), ivr / api / storage. Whether feature rows count tokens or units was not
   visible in a dev org (no use), so `breakDown` infers it from the sums and says "unknown" otherwise.
+  The billing periods come from `GET /api/v2/billing/periods` (also internal); with them the report
+  has the period's progress, a forecast (use so far scaled to the period, from day 3) and
+  `insights` (plain-language findings, most urgent first, tested in `billingInsights`).
+  `readHistory` reads the last 6 periods for the trend charts; closed periods are cached in the UI
+  server. The calculator prices the same people as named and as concurrent (`compareModels`, with
+  `peakPercent` = the share logged in at once at the busiest moment) and recommends the cheaper.
+  An org has one CX tier for all agents (Genesys pricing FAQ: tiers cannot be mixed); the page picks
+  one tier, `estimate` warns on a mix, `tierOptions` prices the same setup on every tier. Cost rules
+  checked against Admin → Billing & Usage of dach-sandbox on 2026-11-02 (equal to the cent): tokens
+  are billed whole (total rounded up before the allocation), metered rows subtract `prepayQuantity`
+  as included units, and a `fair-use` row with a part's name is that part's allowance. Cloud Voice
+  call charges are not in the overview (Admin excludes them too).
   Needs Billing > Subscription > View and the scope billing:readonly. Replace it with the announced
   public Contract and Billing API once that exists.
 - Cursor setup (`src/core/ai-setup.ts`, UI page "Cursor setup", page id `ai-setup`, MCP tool

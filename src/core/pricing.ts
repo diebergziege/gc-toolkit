@@ -175,9 +175,9 @@ export const FAIR_USE: FairUse[] = [
 
 /** The big picture in plain words; the "Start here" tab. */
 export const BASICS: Array<{ title: string; text: string }> = [
-  { title: "1. Every user needs a licence", text: "A licence is a monthly subscription for one person. It decides which parts of Genesys Cloud that person may use. A voice-only agent can have the cheapest licence (CX 1); an agent who also answers chats and is planned with workforce management needs a bigger one (CX 3). Think of it like a mobile phone plan: the bigger the plan, the more is included." },
+  { title: "1. Every user needs a licence, and the org picks one level", text: "A licence is a monthly subscription for one person. It decides which parts of Genesys Cloud that person may use. There are levels from CX 1 (phone only, cheapest) to CX 4 (everything, with AI help), and an org chooses one level for all its agents: you cannot mix CX 1 and CX 3 in one org. Think of it like a company phone plan: everyone gets the same plan, and the bigger the plan, the more is included." },
   { title: "2. The org chooses how users are counted", text: "Genesys can count everyone who logs in during the month (named), or only the most people logged in at the same moment (concurrent). Occasional users can be paid by the hour. The Licence models tab explains this with examples." },
-  { title: "3. Add-ons upgrade some users", text: "Instead of giving everyone a bigger licence, you can add a feature package to just the users who need it, for example workforce management for one team." },
+  { title: "3. Add-ons upgrade some users", text: "Because everyone has the same licence, add-ons are how only some users get more: a feature package for just the users who need it, for example workforce management for one team on CX 2." },
   { title: "4. Everyday usage is included up to a limit", text: "Each licence comes with an allowance of things like IVR minutes, storage and API calls (called fair use). The allowances of all users are added up into one pool for the org. Only if the org uses more than the pool does it pay extra." },
   { title: "5. AI is paid with tokens", text: "Most AI features (bots, virtual agents, Agent Copilot, AI summaries …) are paid with AI Experience tokens, a kind of prepaid credit. One token costs 1 USD at list price. Every org gets some tokens free each month; using more costs extra. The AI tokens tab shows what each feature costs." },
   { title: "6. Some things are billed separately", text: "Phone calls and phone numbers, SMS, WhatsApp's own fees and some speech services have their own price lists. They are not part of licences or tokens." },
@@ -240,8 +240,8 @@ export const GLOSSARY: Array<[string, string]> = [
 export interface Rule { title: string; text: string; example?: string; docs: DocId[] }
 /** How licences, allowances and tokens behave; the "How it works" tab. */
 export const RULES: Rule[] = [
-  { title: "One licence per user, add-ons only where needed", text: "Every contact-centre user has exactly one main licence (CX 1–4 or CX 2/3 Digital). An add-on upgrades only the users who get it, and it must match their licence.",
-    example: "150 agents on CX 2; the 40 who are scheduled with workforce management also get the CX 2 WEM add-on.", docs: ["pricing", "hub"] },
+  { title: "One licence tier for the whole org, add-ons for some users", text: "An org picks one contact-centre licence for all its agents: CX 1, CX 2, CX 3, CX 4, or one of the Digital ones. Genesys does not allow, say, 10 agents on CX 1 and 20 on CX 2. To give only some agents more, buy an add-on for them (Digital or WEM). Employees outside the contact centre can have the cheaper Communicate licence, and occasional agents can be hourly on the same tier.",
+    example: "150 agents on CX 2; the 40 who are scheduled with workforce management also get the CX 2 WEM add-on, which costs less than moving all 150 to CX 3.", docs: ["pricingFaq", "hub"] },
   { title: "The bigger licence includes the smaller ones", text: "CX 2 has everything CX 1 has plus digital channels and quality management; CX 3 adds workforce management and analytics; CX 4 adds Agent Copilot, journey management and monthly tokens. A user is billed at the highest licence they had during the month.",
     example: "An agent moved from CX 2 to CX 3 on the 20th is billed as CX 3 for that month.", docs: ["pricing", "named"] },
   { title: "Allowances are pooled", text: "Each user brings their fair use allowance to a shared pool for the whole org. Busy and quiet users balance each other out; only the org's total above the pool costs extra. Unused allowance does not carry over to the next month.",
@@ -280,7 +280,10 @@ export function insights(): Insight[] {
 
 export interface EstimateInput {
   model: LicenceModel;
+  /** People per licence: everyone who logs in during the month. */
   seats: Partial<Record<LicenceId, number>>;
+  /** Concurrent only: the share of those people logged in at the same time at the busiest moment (1 … 100). */
+  peakPercent: number;
   /** Hourly Interacting: interaction hours a month per licence (users on top of the named or concurrent ones). */
   hourly: Partial<Record<LicenceId, number>>;
   addOns: Partial<Record<AddOnId, number>>;
@@ -299,7 +302,7 @@ export interface UseCase {
   input: EstimateInput;
 }
 
-const preset = (p: Partial<EstimateInput>): EstimateInput => ({ model: "named", seats: {}, hourly: {}, addOns: {}, usage: {}, fairUse: {}, tokenPrice: TOKEN_PRICE_USD, ...p });
+const preset = (p: Partial<EstimateInput>): EstimateInput => ({ model: "named", seats: {}, peakPercent: 100, hourly: {}, addOns: {}, usage: {}, fairUse: {}, tokenPrice: TOKEN_PRICE_USD, ...p });
 export const USE_CASES: UseCase[] = [
   { id: "voice-bot", title: "Voice contact centre with a voicebot", customer: "Utility, 50 agents, 20,000 calls a month; a voicebot answers meter readings (6,000 calls, 3 minutes each).",
     combination: ["CX 1 for all agents: voice only, no digital channels needed.", "Bots (voice) in tokens: 18,000 minutes ÷ 17 ≈ 1,059 tokens, minus the 250 free."],
@@ -338,7 +341,10 @@ export interface Estimate {
   tokens: { rows: TokenRow[]; total: number; free: number; cx4: number; allocation: number; billable: number; price: number; cost: number; unused: number };
   fairUse: Array<{ id: FairUseId; label: string; unit: string; allocation: number; used: number; overage: number; cost: number }>;
   oneTime: Array<{ label: string; usd: number }>;
+  /** Agents billed: people (named) or the peak of them logged in at once (concurrent). */
   agents: number;
+  /** Agents entered (people), whatever the model; perAgent divides by them. */
+  people: number;
   monthly: number;
   perAgent: number | null;
   warnings: string[];
@@ -363,6 +369,7 @@ export function parseEstimateInput(body: unknown): EstimateInput {
   return {
     model: b.model === "concurrent" ? "concurrent" : "named",
     seats: pickNums(b.seats, LICENCES.map((l) => l.id)),
+    peakPercent: b.peakPercent === undefined ? 100 : Math.max(1, Math.min(100, Math.round(num(b.peakPercent)) || 1)),
     hourly: pickNums(b.hourly, LICENCES.filter((l) => l.hourly !== null).map((l) => l.id)),
     addOns: pickNums(b.addOns, ADD_ONS.map((a) => a.id)),
     usage: pickNums(b.usage, TOKEN_RATES.map((r) => r.id)),
@@ -376,7 +383,10 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 /** Monthly list-price estimate for a licence mix and its AI usage. */
 export function estimate(input: EstimateInput): Estimate {
   const m = input.model;
-  const seat = (id: LicenceId) => Math.floor(input.seats[id] ?? 0);
+  const share = m === "concurrent" ? Math.max(1, Math.min(100, input.peakPercent ?? 100)) / 100 : 1;
+  const atPeak = (people: number) => (share === 1 ? Math.floor(people) : Math.ceil(Math.floor(people) * share - 1e-9));
+  const person = (id: LicenceId) => Math.floor(input.seats[id] ?? 0);
+  const seat = (id: LicenceId) => atPeak(person(id));
   const warnings: string[] = [];
   const lines: Line[] = [];
 
@@ -385,7 +395,8 @@ export function estimate(input: EstimateInput): Estimate {
     if (!qty) continue;
     const price = m === "concurrent" ? l.concurrent ?? l.named : l.named;
     lines.push({ group: "licences", label: l.name, qty, unit: m === "concurrent" ? "concurrent users" : "named users", unitPrice: price, monthly: qty * price,
-      note: m === "concurrent" && l.concurrent === null ? "No public concurrent price: named price used." : undefined });
+      note: m === "concurrent" && l.concurrent === null ? "No public concurrent price: named price used."
+        : m === "concurrent" && share < 1 ? `${qty} of ${person(l.id)} people at the busiest moment.` : undefined });
   }
   for (const l of LICENCES) {
     const hours = input.hourly?.[l.id] ?? 0;
@@ -394,7 +405,7 @@ export function estimate(input: EstimateInput): Estimate {
   }
   const oneTime: Estimate["oneTime"] = [];
   for (const a of ADD_ONS) {
-    const qty = Math.floor(input.addOns[a.id] ?? 0);
+    const qty = atPeak(input.addOns[a.id] ?? 0);
     if (!qty) continue;
     const price = m === "concurrent" ? a.concurrent ?? a.named : a.named;
     lines.push({ group: "addOns", label: a.name, qty, unit: "users", unitPrice: price, monthly: qty * price,
@@ -408,19 +419,24 @@ export function estimate(input: EstimateInput): Estimate {
   }
 
   const agents = LICENCES.filter((l) => l.id !== "communicate").reduce((s, l) => s + seat(l.id), 0);
-  const digitalSeats = LICENCES.filter((l) => l.digital).reduce((s, l) => s + seat(l.id), 0) + Math.min(Math.floor(input.addOns.cx1Digital ?? 0), seat("cx1"));
+  const tiers = [...new Set([...TIERS.filter((l) => person(l.id)), ...TIERS.filter((l) => input.hourly?.[l.id])].map((l) => l.name.replace("Genesys Cloud ", "")))];
+  if (tiers.length > 1) warnings.push(`Genesys does not allow mixing licence tiers in one org (here: ${tiers.join(", ")}). Choose one tier for all agents and use add-ons for the ones who need more.`);
+  const people = LICENCES.filter((l) => l.id !== "communicate").reduce((s, l) => s + person(l.id), 0);
+  const digitalSeats = LICENCES.filter((l) => l.digital).reduce((s, l) => s + seat(l.id), 0) + Math.min(atPeak(input.addOns.cx1Digital ?? 0), seat("cx1"));
+  const perUserIds: UsageId[] = ["copilotUsers", "staUsers"];
+  const usage = (id: UsageId) => (perUserIds.includes(id) ? atPeak(input.usage[id] ?? 0) : input.usage[id] ?? 0);
   const rows: TokenRow[] = [];
   for (const r of TOKEN_RATES) {
-    const amount = input.usage[r.id] ?? 0;
+    const amount = usage(r.id);
     if (!amount) continue;
     rows.push({ id: r.id, label: r.name, amount, unit: r.unit, tokens: amount * r.tokensPerUnit[m] });
     if (r.needsDigital && !digitalSeats) warnings.push(`${r.name} needs digital channels: add a licence with digital (CX 2 or higher, a Digital licence, or the CX 1 Digital add-on).`);
   }
   const cx4 = seat("cx4");
   const nonCx4 = agents - cx4;
-  if ((input.usage.copilotUsers ?? 0) > nonCx4) warnings.push(`Agent Copilot users (${input.usage.copilotUsers}) exceed the users not on CX 4 (${nonCx4}); CX 4 users have Copilot included.`);
-  const staFree = seat("cx3") + seat("cx4") + Math.floor(input.addOns.wemCx1 ?? 0) + Math.floor(input.addOns.wemCx2 ?? 0);
-  if ((input.usage.staUsers ?? 0) > Math.max(0, agents - staFree)) warnings.push(`Speech and text analytics users (${input.usage.staUsers}) exceed the users without it included (${Math.max(0, agents - staFree)}: CX 3, CX 4 and WEM add-ons include it).`);
+  if (usage("copilotUsers") > nonCx4) warnings.push(`Agent Copilot users (${usage("copilotUsers")}) exceed the users not on CX 4 (${nonCx4}); CX 4 users have Copilot included.`);
+  const staFree = seat("cx3") + seat("cx4") + atPeak(input.addOns.wemCx1 ?? 0) + atPeak(input.addOns.wemCx2 ?? 0);
+  if (usage("staUsers") > Math.max(0, agents - staFree)) warnings.push(`Speech and text analytics users (${usage("staUsers")}) exceed the users without it included (${Math.max(0, agents - staFree)}: CX 3, CX 4 and WEM add-ons include it).`);
   if ((input.usage.copilotUsers ?? 0) > 0 && (input.usage.aiSummaries ?? 0) > 0) warnings.push("With Agent Copilot on, Supervisor Copilot summaries cost no tokens: count only summaries outside Copilot.");
 
   const raw = rows.reduce((s, r) => s + r.tokens, 0);
@@ -450,10 +466,81 @@ export function estimate(input: EstimateInput): Estimate {
     fairUse,
     oneTime,
     agents,
+    people,
     monthly,
-    perAgent: agents ? round2(monthly / agents) : null,
+    perAgent: people ? round2(monthly / people) : null,
     warnings,
   };
+}
+
+/** The contact-centre tiers an org chooses one of (Communicate is for other employees). */
+export const TIERS = LICENCES.filter((l) => l.id !== "communicate");
+
+export interface TierOption {
+  id: LicenceId;
+  name: string;
+  named: number;
+  concurrent: number;
+  /** What this tier cannot do that the entered use needs; null: fits. */
+  missing: string | null;
+}
+
+/** The same people, hours, add-ons and AI use on every tier, so a beginner sees what the tier choice costs. */
+export function tierOptions(input: EstimateInput): TierOption[] {
+  const people = TIERS.reduce((s, l) => s + Math.floor(input.seats[l.id] ?? 0), 0);
+  const hours = TIERS.reduce((s, l) => s + (input.hourly?.[l.id] ?? 0), 0);
+  if (!people && !hours) return [];
+  const needsDigital = TOKEN_RATES.some((r) => r.needsDigital && (input.usage[r.id] ?? 0) > 0);
+  const needsVoice = (input.usage.voiceBotMinutes ?? 0) > 0 || (input.fairUse.ivr ?? 0) > 0;
+  return TIERS.map((t) => {
+    const addOns = Object.fromEntries(Object.entries(input.addOns).filter(([id]) => {
+      const a = ADD_ONS.find((x) => x.id === id)!;
+      return !a.on.length || a.on.includes(t.id);
+    })) as EstimateInput["addOns"];
+    const moved: EstimateInput = { ...input, seats: { [t.id]: people, communicate: input.seats.communicate ?? 0 }, hourly: hours ? { [t.id]: hours } : {}, addOns };
+    const missing = needsDigital && !t.digital && !(addOns.cx1Digital ?? 0) ? "no chat, email or messaging (needs the CX 1 Digital add-on)"
+      : needsVoice && !t.voice ? "no phone calls" : null;
+    return { id: t.id, name: t.name, named: estimate({ ...moved, model: "named" }).monthly, concurrent: estimate({ ...moved, model: "concurrent" }).monthly, missing };
+  });
+}
+
+export interface Comparison {
+  named: Estimate;
+  concurrent: Estimate;
+  peakPercent: number;
+  /** The cheaper model; named when both cost the same. */
+  recommended: LicenceModel;
+  /** Monthly difference between the two. */
+  saving: number;
+  /** Highest busiest-moment share at which concurrent still costs less than named (0: never). */
+  breakEvenPercent: number;
+  /** Why, in plain words. */
+  reasons: string[];
+  tiers: TierOption[];
+}
+
+/** Prices the same people both ways, so a beginner need not know which model fits. */
+export function compareModels(input: EstimateInput): Comparison {
+  const named = estimate({ ...input, model: "named" });
+  const concurrent = estimate({ ...input, model: "concurrent" });
+  const peakPercent = Math.max(1, Math.min(100, input.peakPercent ?? 100));
+  let breakEvenPercent = 0;
+  for (let p = 100; p >= 1; p--) {
+    if (estimate({ ...input, model: "concurrent", peakPercent: p }).monthly < named.monthly) { breakEvenPercent = p; break; }
+  }
+  const recommended: LicenceModel = concurrent.monthly < named.monthly ? "concurrent" : "named";
+  const saving = round2(Math.abs(named.monthly - concurrent.monthly));
+  const reasons: string[] = [];
+  const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (named.people) {
+    reasons.push(`Named: you pay for all ${fmt(named.people)} people who log in during the month, at the lower price.`);
+    reasons.push(`Concurrent: you pay only for the ${fmt(concurrent.agents)} working at the same time at the busiest moment (${peakPercent} %), but each costs about 1.5 times as much.`);
+    reasons.push(breakEvenPercent
+      ? `So concurrent is cheaper while at most ${breakEvenPercent} % of the people work at the same time. You entered ${peakPercent} %, so ${recommended} is cheaper${saving ? ` by ${fmt(saving)} USD a month` : ""}.`
+      : "Here concurrent is never cheaper, even with few people at the same time.");
+    reasons.push("Either model applies to the whole org: all users are named, or all are concurrent. Hourly agents can be added to both.");
+  }
+  return { named, concurrent, peakPercent, recommended, saving, breakEvenPercent, reasons, tiers: tierOptions(input) };
 }
 
 /** Everything the page shows; served as one JSON. */

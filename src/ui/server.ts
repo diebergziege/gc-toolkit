@@ -23,8 +23,8 @@ import {
 } from "../core/profiles.js";
 import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, runDemoSection, USER_ID_RE } from "../core/demo-ready.js";
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
-import { readBilling, type BillingReport } from "../core/billing.js";
-import { estimate, parseEstimateInput, pricingCatalog } from "../core/pricing.js";
+import { readBilling, readHistory, type BillingHistory, type BillingMonth, type BillingReport } from "../core/billing.js";
+import { compareModels, estimate, parseEstimateInput, pricingCatalog } from "../core/pricing.js";
 import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { checkGctk, checkUpdates, type GctkVersion, type Program, updateGctk, updateProgram } from "../core/updates.js";
@@ -192,6 +192,7 @@ route("GET", "/api/monitoring", async ({ query }) => {
 // cached like Monitoring; Refresh passes refresh=1).
 route("GET", "/api/pricing", () => pricingCatalog());
 route("POST", "/api/pricing/estimate", ({ body }) => estimate(parseEstimateInput(body)));
+route("POST", "/api/pricing/compare", ({ body }) => compareModels(parseEstimateInput(body)));
 const billingCache = new Map<string, { at: number; report: BillingReport }>();
 route("GET", "/api/pricing/billing", async ({ query }) => {
   const profile = str(Object.fromEntries(query), "profile");
@@ -203,6 +204,16 @@ route("GET", "/api/pricing/billing", async ({ query }) => {
   const report = await readBilling(clientFor(profile), profile, period || undefined);
   billingCache.set(key, { at: Date.now(), report });
   return report;
+});
+const historyCache = new Map<string, { at: number; history: BillingHistory }>();
+const closedMonths = new Map<string, BillingMonth>();
+route("GET", "/api/pricing/billing/history", async ({ query }) => {
+  const profile = str(Object.fromEntries(query), "profile");
+  const cached = historyCache.get(profile);
+  if (cached && query.get("refresh") !== "1" && Date.now() - cached.at < MONITOR_TTL_MS) return cached.history;
+  const history = await readHistory(clientFor(profile), profile, 6, closedMonths);
+  historyCache.set(profile, { at: Date.now(), history });
+  return history;
 });
 
 // AXL workshops: a list, each with the org the AVA harness works on and the folder the user opens
