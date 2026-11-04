@@ -8,7 +8,7 @@ import { GctkError } from "./errors.js";
 import { gctkHome } from "./paths.js";
 
 /**
- * Skills for the Claude app (UI page "Claude app", decision 2026-10-12). Cowork keeps skills in the
+ * Skills for the Claude app (UI page "AI Coding Tools", decision 2026-10-12). Cowork keeps skills in the
  * user's Claude account; they are uploaded as zip files in the app, one skill per zip, and gctk cannot
  * reach them there. So gctk makes the zips: the AVA skills ava-mcp keeps in ~/.cursor/skills (an
  * ava-mcp update refreshes them there) and the AXL lab facilitator. Each export records a fingerprint

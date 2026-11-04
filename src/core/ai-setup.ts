@@ -10,10 +10,10 @@ import { GctkError } from "./errors.js";
 import { appSupportDir, claudeAppConfigFile, gctkHome } from "./paths.js";
 import { assertProfileName, listProfiles, loadProfile, type Profile, removeProfile, saveProfile, TIERS, type Tier } from "./profiles.js";
 import { stableGctkJs } from "./stable-gctk.js";
-import { resolveRegion } from "./regions.js";
+import { REGIONS, resolveRegion } from "./regions.js";
 
 /**
- * Cursor setup and Claude app (UI pages "Cursor setup" and "Claude app", MCP tool gc_ai_setup): the
+ * Cursor and the Claude app (UI page "AI Coding Tools", MCP tool gc_ai_setup): the
  * MCP servers Cursor and the Claude app (chat and Cowork) load, read from their config files, with
  * the Genesys Cloud org each server works on. No skills (decision 2026-10-06; the Claude app keeps
  * its skills in the user's account, not on this computer).
@@ -184,7 +184,7 @@ const REGION = /region$/i;
 const ARG_SECRET = /^(--?[\w-]*(secret|token|password|api-?key)[\w-]*=)(.+)$/i;
 
 export const mask = (v: string) => (v.length <= 8 ? "••••" : `••••${v.slice(-4)}`);
-const showClientId = (v: string) => (v.length > 10 ? `${v.slice(0, 8)}…` : v);
+export const showClientId = (v: string) => (v.length > 10 ? `${v.slice(0, 8)}…` : v);
 /** JSON with sorted keys, so equal objects sign and compare equal. */
 function canonicalJson(value: unknown): string {
   const sort = (v: unknown): unknown =>
@@ -424,6 +424,10 @@ interface LaunchRecord {
   profile?: string;
   /** With profile: the variables that get them. */
   keys?: CredentialKeys;
+  /** Added from the MCP catalog (CatalogServer id): its region format and the org tiers it may work on. */
+  catalog?: string;
+  regionFormat?: "key";
+  tiers?: Tier[];
   signature: string;
 }
 type Unsigned = Omit<LaunchRecord, "signature">;
@@ -506,7 +510,7 @@ function describe(file: ConfigFile, section: string, project: string | undefined
   const shownArgs = (record ? record.args : args).map((a) => a.replace(ARG_SECRET, (_m, k: string, v: string) => `${k}${mask(v)}`));
   const linkedNames = record?.keys ? [record.keys.clientId, record.keys.secret, record.keys.region, record.keys.habitat].filter((n): n is string => Boolean(n)) : [];
   const allEnv = record ? { ...record.env, ...Object.fromEntries([...record.secretNames, ...linkedNames].map((n) => [n, ""])) } : rawEnv;
-  const genesys = GENESYS.test(name) || GENESYS.test(record?.command ?? command ?? "") || shownArgs.some((a) => GENESYS.test(a)) || Object.keys(allEnv).some((k) => GENESYS_ENV.test(k)) || GENESYS.test(String(e.url ?? ""));
+  const genesys = Boolean(record?.catalog) || GENESYS.test(name) || GENESYS.test(record?.command ?? command ?? "") || shownArgs.some((a) => GENESYS.test(a)) || Object.keys(allEnv).some((k) => GENESYS_ENV.test(k)) || GENESYS.test(String(e.url ?? ""));
   const problems: Problem[] = [];
   const editable = file.editable;
 
@@ -715,7 +719,12 @@ export interface ToolTemplate {
   keys: { clientId: string; secret: string; region?: string; habitat?: string };
   /** Where it was found. */
   from: string;
-  editor: Editor;
+  editor?: Editor;
+  /** Added on the AI Coding Tools page (see CatalogServer). */
+  catalog?: boolean;
+  description?: string;
+  regionFormat?: "key";
+  tiers?: Tier[];
 }
 
 
@@ -765,11 +774,159 @@ export function toolTemplates(o: ScanOptions = {}): ToolTemplate[] {
   return [...out.values()].map(({ plugin: _p, ...t }) => t).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// ------------------------------------------------------------- MCP catalog
+
+/**
+ * An MCP server the user added on the AI Coding Tools page, for projects. Only the program and its
+ * settings: the org's credentials go into the named variables at every start, never into this file.
+ */
+export interface CatalogServer {
+  id: string;
+  name: string;
+  description?: string;
+  /** Where it is published (a link or package name), for the reader. */
+  source?: string;
+  /** Absolute path of the program (a bare name is found on PATH when it is added). */
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  keys: { clientId: string; secret: string; region?: string };
+  /** "key" passes eu-central-1 instead of mypurecloud.de. */
+  regionFormat?: "key";
+  /** Org tiers it may work on. */
+  tiers: Tier[];
+  added: string;
+}
+
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+const SERVER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const catalogFile = () => path.join(gctkHome(), "mcp-catalog.json");
+
+export function loadCatalog(): CatalogServer[] {
+  try {
+    const raw = JSON.parse(fs.readFileSync(catalogFile(), "utf8")) as { servers?: CatalogServer[] };
+    return Array.isArray(raw.servers) ? raw.servers.filter((s) => s && typeof s.id === "string" && typeof s.command === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCatalog(list: CatalogServer[]): void {
+  fs.mkdirSync(gctkHome(), { recursive: true });
+  fs.writeFileSync(catalogFile(), `${JSON.stringify({ servers: list }, null, 2)}\n`, { mode: 0o600 });
+}
+
+const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** Adds (or, with the same name, replaces) a catalog server. Refuses anything that looks like a secret. */
+export function addCatalogServer(input: Record<string, unknown>): CatalogServer {
+  const name = text(input.name, 64);
+  if (!SERVER_NAME.test(name)) throw new GctkError("INVALID_INPUT", "Give the MCP server a name of letters, digits, dots, dashes or underscores (e.g. architect).");
+  if (["ava-harness", "gctk"].includes(name)) throw new GctkError("INVALID_INPUT", `${name} comes with gctk already.`);
+  const cmd = text(input.command, 1000);
+  if (!cmd) throw new GctkError("INVALID_INPUT", "Enter the command that starts the server (e.g. npx).");
+  const command = resolveCommand(cmd.replace(/^~(?=$|[\\/])/, os.homedir()), {});
+  const args = (Array.isArray(input.args) ? input.args : []).map((a) => String(a).trim()).filter(Boolean).slice(0, 50);
+  const badArg = args.find((a) => ARG_SECRET.test(a));
+  if (badArg) throw new GctkError("INVALID_INPUT", `The argument ${badArg.split("=")[0]}=… carries a secret. Secrets come from the org at every start, never from the catalog.`);
+  const keyOf = (k: string, what: string, required: boolean) => {
+    const v = text(input[k], 128);
+    if (!v && !required) return undefined;
+    if (!ENV_NAME.test(v)) throw new GctkError("INVALID_INPUT", `Enter the variable name for ${what} (e.g. GENESYS_CLIENT_ID).`);
+    return v;
+  };
+  const keys = { clientId: keyOf("clientIdVar", "the client ID", true)!, secret: keyOf("secretVar", "the client secret", true)!, region: keyOf("regionVar", "the region", false) };
+  const used = [keys.clientId, keys.secret, keys.region].filter(Boolean);
+  if (new Set(used).size !== used.length) throw new GctkError("INVALID_INPUT", "Client ID, secret and region need different variables.");
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries((input.env as Record<string, unknown>) ?? {})) {
+    if (!ENV_NAME.test(k)) throw new GctkError("INVALID_INPUT", `${k} is not a variable name.`);
+    if (used.includes(k)) throw new GctkError("INVALID_INPUT", `${k} gets its value from the org; leave it out of the settings.`);
+    if (isSecretName(k)) throw new GctkError("INVALID_INPUT", `${k} looks like a secret. The catalog keeps no secrets; only the org's client ID and secret go to the server, at every start.`);
+    env[k] = String(v ?? "");
+  }
+  const tiers = TIERS.filter((t) => Array.isArray(input.tiers) && input.tiers.includes(t));
+  if (!tiers.length) throw new GctkError("INVALID_INPUT", "Choose at least one org tier the server may work on.");
+  const description = text(input.description, 300);
+  const source = text(input.source, 300);
+  const server: CatalogServer = {
+    id: `catalog-${sha(name).slice(0, 12)}`,
+    name,
+    ...(description ? { description } : {}),
+    ...(source ? { source } : {}),
+    command,
+    args,
+    env,
+    keys: { clientId: keys.clientId, secret: keys.secret, ...(keys.region ? { region: keys.region } : {}) },
+    ...(keys.region && input.regionFormat === "key" ? { regionFormat: "key" as const } : {}),
+    tiers,
+    added: new Date().toISOString(),
+  };
+  writeCatalog([...loadCatalog().filter((s) => s.name !== name), server].sort((a, b) => a.name.localeCompare(b.name)));
+  return server;
+}
+
+/**
+ * Puts a catalog server into Cursor (every folder, ~/.cursor/mcp.json) or the Claude app, linked to
+ * an org: the entry starts `gctk mcp-launch`, which gives it the org's credentials at every start.
+ * An entry of the same name is never replaced.
+ */
+export function addCatalogToApp(id: string, editor: "cursor" | "claude-desktop", input: { profile: string; gctkJs: string; node?: string } & ScanOptions): void {
+  const s = loadCatalog().find((x) => x.id === id);
+  if (!s) throw new GctkError("NOT_FOUND", "This MCP server is no longer in the catalog.");
+  const home = input.home ?? os.homedir();
+  const file = editor === "cursor" ? path.join(home, ".cursor", "mcp.json") : claudeAppConfigFile(home, input.platform ?? process.platform, input.appData);
+  if (editor === "claude-desktop" && !isDir(path.dirname(file))) throw new GctkError("INVALID_INPUT", "The Claude app is not installed on this computer.");
+  const r = fs.existsSync(file) ? readJson(file) : { value: {}, comments: false, indent: 2 as string | number };
+  if (!r.value || r.comments) throw new GctkError("INVALID_INPUT", `gctk cannot rewrite ${file}${r.comments ? " (it has comments)" : ""}.`);
+  const json = r.value;
+  const servers = (json.mcpServers && typeof json.mcpServers === "object" ? json.mcpServers : {}) as Record<string, unknown>;
+  if (s.name in servers) throw new GctkError("INVALID_INPUT", `${APP_LABEL[editor]} has an MCP server called ${s.name} already. Remove it there first, or add the server under another name.`);
+  const credentials = [s.keys.clientId, s.keys.secret, s.keys.region].filter((k): k is string => Boolean(k));
+  json.mcpServers = { ...servers, [s.name]: { command: s.command, args: s.args, env: { ...s.env, ...Object.fromEntries(credentials.map((k) => [k, ""])) } } };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  writeJson(file, json, r.indent);
+  try {
+    linkToOrg({ file, section: "mcpServers", name: s.name }, { ...input, profile: input.profile, useOrgSecret: true, catalog: { id: s.id, keys: s.keys, ...(s.regionFormat ? { regionFormat: s.regionFormat } : {}), tiers: s.tiers } });
+  } catch (err) {
+    const now = readJson(file).value ?? {};
+    const list = { ...((now.mcpServers as Record<string, unknown>) ?? {}) };
+    delete list[s.name];
+    writeJson(file, { ...now, mcpServers: list }, r.indent);
+    throw err;
+  }
+}
+const APP_LABEL = { cursor: "Cursor", "claude-desktop": "The Claude app" } as const;
+
+export function removeCatalogServer(id: string): void {
+  const list = loadCatalog();
+  if (!list.some((s) => s.id === id)) throw new GctkError("NOT_FOUND", "This MCP server is no longer in the catalog.");
+  writeCatalog(list.filter((s) => s.id !== id));
+}
+
+/** Catalog servers first, then the ones found in the user's configs (a catalog name wins). */
+export function projectTemplates(o: ScanOptions = {}): ToolTemplate[] {
+  const own = loadCatalog().map((s): ToolTemplate => ({
+    id: s.id,
+    name: s.name,
+    command: s.command,
+    args: s.args,
+    env: s.env,
+    keys: s.keys,
+    from: "gctk catalog",
+    catalog: true,
+    tiers: s.tiers,
+    ...(s.regionFormat ? { regionFormat: s.regionFormat } : {}),
+    ...(s.description ? { description: s.description } : {}),
+  }));
+  return [...own, ...toolTemplates(o).filter((t) => !own.some((c) => c.name === t.name))];
+}
+
 // --------------------------------------------------------------------- fixes
 
 function locate(a: ServerAddress, o: ScanOptions = {}): { file: ConfigFile; json: Record<string, unknown>; indent: string | number; servers: Record<string, Entry>; entry: Entry } {
   const file = configFiles(o).find((f) => f.path === a.file);
-  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files gctk shows (Cursor setup, Claude app).`);
+  if (!file) throw new GctkError("INVALID_INPUT", `${a.file} is not one of the config files gctk shows (AI Coding Tools page).`);
   if (!file.editable) throw new GctkError("INVALID_INPUT", `gctk does not change ${a.file}${file.error ? ` (${file.error})` : file.scope === "plugin" ? " (it belongs to a plugin)" : ""}.`);
   const r = readJson(a.file);
   if (!r.value) throw new GctkError("INVALID_INPUT", `${a.file} could not be read: ${r.error}.`);
@@ -1033,6 +1190,16 @@ export function setCredentials(a: ServerAddress, input: CredentialInput, opts: {
   }
 }
 
+function assertTier(server: string, tiers: Tier[] | undefined, p: Profile): void {
+  if (tiers && !tiers.includes(p.tier)) throw new GctkError("MCP_TIER", `${server} may only work on ${tiers.join(" or ")} orgs, and ${p.name} is ${p.tier}. Choose another org on the AI Coding Tools page of the gctk UI.`);
+}
+
+function regionKey(server: string, domain: string): string {
+  const key = Object.keys(REGIONS).find((k) => REGIONS[k] === domain);
+  if (!key) throw new GctkError("MCP_REGION", `${server} needs a region key, and gctk knows none for ${domain}.`);
+  return key;
+}
+
 /** The linked org's credentials in the variables the record names. */
 function orgValues(r: LaunchRecord, orgs: OrgStore): Record<string, string> {
   if (!r.profile || !r.keys) return {};
@@ -1040,13 +1207,14 @@ function orgValues(r: LaunchRecord, orgs: OrgStore): Record<string, string> {
   try {
     p = loadProfile(r.profile);
   } catch {
-    throw new GctkError("MCP_LAUNCH", `${r.server} is linked to the org ${r.profile}, which is no longer on the Orgs page. Link it to another org on the Cursor setup or Claude app page of the gctk UI.`);
+    throw new GctkError("MCP_LAUNCH", `${r.server} is linked to the org ${r.profile}, which is no longer on the Orgs page. Link it to another org on the AI Coding Tools page of the gctk UI.`);
   }
+  assertTier(r.server, r.tiers, p);
   const c = orgs.load(p);
   const out: Record<string, string> = {};
   if (r.keys.clientId) out[r.keys.clientId] = c.clientId;
   if (r.keys.secret) out[r.keys.secret] = c.clientSecret;
-  if (r.keys.region) out[r.keys.region] = p.region;
+  if (r.keys.region) out[r.keys.region] = r.regionFormat === "key" ? regionKey(r.server, p.region) : p.region;
   if (r.keys.habitat && HABITATS[p.region]) out[r.keys.habitat] = HABITATS[p.region]!;
   return out;
 }
@@ -1058,6 +1226,8 @@ export interface LinkInput {
   newOrg?: { name: string; tier: Tier; region?: string; description?: string };
   /** The entry's secret differs from the org's: use the org's anyway. */
   useOrgSecret?: boolean;
+  /** A new entry from the MCP catalog: its variables (not guessed from their names), region format and tiers. */
+  catalog?: { id: string; keys: CredentialKeys; regionFormat?: "key"; tiers: Tier[] };
 }
 
 /**
@@ -1091,7 +1261,8 @@ export function linkToOrg(a: ServerAddress, input: LinkInput & { gctkJs: string;
     env = Object.fromEntries(Object.entries(raw).filter(([k]) => !(k in secrets)));
     base = { command: resolveCommand(entry.command, raw), original: entry.command, args: gctkArgs(entry), ...(typeof entry.cwd === "string" ? { cwd: entry.cwd } : file.scope === "project" && file.project ? { cwd: file.project } : {}), pathEnv: raw.PATH ?? process.env.PATH ?? "" };
   }
-  const keys = old?.keys ?? credentialKeysOf([...Object.keys(env), ...Object.keys(secrets), ...(old?.secretNames ?? [])]);
+  const keys = old?.keys ?? input.catalog?.keys ?? credentialKeysOf([...Object.keys(env), ...Object.keys(secrets), ...(old?.secretNames ?? [])]);
+  const catalog = old?.catalog ? { id: old.catalog, regionFormat: old.regionFormat, tiers: old.tiers } : input.catalog;
   if (!keys?.clientId || !keys.secret) throw new GctkError("INVALID_INPUT", `${a.name} has no Genesys client ID and secret variables, so it cannot be linked to an org.`);
   const fileClient = env[keys.clientId] && !isReference(env[keys.clientId]!) ? env[keys.clientId] : old?.clientId;
   const fileSecret = secrets[keys.secret];
@@ -1119,6 +1290,7 @@ export function linkToOrg(a: ServerAddress, input: LinkInput & { gctkJs: string;
       throw new GctkError("SECRET_DIFFERS", `${a.name} has a different secret than the org ${name} for the same OAuth client. One of them is out of date (rotated?).`);
     }
   }
+  assertTier(a.name, catalog?.tiers, profile);
 
   const id = oldId ?? crypto.randomBytes(6).toString("hex");
   const credentialNames = [keys.clientId, keys.secret, keys.region, keys.habitat].filter((n): n is string => Boolean(n));
@@ -1135,6 +1307,7 @@ export function linkToOrg(a: ServerAddress, input: LinkInput & { gctkJs: string;
     account,
     profile: profile.name,
     keys,
+    ...(catalog ? { catalog: catalog.id, ...(catalog.regionFormat ? { regionFormat: catalog.regionFormat } : {}), ...(catalog.tiers ? { tiers: catalog.tiers } : {}) } : {}),
     createdAt: new Date().toISOString(),
   };
   const { env: _e, cwd: _c, ...keep } = entry;
@@ -1182,9 +1355,9 @@ const PASS_THROUGH = /^(LANG|LC_[A-Z]+|TERM|TZ|HTTPS?_PROXY|NO_PROXY|https?_prox
 /** Environment and command for `gctk mcp-launch <id>`; refuses unsigned or edited records. */
 export function launchSpec(id: string, base: NodeJS.ProcessEnv = process.env, store: SecretStore = keychainStore, orgs: OrgStore = keychainOrgs): { command: string; args: string[]; env: NodeJS.ProcessEnv; cwd?: string; record: LaunchRecord } {
   const r = loadRecords()[id];
-  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the Cursor setup or Claude app page of the gctk UI and set the server up again.`);
+  if (!validRecord(r)) throw new GctkError("MCP_LAUNCH", `No valid launch record "${id}". Open the AI Coding Tools page of the gctk UI and set the server up again.`);
   const raw = r.account ? store.get(r.account) : "{}";
-  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the Cursor setup or Claude app page of the gctk UI.`);
+  if (!raw) throw new GctkError("MCP_LAUNCH", `The secret of ${r.server} is not in the keychain. Enter it on the AI Coding Tools page of the gctk UI.`);
   const secrets = JSON.parse(raw) as Record<string, string>;
   const fromOrg = r.profile ? orgValues(r, orgs) : {};
   const user = os.userInfo();
@@ -1240,7 +1413,7 @@ export function formatAiSetup(s: AiSetup): string {
   const genesys = s.servers.filter((x) => x.genesys);
   const other = s.servers.filter((x) => !x.genesys);
   return [
-    `Cursor and the Claude app: ${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, another org, removing an entry) are the user's: they press them on the Cursor setup page (gc_ui page ai-setup) or the Claude app page (gc_ui page claude-app) of the gctk UI; a Cursor folder's own org and tools are set on the Projects page, the AXL workshop the Claude app's AVA harness works on on the Claude app page.`,
+    `Cursor and the Claude app: ${s.servers.length} MCP server(s) in ${s.files.filter((f) => f.exists).length} config file(s); ${genesys.length} talk to Genesys Cloud. Secrets are masked. Fixes (moving a secret to the keychain, another org, removing an entry) are the user's: they press them on the AI Coding Tools page (gc_ui page ai-setup) of the gctk UI; a Cursor folder's own org and tools are set on the Projects page, the AXL workshop the Claude app's AVA harness works on on the AI Coding Tools page too.`,
     "",
     "Genesys Cloud servers:",
     ...(genesys.length ? genesys.map(line) : ["- none"]),

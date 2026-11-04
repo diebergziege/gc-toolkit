@@ -84,6 +84,20 @@ describe("UI server", () => {
     expect((await call("/api/overview")).status).toBe(200);
   });
 
+  it("shows an org's OAuth client ID shortened and never its secret", async () => {
+    process.env.GCTK_CLIENT_ID = "485c8ae1-1111-2222-3333-444455556666";
+    process.env.GCTK_CLIENT_SECRET = "s3cr3t-value-abcd-1234";
+    try {
+      const text = await (await call("/api/overview")).text();
+      expect(JSON.parse(text).profiles[0]).toMatchObject({ name: "prod-de", credentialsStored: true, clientId: "485c8ae1…" });
+      expect(text).not.toContain("s3cr3t");
+      expect(text).not.toContain("444455556666");
+    } finally {
+      delete process.env.GCTK_CLIENT_ID;
+      delete process.env.GCTK_CLIENT_SECRET;
+    }
+  });
+
   it("rejects foreign Host headers (DNS rebinding)", async () => {
     const status = await new Promise<number>((resolve) => {
       http.get({ host: "127.0.0.1", port: ui.port, path: "/api/overview", headers: { host: "evil.example:80", "x-gctk-token": "test-token" } }, (r) => resolve(r.statusCode ?? 0));

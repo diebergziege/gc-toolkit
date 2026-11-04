@@ -8,8 +8,8 @@ import { GctkError } from "./errors.js";
 import { olderVersion, runningGctkJs, stableGctkJs } from "./stable-gctk.js";
 
 /**
- * Updates of the programs behind the MCP servers of Cursor and the Claude app (UI pages "Cursor setup"
- * and "Claude app", a click only, never an MCP tool). An ava-harness started through gctk (workshops,
+ * Updates of the programs behind the MCP servers of Cursor and the Claude app (UI page "AI Coding
+ * Tools", a click only, never an MCP tool). An ava-harness started through gctk (workshops,
  * the Claude app) runs the AVA harness command of the Projects page. gctk knows two ways they get installed:
  * - uv tools (ava-mcp): the receipt in uv's tool folder names the source, a GitHub release wheel or a
  *   PyPI package. An update installs the newest release the same way; for ava-mcp it then refreshes
@@ -389,7 +389,7 @@ export interface UpdateResult {
   next: string;
 }
 
-/** Updates one program (a click on the Cursor setup page). */
+/** Updates one program (a click on the AI Coding Tools page). */
 export async function updateProgram(id: string, servers: ServerInfo[], o: UpdateOptions = {}): Promise<UpdateResult> {
   const l = locate(servers, o).find((x) => x.id === id);
   if (!l) throw new GctkError("INVALID_INPUT", "gctk does not know how to update this program (any more); refresh the page.");

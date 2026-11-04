@@ -18,6 +18,11 @@ import {
   scanAiSetup,
   setCredentials,
   toolTemplates,
+  addCatalogServer,
+  addCatalogToApp,
+  loadCatalog,
+  projectTemplates,
+  removeCatalogServer,
   updateSecret,
   type ScanOptions,
   type SecretStore,
@@ -394,6 +399,27 @@ describe("linking to an org (the Orgs page keeps the credentials)", () => {
     saveProfile({ name: "sandbox-org", region: "mypurecloud.de", tier: "sandbox", credentials: "keychain" });
   });
 
+  it("puts a catalog server into Cursor linked to an org, with its own variables, region key and tiers", () => {
+    orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
+    saveProfile({ name: "prod-org", region: "mypurecloud.de", tier: "production", credentials: "keychain" });
+    orgMem.set("prod-org", { clientId: CLIENT, clientSecret: SECRET });
+    write(file(), { mcpServers: { other: { command: "x" } } });
+    const s = addCatalogServer({ name: "architect", command: fakeCommand(), args: ["--stdio"], clientIdVar: "ARCH_CLIENT_ID", secretVar: "ARCH_CLIENT_SECRET", regionVar: "ARCH_REGION", regionFormat: "key", env: { LOG_LEVEL: "info" }, tiers: ["sandbox", "dev"] });
+    expect(() => addCatalogToApp(s.id, "cursor", { ...o, profile: "prod-org", gctkJs: js() })).toThrow(/only work on sandbox or dev/);
+    expect(Object.keys(read(file()).mcpServers)).toEqual(["other"]);
+
+    addCatalogToApp(s.id, "cursor", { ...o, profile: "sandbox-org", gctkJs: js() });
+    const e = read(file()).mcpServers.architect;
+    expect(e.args.slice(1, 2)).toEqual(["mcp-launch"]);
+    expect(JSON.stringify(read(file()))).not.toContain(SECRET);
+    const spec = launchSpec(e.args[2], {}, store, o.orgs);
+    expect(spec.env).toMatchObject({ LOG_LEVEL: "info", ARCH_CLIENT_ID: CLIENT, ARCH_CLIENT_SECRET: SECRET, ARCH_REGION: "eu-central-1" });
+    expect(scanAiSetup(o).servers.find((x) => x.name === "architect")).toMatchObject({ genesys: true, credentials: "org", org: { profile: "sandbox-org" } });
+    // Another org later keeps the tiers.
+    expect(() => setCredentials({ file: file(), section: "mcpServers", name: "architect" }, { profile: "prod-org" }, { ...o, gctkJs: js() })).toThrow(/only work on sandbox or dev/);
+    expect(() => addCatalogToApp(s.id, "cursor", { ...o, profile: "sandbox-org", gctkJs: js() })).toThrow(/already/);
+  });
+
   it("links a plain entry to the org with its OAuth client: no copy of the secret, credentials from the org at every start", () => {
     write(file(), { mcpServers: { "ava-harness": harness(fakeCommand()) } });
     orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: SECRET });
@@ -475,5 +501,36 @@ describe("the gctk entry itself", () => {
     repairServer({ file: f, section: "mcpServers", name: "gctk" }, { ...opts, gctkJs: "/unused/gctk.js" });
     expect(read(f).mcpServers.gctk).toEqual({ command: "npx", args: ["-y", "https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz", "mcp"] });
     expect(scanAiSetup(opts).servers[0]!.problems).toEqual([]);
+  });
+});
+
+describe("the MCP catalog", () => {
+  const base = { name: "architect", description: "reads and writes Architect flows", command: "", args: ["-y", "@acme/architect-mcp"], clientIdVar: "GENESYS_CLIENT_ID", secretVar: "GENESYS_CLIENT_SECRET", regionVar: "GENESYS_REGION", regionFormat: "key", env: { LOG_LEVEL: "info" }, tiers: ["sandbox", "dev"] };
+
+  it("keeps the program, variable names and tiers, offers them to projects, and no secret", () => {
+    const cmd = fakeCommand();
+    const s = addCatalogServer({ ...base, command: cmd });
+    expect(s).toMatchObject({ name: "architect", command: cmd, args: ["-y", "@acme/architect-mcp"], env: { LOG_LEVEL: "info" }, keys: { clientId: "GENESYS_CLIENT_ID", secret: "GENESYS_CLIENT_SECRET", region: "GENESYS_REGION" }, regionFormat: "key", tiers: ["sandbox", "dev"] });
+    expect(fs.statSync(path.join(process.env.GCTK_HOME!, "mcp-catalog.json")).mode & 0o777).toBe(0o600);
+    expect(projectTemplates(opts)[0]).toMatchObject({ id: s.id, catalog: true, tiers: ["sandbox", "dev"], regionFormat: "key" });
+    // The same name again replaces it.
+    addCatalogServer({ ...base, command: cmd, tiers: ["sandbox"] });
+    expect(loadCatalog()).toHaveLength(1);
+    expect(loadCatalog()[0]!.tiers).toEqual(["sandbox"]);
+    removeCatalogServer(s.id);
+    expect(loadCatalog()).toEqual([]);
+    expect(() => removeCatalogServer(s.id)).toThrow(/no longer/);
+  });
+
+  it("refuses secrets, gctk's own names, unknown programs and no tier", () => {
+    const cmd = fakeCommand();
+    expect(() => addCatalogServer({ ...base, command: cmd, env: { API_TOKEN: "x" } })).toThrow(/looks like a secret/);
+    expect(() => addCatalogServer({ ...base, command: cmd, args: ["--client-secret=abc"] })).toThrow(/carries a secret/);
+    expect(() => addCatalogServer({ ...base, command: cmd, env: { GENESYS_CLIENT_ID: "x" } })).toThrow(/from the org/);
+    expect(() => addCatalogServer({ ...base, command: cmd, name: "ava-harness" })).toThrow(/comes with gctk/);
+    expect(() => addCatalogServer({ ...base, command: "no-such-program-xyz" })).toThrow(/could not find/);
+    expect(() => addCatalogServer({ ...base, command: cmd, tiers: [] })).toThrow(/at least one/);
+    expect(() => addCatalogServer({ ...base, command: cmd, secretVar: "GENESYS_CLIENT_ID" })).toThrow(/different variables/);
+    expect(loadCatalog()).toEqual([]);
   });
 });

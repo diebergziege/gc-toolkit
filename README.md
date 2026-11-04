@@ -5,9 +5,15 @@ non-technical users. It runs on your computer, opens from Cursor or Claude Code,
 itself.
 
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
-  straight into the OS keychain, never into a file or the chat. Each org shows which Cursor servers
-  and projects use it. Pick the org you work on by default
-- **Cursor setup**: the MCP servers Cursor loads in every folder (`~/.cursor/mcp.json` and Cursor
+  straight into the OS keychain, never into a file or the chat. Each org shows the start of its
+  OAuth client ID (never the secret); **OAuth clients not in gctk yet** lists the MCP servers that bring
+  their own OAuth client, each one click away from becoming an org or being linked to one. Deleting an org lists what would
+  stop working. Pick the org you work on by default
+- **AI Coding Tools**: one page for Cursor and the Claude app. It starts with what needs your
+  attention, then shows which org each MCP server works on (by app or by org) and the MCP servers available
+  for projects, where **Add MCP server** adds your own (for example Architect: how it starts, which
+  variables take the org's client ID, secret and region, which org tiers it may work on; never a secret),
+  optionally also into Cursor and the Claude app on an org you choose; every file and entry is under **More**. The Claude app shows only where it is installed. For Cursor: the MCP servers it loads in every folder (`~/.cursor/mcp.json` and Cursor
   plugins), which gctk org each Genesys server's OAuth client belongs to, and whether it can start.
   The **Orgs** page is the one place for OAuth credentials: a server is linked to an org and takes
   client ID, secret and region from there at every start, so a rotated secret is entered once.
@@ -20,11 +26,10 @@ itself.
   client) with one click; **Use another org** switches a server to another of your orgs. Flags
   entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from
   becoming a project. Secrets are never shown
-- **Claude app**: the same for the MCP servers the Claude app loads in every chat and Cowork session
+- For the **Claude app**: the same for the MCP servers it loads in every chat and Cowork session
   (`claude_desktop_config.json`): org, status and the same fixes. The app has no folders of its own,
-  so its one AVA harness works on the AXL workshop you pick there (org from the keychain at every
-  start, no secret in the file); it follows that workshop's org and goes when the workshop is
-  removed. Skills for Cowork are uploaded in the Claude app itself (Settings → Capabilities): **Skills
+  so its AVA harness works on one org you choose like Cursor's (**Change org**; credentials from
+  the keychain at every start, no secret in the file). Skills for Cowork are uploaded in the Claude app itself (Settings → Capabilities): **Skills
   for Cowork** zips the AVA skills and the lab facilitator for that, and shows which ones changed
   since your last zips (for example after an AVA harness update)
 - **Demos**: deploy a whole demo into another org with one button. The demos ship with gctk
@@ -46,16 +51,18 @@ itself.
   (with endpoints that create a case, send an SMS or find an email in the org) and answers Copilot's
   third-party action, with nothing to install
 - **Website**: a fake website for the customer's industry (banking, insurance, retail, energy,
-  telco; English or German) in their brand, colour and logo, with the org's Genesys Web Messenger on
-  it, for the customer's side of the demo. Served on its own local origin
+  telco) in English or German, with the customer's brand, colour and logo, the org's Genesys Web
+  Messenger, and what a real site has: products with prices, customer reviews, news, a cookie banner,
+  an EN/DE switch and a full footer. A live preview shows your choices. Served on its own local origin
 - **Demo ready**: pick an org and an agent, and fill the agent's home screen with demo data section
   by section: coaching, learning, speech and text analytics, evaluations, the scorecard and a
   published WFM schedule. Existing objects are reused, a second press creates nothing twice, and
   **Clean up** removes or restores exactly what the page did. **Refresh dates** moves the demo data
   forward when it has aged. Changes happen as soon as you press a button
-- **Projects**: a folder for each demo you build with the AI in Cursor, each with its own org. gctk gives the folder the Genesys tools you pick (the AVA harness, and Genesys MCP servers copied from your own configs), started with that org's credentials from the keychain, and shows everything Cursor loads there. **AXL** workshops are projects with the lab guide: several workshops,
+- **Projects**: a folder for each demo you build with the AI in Cursor, each with its own org. gctk gives the folder the MCP servers you pick: the AVA harness, which comes with gctk, and copies of the Genesys MCP servers you already have in Cursor or the Claude app, started with that org's credentials from the keychain, and shows everything Cursor loads there. **AXL** workshops are projects with the lab guide: several workshops,
   each with its own org (sandbox or dev) and folder. gctk gives that folder its own AVA harness
-  server, started with the org's credentials from the keychain, and lists the sessions with the
+  server, started with the org's credentials from the keychain, checks the two skills a workshop
+  needs (axl-lab-facilitator and axl-capsule) and installs them from their zip files, and lists the sessions with the
   artifacts they reached
 - **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
   link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
@@ -126,7 +133,7 @@ with the new version by itself.
    for AXL what the AVA harness builds.
 2. **Ask the AI** in Cursor or Claude Code: *"Open the gctk UI."* It opens on the Orgs page. Enter
    name, region, tier and the client ID and secret there.
-3. **Check Cursor:** open **Cursor setup** to see which MCP servers work on which org and move
+3. **Check Cursor:** open **AI Coding Tools** to see which MCP servers work on which org and move
    plain-text secrets into the keychain.
 4. **Prepare the demo:** Website for the customer's side, Demo ready for the agent's home screen.
 
@@ -146,7 +153,7 @@ Open button; this is the overview:
 |---|---|
 | `~/.config/gctk/profiles/` | your orgs (name, region, tier; no secrets) |
 | `~/.config/gctk/config.yaml` | the org you work on by default, the UI's port |
-| `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | Cursor setup: servers started through gctk, added locations, skills an earlier gctk removed |
+| `~/.config/gctk/mcp-launch.json`, `ai-setup.json`, `removed-skills/` | AI Coding Tools: servers started through gctk, added locations, skills an earlier gctk removed |
 | `~/.config/gctk/demos/` | Demos: this computer's copy of each org's deployment (the org keeps the original in its data table "gctk demos"), logs |
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
@@ -168,7 +175,7 @@ Open button; this is the overview:
   website runs on its own origin, so the Messenger script never sees the token.
 - **Demo ready and AXL write to the org directly.** Use them with sandbox, dev or demo orgs; AXL
   accepts sandbox and dev orgs only. Clean up removes what Demo ready created.
-- **Cursor setup** and **Claude app** show secrets only masked. A secret moved into the keychain is started through
+- **AI Coding Tools** shows secrets only masked. A secret moved into the keychain is started through
   `gctk mcp-launch`, whose launch record is signed with a key from the keychain; an edited record or
   config cannot reuse the secret for another command.
 
@@ -178,13 +185,13 @@ Open button; this is the overview:
 |---|---|
 | `gc_ui` | open a page of the UI in the user's browser (the session link never reaches the AI) |
 | `gc_ai_setup` | the MCP servers of Cursor and the Claude app, which org each server uses, where its secret is (masked, read-only) |
-| `gc_axl` | which org and Genesys tools a project folder or AXL workshop has (read-only) |
+| `gc_axl` | which org and MCP servers a project folder or AXL workshop has (read-only) |
 
 ## CLI
 
 | Command | Purpose |
 |---|---|
-| `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup`, `claude-app`, `demos`, `site`, `demo`, `axl`, `monitoring` |
+| `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup` (AI Coding Tools; `claude-app` opens it too), `demos`, `site`, `demo`, `axl`, `monitoring` |
 | `gctk profile add/list/show/use/remove` | manage orgs from a terminal |
 | `gctk login [profile]` / `logout` | store or delete an org's credentials in the keychain (`--from-env` for CI) |
 | `gctk mcp` | run the MCP server (stdio) |

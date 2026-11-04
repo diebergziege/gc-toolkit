@@ -6,7 +6,9 @@ import { GenesysClient } from "./client.js";
 import { hasStoredCredentials, loadCredentials } from "./credentials.js";
 import { GctkError } from "./errors.js";
 import { claudeAppConfigFile, gctkHome } from "./paths.js";
-import { listProfiles, loadProfile, type Profile } from "./profiles.js";
+import { listProfiles, loadProfile, type Profile, TIERS, type Tier } from "./profiles.js";
+import { REGIONS } from "./regions.js";
+import { axlSkillStatus, type AxlSkillStatus } from "./axl-skills.js";
 
 /**
  * AXL (AI Agent eXperience Lab) workshops run in the Cursor app with the axl-lab-facilitator skill
@@ -25,7 +27,7 @@ import { listProfiles, loadProfile, type Profile } from "./profiles.js";
  *
  * Projects (UI page "Projects", decision 2026-10-06): a workshop is one kind of project. Any folder
  * a consultant builds a demo in can be a project with its own org; `lab: false` marks one that is
- * not an AXL workshop. Its folder gets the Genesys tools the user picks: the AVA harness and copies
+ * not an AXL workshop. Its folder gets the MCP servers the user picks: the AVA harness and copies
  * of Genesys MCP servers from the user's own configs (`tools`), each started by `gctk project-tool
  * --project <id> --tool <name>` with the project's org from the keychain. What a tool starts and
  * which variables carry the credentials live here in the gctk home, never in the folder, so an
@@ -33,7 +35,7 @@ import { listProfiles, loadProfile, type Profile } from "./profiles.js";
  * production org needs a confirmation for exactly that org, checked again at every start.
  *
  * The Claude app (chat and Cowork) has no folders of its own: its config holds one ava-harness for
- * every session. The user picks the workshop it works on (UI page "Claude app"); gctk writes the same
+ * every session. The user picks the workshop it works on (UI page "AI Coding Tools"); gctk writes the same
  * `gctk axl-harness --workshop <id> --org <profile>` entry there, keeps it in step when the
  * workshop's org changes, and removes it with the workshop.
  */
@@ -75,6 +77,10 @@ export interface ProjectTool {
   keys: { clientId: string; secret: string; region?: string; habitat?: string };
   /** The config file it was copied from. */
   from?: string;
+  /** "key" passes the region as eu-central-1 instead of mypurecloud.de. */
+  regionFormat?: "key";
+  /** Org tiers it may work on (all when absent). */
+  tiers?: Tier[];
 }
 
 export const isLab = (w: Pick<AxlWorkshop, "lab">) => w.lab !== false;
@@ -89,7 +95,8 @@ function cleanTools(raw: unknown): ProjectTool[] {
     const name = str(t?.name), command = str(t?.command), clientId = str(keys.clientId), secret = str(keys.secret);
     if (!name || !TOOL_NAME_RE.test(name) || name === HARNESS_SERVER || !command || !path.isAbsolute(command) || !clientId || !secret || out.some((x) => x.name === name)) continue;
     const env = Object.fromEntries(Object.entries((t.env as Record<string, unknown>) ?? {}).filter(([k, v]) => typeof v === "string" && ![clientId, secret, str(keys.region), str(keys.habitat)].includes(k))) as Record<string, string>;
-    out.push({ name, command, args: Array.isArray(t.args) ? t.args.map(String) : [], env, keys: { clientId, secret, ...(str(keys.region) ? { region: str(keys.region) } : {}), ...(str(keys.habitat) ? { habitat: str(keys.habitat) } : {}) }, ...(str(t.from) ? { from: str(t.from) } : {}) });
+    const tiers = Array.isArray(t.tiers) ? TIERS.filter((x) => (t.tiers as unknown[]).includes(x)) : [];
+    out.push({ name, command, args: Array.isArray(t.args) ? t.args.map(String) : [], env, keys: { clientId, secret, ...(str(keys.region) ? { region: str(keys.region) } : {}), ...(str(keys.habitat) ? { habitat: str(keys.habitat) } : {}) }, ...(str(t.from) ? { from: str(t.from) } : {}), ...(t.regionFormat === "key" ? { regionFormat: "key" as const } : {}), ...(tiers.length ? { tiers } : {}) });
   }
   return out;
 }
@@ -221,12 +228,14 @@ function assertAxlProfile(p: Profile): void {
 }
 
 /** A workshop: sandbox or dev. A project: any org, production only when confirmed for that org. */
-function assertProjectOrg(w: Pick<AxlWorkshop, "lab" | "harness" | "productionConfirmed">, p: Profile): void {
+function assertProjectOrg(w: Pick<AxlWorkshop, "lab" | "harness" | "productionConfirmed" | "tools">, p: Profile): void {
   if (isLab(w)) return assertAxlProfile(p);
   if (p.tier === "production" && w.productionConfirmed !== p.name) {
     throw new GctkError("PROJECT_PRODUCTION", `"${p.name}" is a production org. The AI tools of this folder would change it directly; confirm the production org on the Projects page first.`);
   }
   if (usesHarness(w) && !HABITATS[p.region]) throw new GctkError("AXL_REGION", `The AVA harness does not know the region ${p.region} of "${p.name}".`);
+  const barred = (w.tools ?? []).find((t) => t.tiers && !t.tiers.includes(p.tier));
+  if (barred) throw new GctkError("PROJECT_TIER", `${barred.name} may only work on ${barred.tiers!.join(" or ")} orgs, and "${p.name}" is ${p.tier}. Choose another org or remove ${barred.name} from the project.`);
 }
 
 const absolute = (v: string, what: string) => {
@@ -261,6 +270,7 @@ export function saveWorkshop(input: { id?: string; name?: string; profile?: stri
     else delete w.tools;
   }
   if (input.name !== undefined && input.name.trim()) w.name = input.name.trim().slice(0, 120);
+  if (input.profile === undefined && input.tools !== undefined && w.profile) assertProjectOrg(w, loadProfile(w.profile));
   if (input.profile !== undefined) {
     if (input.profile) {
       const p = loadProfile(input.profile);
@@ -519,7 +529,7 @@ export function useInClaudeApp(id: string | undefined, gctkJs: string, node = pr
   const before = JSON.stringify(mcp.mcpServers ?? {});
   const servers: Record<string, McpEntry> = { ...(mcp.mcpServers ?? {}) };
   const old = servers[HARNESS_SERVER];
-  if (old && !isOurs(old)) throw new GctkError("INVALID_INPUT", `The Claude app has an ${HARNESS_SERVER} of its own that gctk did not set up. Remove it on the Claude app page first.`);
+  if (old && !isOurs(old)) throw new GctkError("INVALID_INPUT", `The Claude app has an ${HARNESS_SERVER} of its own that gctk did not set up. Remove it on the AI Coding Tools page first.`);
   if (id) {
     const w = getWorkshop(id);
     if (!usesHarness(w)) throw new GctkError("AXL_NO_HARNESS", `The project "${w.name}" has no AVA harness. Switch it on on the Projects page.`);
@@ -532,6 +542,28 @@ export function useInClaudeApp(id: string | undefined, gctkJs: string, node = pr
   mcp.mcpServers = servers;
   writeAppConfig(file, mcp);
   return true;
+}
+
+/**
+ * First half of "Change org" for the Claude app's ava-harness (AI Coding Tools): the workshop-run entry
+ * gctk wrote becomes a plain `ava-mcp serve` entry with empty credential variables and no secret, which
+ * `linkToOrg` then links to an org like Cursor's own ava-harness. Returns the undo for a failed link.
+ */
+export function claudeHarnessUnlinkWorkshop(file = claudeAppConfigFile(), settings = loadAxlSettings()): () => void {
+  if (!fs.existsSync(path.dirname(file))) throw new GctkError("INVALID_INPUT", "The Claude app is not installed on this computer.");
+  const mcp = readMcp(file);
+  const old = mcp.mcpServers?.[HARNESS_SERVER];
+  if (!old || !isOurs(old)) throw new GctkError("INVALID_INPUT", `The Claude app's ${HARNESS_SERVER} is not run through an AXL workshop.`);
+  const command = harnessCommandOf(settings);
+  if (!path.isAbsolute(command) || !fs.existsSync(command)) throw new GctkError("AXL_NO_HARNESS", `The AVA harness was not found at ${command}. Install it, or set its path on the Projects page.`);
+  const env: Record<string, string> = { ...(old.env ?? {}), GENESYS_CLIENT_ID: "", GENESYS_CLIENT_SECRET: "", AVA_HABITAT: "" };
+  mcp.mcpServers = { ...mcp.mcpServers, [HARNESS_SERVER]: { command, args: ["serve"], env } };
+  writeAppConfig(file, mcp);
+  return () => {
+    const now = readMcp(file);
+    now.mcpServers = { ...(now.mcpServers ?? {}), [HARNESS_SERVER]: old };
+    writeAppConfig(file, now);
+  };
 }
 
 /** After a workshop changed: the Claude app's harness follows it (new org), or goes when it has none. */
@@ -588,6 +620,8 @@ export interface WorkshopStatus {
   lastStart?: HarnessStart;
   sessionsDir?: string;
   sessions: AxlSession[];
+  /** The skills an AXL workshop needs, from its folder or ~/.cursor/skills (AXL workshops only). */
+  skills?: AxlSkillStatus[];
   /** Projects: when Cursor last started each tool through gctk. */
   toolStarts?: Record<string, string>;
 }
@@ -604,6 +638,8 @@ export interface AxlStatus {
   orgs: Array<{ name: string; tier: string; region: string; harness: boolean }>;
   /** The Claude app's ava-harness (one for every chat and Cowork session). */
   claudeApp: ClaudeAppHarness;
+  /** The skills an AXL workshop needs, in ~/.cursor/skills. */
+  skills: AxlSkillStatus[];
 }
 
 function orgOf(w: AxlWorkshop): WorkshopOrg | undefined {
@@ -665,13 +701,14 @@ export function axlStatus(globalMcp = globalCursorMcpFile()): AxlStatus {
   const cmd = harnessCommandOf(settings);
   const starts = readStarts();
   return {
-    workshops: settings.workshops.map((w) => workshopStatus(w, starts)),
+    workshops: settings.workshops.map((w) => ({ ...workshopStatus(w, starts), ...(isLab(w) ? { skills: axlSkillStatus(w.folder) } : {}) })),
     globalHarness: { present: Boolean(globalEntry), inlineSecret: Boolean(globalEntry?.env?.GENESYS_CLIENT_SECRET) },
     harnessCommand: cmd,
     harnessInstalled: fs.existsSync(cmd),
     choices,
     orgs,
     claudeApp: claudeAppHarness(claudeAppConfigFile(), settings),
+    skills: axlSkillStatus(),
   };
 }
 
@@ -698,7 +735,7 @@ function describeProject(x: WorkshopStatus): string[] {
   const tools = [...(usesHarness(w) ? [HARNESS_SERVER] : []), ...(w.tools ?? []).map((t) => t.name)];
   const lines = [`Project "${w.name}" (id ${w.id}), a demo folder (not an AXL workshop).`];
   lines.push(x.org ? `Org for this folder: ${x.org.profile} (${x.org.tier}, ${x.org.region}).${x.org.tier === "production" ? " A PRODUCTION org: confirm every change with the user." : ""}${x.org.credentialsStored ? "" : " No credentials stored for it in gctk."}${x.org.problem ? ` Problem: ${x.org.problem}` : ""}` : "Org: not chosen. Ask the user to choose it on the Projects page.");
-  lines.push(tools.length ? `Genesys tools gctk starts in this folder with that org: ${tools.join(", ")}.${x.folder.stale ? " The folder's entries are out of date: the user presses \"Set up folder\" on the Projects page." : ""} Cursor uses them only after the user switched them on (Settings → MCP).` : "No Genesys tools set up for this folder yet (Projects page of the gctk UI).");
+  lines.push(tools.length ? `MCP servers gctk starts in this folder with that org: ${tools.join(", ")}.${x.folder.stale ? " The folder's entries are out of date: the user presses \"Set up folder\" on the Projects page." : ""} Cursor uses them only after the user switched them on (Settings → MCP).` : "No MCP servers set up for this folder yet (Projects page of the gctk UI).");
   return lines;
 }
 
@@ -721,7 +758,7 @@ function describeWorkshop(x: WorkshopStatus, st: AxlStatus): string[] {
         : "Its ava-harness server is not set up by gctk yet (button \"Set up folder\" on the AXL page), so the harness uses whatever org Cursor's own settings give it.",
     );
   }
-  if (st.claudeApp.ours && st.claudeApp.workshop === w.id) lines.push(`The Claude app (chat and Cowork) starts its ava-harness for this workshop with ${st.claudeApp.org ?? "?"}${st.claudeApp.stale ? ", but that entry is out of date: the user fixes it on the Claude app page of the gctk UI" : ""}.`);
+  if (st.claudeApp.ours && st.claudeApp.workshop === w.id) lines.push(`The Claude app (chat and Cowork) starts its ava-harness for this workshop with ${st.claudeApp.org ?? "?"}${st.claudeApp.stale ? ", but that entry is out of date: the user fixes it on the Projects page of the gctk UI" : ""}.`);
   if (x.sessions.length) {
     lines.push("Sessions (newest first; only read the one the facilitator picks):");
     for (const s of x.sessions.slice(0, 30)) lines.push(`- ${s.name}  ${s.stage}${s.artifacts.length ? ` (${s.artifacts.join(", ")})` : ""}  ${s.modified.slice(0, 10)}`);
@@ -738,7 +775,7 @@ export function formatAxlStatus(st: AxlStatus, folder?: string): string {
   if (folder) {
     const x = workshopForFolder(st, folder);
     if (x) return [head, ...describeWorkshop(x, st)].join("\n");
-    return [head, `No project uses ${folder}. Its Genesys tools are not set up by gctk; ask the user to add a project for this folder on the Projects page, or open a project folder:`, ...st.workshops.map((x) => `- ${x.workshop.name}${isLab(x.workshop) ? " (AXL)" : ""}: ${x.workshop.folder ?? "no folder"} (${x.workshop.profile ?? "no org"})`)].join("\n");
+    return [head, `No project uses ${folder}. Its MCP servers are not set up by gctk; ask the user to add a project for this folder on the Projects page, or open a project folder:`, ...st.workshops.map((x) => `- ${x.workshop.name}${isLab(x.workshop) ? " (AXL)" : ""}: ${x.workshop.folder ?? "no folder"} (${x.workshop.profile ?? "no org"})`)].join("\n");
   }
   return [head, "Pass folder (your Cursor workspace) for the project you are in.", ...st.workshops.map((x) => `- ${x.workshop.name} (id ${x.workshop.id}${isLab(x.workshop) ? ", AXL workshop" : ""}): ${x.workshop.profile ?? "no org"}, ${x.workshop.folder ?? "no folder"}${isLab(x.workshop) ? `, ${x.sessions.length} session(s)` : ""}`)].join("\n");
 }
@@ -835,7 +872,11 @@ export function projectToolSpec(ref: { project?: string; tool?: string }, base: 
   if (!path.isAbsolute(tool.command) || !fs.existsSync(tool.command)) throw new GctkError("PROJECT_NO_COMMAND", `${tool.command} (for ${tool.name}) no longer exists. Add the tool again on the Projects page.`);
   const creds = loadCredentials(profile);
   const env: NodeJS.ProcessEnv = { ...base, ...tool.env, [tool.keys.clientId]: creds.clientId, [tool.keys.secret]: creds.clientSecret };
-  if (tool.keys.region) env[tool.keys.region] = profile.region;
+  if (tool.keys.region) {
+    const key = Object.keys(REGIONS).find((k) => REGIONS[k] === profile.region);
+    if (tool.regionFormat === "key" && !key) throw new GctkError("PROJECT_REGION", `${tool.name} needs a region key, and gctk knows none for ${profile.region}.`);
+    env[tool.keys.region] = tool.regionFormat === "key" ? key! : profile.region;
+  }
   if (tool.keys.habitat && HABITATS[profile.region]) env[tool.keys.habitat] = HABITATS[profile.region];
   for (const k of Object.keys(env)) if (/^GCTK_(APPROVAL_KEY|UI_TOKEN|CLIENT_SECRET)$/.test(k)) delete env[k];
   return { command: tool.command, args: tool.args, env, profile, workshop: w, tool };

@@ -4,7 +4,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import type { AddressInfo } from "node:net";
-import { deleteCredentials, hasStoredCredentials, storeCredentials } from "../core/credentials.js";
+import { deleteCredentials, loadCredentials, storeCredentials } from "../core/credentials.js";
 import { GctkError, formatError } from "../core/errors.js";
 import { GenesysClient } from "../core/client.js";
 import {
@@ -25,14 +25,15 @@ import { COACHING_TEMPLATES, DEMO_SECTIONS, LEARNING_TEMPLATES, demoSection, run
 import { monitorOrg, type MonitorReport } from "../core/monitoring.js";
 import { readBilling, readHistory, type BillingHistory, type BillingMonth, type BillingReport } from "../core/billing.js";
 import { compareModels, estimate, parseEstimateInput, pricingCatalog } from "../core/pricing.js";
-import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, setCredentials, toolTemplates, updateSecret } from "../core/ai-setup.js";
+import { addLocation, cleanEnv, moveToKeychain, removeLocation, linkToOrg, removeServer, repairServer, restoreSkill, restoreToFile, scanAiSetup, showClientId, setCredentials, projectTemplates, addCatalogServer, addCatalogToApp, removeCatalogServer, loadCatalog, updateSecret } from "../core/ai-setup.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { checkGctk, checkUpdates, type GctkVersion, type Program, updateGctk, updateProgram } from "../core/updates.js";
 import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
-import { axlStatus, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
-import { gctkHome } from "../core/paths.js";
+import { installAxlSkillZip } from "../core/axl-skills.js";
+import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
+import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
 import indexHtml from "./index.html";
 import { openBrowser, openInCursor } from "./launcher.js";
@@ -41,6 +42,8 @@ import { environmentFor, INDUSTRIES, LANGS, parseSiteQuery, readLogo, saveLogo, 
 declare const __GCTK_VERSION__: string;
 const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
 const MAX_BODY = 1024 * 1024;
+/** Skill zips for AXL workshops arrive base64 encoded in JSON (the lab facilitator is several MB). */
+const MAX_SKILL_BODY = 48 * 1024 * 1024;
 /** Logo uploads on the Website page arrive base64 encoded in JSON. */
 const MAX_UPLOAD_BODY = 4 * 1024 * 1024;
 
@@ -85,13 +88,22 @@ function clientFor(profile: string): GenesysClient {
 const currentUser = () => os.userInfo().username;
 
 function profileView(p: Profile) {
+  let clientId: string | undefined;
+  try {
+    const c = loadCredentials(p);
+    clientId = c ? showClientId(c.clientId) : undefined;
+  } catch {
+    clientId = undefined;
+  }
   return {
     name: p.name,
     region: p.region,
     tier: p.tier,
     description: p.description,
     credentials: p.credentials,
-    credentialsStored: hasStoredCredentials(p),
+    credentialsStored: clientId !== undefined,
+    /** The start of the OAuth client ID (never the secret). */
+    clientId,
     active: getActiveProfileName() === p.name,
   };
 }
@@ -244,7 +256,7 @@ const projectFields = (body: Json, existing: ProjectTool[] = []) => {
   if (body.confirmProduction === true) out.confirmProduction = true;
   if (Array.isArray(body.tools)) {
     const ids = body.tools.filter((x): x is string => typeof x === "string");
-    const all = toolTemplates();
+    const all = projectTemplates();
     const kept = ids.filter((id) => id.startsWith("keep:")).map((id) => existing.find((t) => t.name === id.slice(5)));
     const unknown = ids.filter((id) => !id.startsWith("keep:") && !all.some((t) => t.id === id));
     if (unknown.length || kept.some((t) => !t)) throw new HttpError(400, "A tool is no longer in your editor configs; refresh the page.");
@@ -258,8 +270,34 @@ const shownWorkshop = (id: string) => {
   return w;
 };
 route("GET", "/api/axl", () => axlStatus());
+route("POST", "/api/axl/skills", ({ body }) => {
+  const data = pickStr(body, "zip") ?? "";
+  if (!/^[A-Za-z0-9+/=]+$/.test(data)) throw new HttpError(400, "Choose a skill zip file.");
+  return { ...installAxlSkillZip(Buffer.from(data, "base64")), status: axlStatus() };
+});
 route("PUT", "/api/axl/settings", ({ body }) => (saveHarnessCommand(pickStr(body, "harnessCommand") ?? ""), axlStatus()));
-route("GET", "/api/axl/tool-templates", () => toolTemplates());
+route("GET", "/api/axl/tool-templates", () => projectTemplates());
+// The user's own MCP servers for projects: entered on the AI Coding Tools page, no secrets.
+route("GET", "/api/mcp-catalog", () => loadCatalog());
+route("POST", "/api/mcp-catalog", ({ body }) => {
+  const apps = (Array.isArray(body.useIn) ? body.useIn : []).filter((x): x is "cursor" | "claude-desktop" => x === "cursor" || x === "claude-desktop");
+  const profile = apps.length ? str(body, "profile") : "";
+  const gctkJs = apps.length ? installedGctk() : undefined;
+  if (apps.length && !gctkJs) throw new HttpError(400, "Adding it to Cursor or the Claude app needs the installed gctk (dist/gctk.js), not a development run.");
+  const server = addCatalogServer(body);
+  const failed: string[] = [];
+  const added: string[] = [];
+  for (const app of apps) {
+    try {
+      addCatalogToApp(server.id, app, { profile, gctkJs: gctkJs! });
+      added.push(app);
+    } catch (err) {
+      failed.push(`${app === "cursor" ? "Cursor" : "Claude app"}: ${err instanceof GctkError ? err.message : String(err)}`);
+    }
+  }
+  return { catalog: loadCatalog(), added, failed };
+});
+route("DELETE", "/api/mcp-catalog/:id", ({ params }) => (removeCatalogServer(params.id!), loadCatalog()));
 route("POST", "/api/axl/workshops", ({ body }) => {
   const w = saveWorkshop({ name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder"), ...projectFields(body) });
   return { ...axlStatus(), id: w.id, folderUpdated: applyWorkshop(w.id) };
@@ -329,6 +367,21 @@ route("POST", "/api/ai-setup/fix", ({ body }) => {
 });
 route("POST", "/api/ai-setup/skills/restore", ({ body }) => (restoreSkill(str(body, "id")), scanAiSetup()));
 // Links a server to an org on the Orgs page (an existing one, or its own credentials as a new org).
+// The Claude app's ava-harness, run through an AXL workshop, gets an org of its own like Cursor's.
+route("POST", "/api/ai-setup/claude-harness-org", ({ body }) => {
+  const gctkJs = installedGctk();
+  if (!gctkJs) throw new HttpError(400, "Linking needs the installed gctk (dist/gctk.js), not a development run.");
+  const profile = str(body, "profile");
+  const file = claudeAppConfigFile();
+  const undo = claudeHarnessUnlinkWorkshop(file);
+  try {
+    linkToOrg({ file, section: "mcpServers", name: "ava-harness" }, { gctkJs, profile });
+  } catch (err) {
+    undo();
+    throw err;
+  }
+  return scanAiSetup();
+});
 route("POST", "/api/ai-setup/link", ({ body }) => {
   const gctkJs = installedGctk();
   if (!gctkJs) throw new HttpError(400, "Linking needs the installed gctk (dist/gctk.js), not a development run.");
@@ -477,7 +530,7 @@ route("DELETE", "/api/profiles/:name", ({ params }) => {
 route("GET", "/api/site", () => ({
   host: SITE_HOST,
   langs: LANGS,
-  industries: INDUSTRIES.map((i) => ({ id: i.id, label: i.label, brand: i.brand, color: i.color, headline: i.copy.en.heroTitle })),
+  industries: INDUSTRIES.map((i) => ({ id: i.id, label: i.label, brand: i.brand, color: i.color, headline: { en: i.copy.en.heroTitle, de: i.copy.de.heroTitle } })),
   // The region decides which Messenger loads; it defaults to the org the user works on.
   regions: Object.entries(REGIONS).map(([key, domain]) => ({ key, domain, environment: environmentFor(domain) })),
   defaultDomain: (() => {
@@ -628,7 +681,7 @@ export async function startUi(
         const m = r.pattern.exec(url.pathname);
         if (!m) continue;
         const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1]!)]));
-        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) ? MAX_UPLOAD_BODY : MAX_BODY);
+        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) ? MAX_UPLOAD_BODY : url.pathname === "/api/axl/skills" ? MAX_SKILL_BODY : MAX_BODY);
         return send(res, 200, (await r.handler({ params, query: url.searchParams, body })) ?? {});
       }
       return send(res, 404, { error: "Not found." });

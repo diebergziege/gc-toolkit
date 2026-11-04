@@ -168,12 +168,143 @@ main.wide { max-width: 1500px; padding-bottom: 16px; }
 .dcard .st.bad { color: var(--bad); } .dcard .st.bad::before { background: var(--bad); }
 .dblock input, .dblock select, .dblock textarea, .panel select { max-width: 100%; box-sizing: border-box; }
 .dtools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+/* ---- Shared look: page heads, icons, chips, tiles, explainers. */
+:root { --accent-soft: color-mix(in srgb, var(--accent) 11%, var(--panel)); --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .04); }
+header { box-shadow: 0 1px 0 var(--line); border-bottom: 0; }
+header h1 { display: flex; align-items: center; gap: 8px; }
+.logo-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #ff9a3d); color: #fff; font-size: 14px; font-weight: 800; }
+nav { gap: 4px; padding: 2px 14px 8px; }
+nav button { border-radius: 999px; padding: 6px 14px; }
+nav button:hover { color: var(--text); background: var(--neutral-bg); }
+nav button[aria-current="page"] { background: var(--text); color: var(--panel); }
+.panel { border-radius: 12px; box-shadow: var(--shadow); }
+.page-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 6px 0 20px; }
+.page-head h2 { font-size: 26px; margin: 0; letter-spacing: -.015em; }
+.page-head p { margin: 4px 0 0; color: var(--muted); font-size: 15px; max-width: 760px; }
+.page-head .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -4px; }
+.btn .ic { width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; }
+button.sm { padding: 3px 10px; font-size: 12.5px; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--info); cursor: pointer; }
+.linkbtn:hover { text-decoration: underline; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; white-space: nowrap; color: var(--text); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.chip.tier-production .dot { background: var(--bad); } .chip.tier-test .dot { background: var(--warn); }
+.chip.tier-dev .dot { background: var(--info); } .chip.tier-sandbox .dot { background: var(--ok); }
+.chip.none { color: var(--muted); border-style: dashed; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); display: grid; gap: 2px; }
+.tile .lbl { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.tile .n { font-size: 24px; font-weight: 750; line-height: 1.2; }
+.tile small { color: var(--muted); font-size: 12.5px; }
+.tile.bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); } .tile.bad .n { color: var(--bad); }
+.tile.good .n { color: var(--ok); }
+.explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.explain > div { display: flex; gap: 12px; align-items: flex-start; }
+.bubble { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.bubble .ic { width: 22px; height: 22px; }
+.explain strong { display: block; margin-bottom: 2px; }
+.explain span { color: var(--muted); font-size: 13.5px; }
+.intro { background: linear-gradient(120deg, var(--accent-soft), var(--panel) 65%); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.card-grid > .panel { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.card-foot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status.ok { color: var(--ok); } .status.ok::before { background: var(--ok); }
+.status.todo { color: var(--warn); } .status.todo::before { background: var(--warn); }
+.status.bad { color: var(--bad); } .status.bad::before { background: var(--bad); }
+.status.off { color: var(--muted); }
+/* ---- AI Coding Tools: app → server → org. */
+.apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 14px; }
+.apps > .panel { margin: 0; }
+.app-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.app-head .bubble { width: 36px; height: 36px; border-radius: 10px; }
+.app-head strong { font-size: 17px; }
+.conn { display: grid; grid-template-columns: minmax(130px, 1fr) 18px minmax(130px, 1fr) auto; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.conn .arrow { color: var(--muted); }
+.conn .tool strong { display: block; font-size: 14px; }
+.conn .tool small { color: var(--muted); font-size: 12px; }
+.conn .end { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.conn select { font-size: 12px; padding: 2px 6px; max-width: 170px; }
+.sub-block { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { background: none; border: 0; padding: 5px 12px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--neutral-bg); color: var(--text); font-weight: 600; }
+.section-title .seg { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.more > summary { list-style: none; display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::after { content: "▸"; margin-left: auto; color: var(--muted); }
+.more[open] > summary::after { content: "▾"; }
+/* ---- Demo ready: pick what to add. */
+.pick { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); display: grid; gap: 6px; transition: border-color .12s, box-shadow .12s; }
+.pick:has(.use:checked) { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); box-shadow: inset 3px 0 0 var(--accent); }
+.pick:not(:has(.use:checked)) > :not(.pick-head) { opacity: .5; }
+.pick-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pick-head .use { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.pick-title { flex: 1; min-width: 200px; font-weight: 600; border-color: transparent; background: transparent; padding-left: 4px; }
+.pick-title:hover, .pick-title:focus { border-color: var(--line); background: var(--bg); }
+.pick-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); padding-left: 28px; }
+.pick-meta > label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }
+.pick-body { padding-left: 28px; }
+.picks { display: grid; gap: 8px; }
+.pick-head .linkbtn { color: var(--muted); display: inline-grid; place-items: center; }
+.pick-head .linkbtn:hover { color: var(--bad); }
+.dcard .bubble .ic { width: 16px; height: 16px; }
+.selbar { position: sticky; bottom: 8px; z-index: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px -14px rgba(0, 0, 0, .35); }
+.selbar .n { font-weight: 600; }
+.settings-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; padding: 10px 12px; border-radius: 10px; background: var(--bg); margin-bottom: 10px; }
+.settings-row label { font-size: 12px; }
+.dblock { border-radius: 12px; }
+.dblock.live { border-left: 1px solid var(--line); }
+.dblock.setup { border-left: 1px solid var(--line); background: linear-gradient(180deg, var(--accent-soft), transparent 90px); }
+.dblock-head .bubble { width: 28px; height: 28px; border-radius: 8px; }
+.dblock-head .bubble .ic { width: 16px; height: 16px; }
+.dblock.live .dblock-head .bubble { background: var(--ok-bg); color: var(--ok); }
+/* ---- Demos: catalog cards with a banner, detail as a timeline. */
+.demo-card { padding: 0 !important; overflow: hidden; cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.demo-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -18px rgba(0, 0, 0, .45); }
+.demo-card .inner { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.banner { position: relative; padding: 18px 18px 16px; color: #fff; background: linear-gradient(130deg, var(--b1), var(--b2)); overflow: hidden; }
+.banner::after { content: ""; position: absolute; right: -40px; top: -60px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255, 255, 255, .12); }
+.banner::before { content: ""; position: absolute; right: 60px; bottom: -80px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255, 255, 255, .08); }
+.banner h3 { margin: 0; font-size: 20px; position: relative; }
+.banner .kicker { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .85; font-weight: 700; position: relative; }
+.banner p { margin: 6px 0 0; opacity: .92; position: relative; max-width: 760px; }
+.demo-hero { border-radius: 14px; margin-bottom: 14px; padding: 26px 24px; box-shadow: var(--shadow); }
+.demo-hero h3 { font-size: 26px; }
+.demo-hero .org-pick { position: relative; margin-top: 16px; display: inline-flex; gap: 8px; align-items: center; background: rgba(255, 255, 255, .16); padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+.demo-hero .org-pick select { background: #fff; color: #1d2330; border: 0; }
+.demo-hero .org-pick { color: #fff; font-weight: 600; }
+.timeline { position: relative; display: grid; gap: 14px; }
+.tl { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; position: relative; }
+.tl:not(:last-child)::before { content: ""; position: absolute; left: 16px; top: 36px; bottom: -14px; width: 2px; background: var(--line); }
+.tl-n { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; position: relative; z-index: 1; }
+.tl > .panel { margin: 0; }
+.tl-title { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
+/* ---- Website: language and preview. */
+.lang-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.lang-pick .ws-opt strong { font-size: 15px; }
+.flag { flex: none; width: 28px; height: 20px; border-radius: 4px; overflow: hidden; display: grid; box-shadow: 0 0 0 1px var(--line); }
+.preview { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; color: #1c2230; box-shadow: var(--shadow); }
+.preview .bar { display: flex; gap: 6px; align-items: center; padding: 8px 10px; background: #eef0f3; }
+.preview .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d0d4db; }
+.preview .bar span { margin-left: 8px; font: 11px var(--mono); color: #5d6677; background: #fff; border-radius: 6px; padding: 2px 8px; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.preview .top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #e6e8ee; font-weight: 800; }
+.preview .mk { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-size: 11px; overflow: hidden; }
+.preview .mk img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.preview .hero { padding: 18px 14px 20px; }
+.preview .hero b { display: block; font-size: 18px; line-height: 1.2; margin-bottom: 10px; }
+.preview .hero em { display: inline-block; font-style: normal; color: #fff; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; }
 </style>
 </head>
 <body>
 <header>
   <div class="hbar">
-    <h1><span>gctk</span> Genesys Cloud Toolkit</h1>
+    <h1><b class="logo-mark" aria-hidden="true">g</b><span>gctk</span> Genesys Cloud Toolkit</h1>
     <div class="org" id="org"></div>
     <div class="who" id="who"></div>
     <div class="theme" id="theme" role="group" aria-label="Colour theme"></div>
@@ -278,8 +409,7 @@ const state = { view: (() => { try { return sessionStorage.getItem("gctk-view") 
 // The ids are the page names the agent opens with gc_ui (UI_PAGES), so they stay as they are.
 const VIEWS = [
   ["profiles", "Orgs", "Your Genesys Cloud orgs, their credentials and rules"],
-  ["ai-setup", "Cursor setup", "The MCP servers Cursor loads in every folder: which org each one works on, and fixes"],
-  ["claude-app", "Claude app", "The MCP servers the Claude app loads in chat and Cowork: which org each one works on, and the workshop of its AVA harness"],
+  ["ai-setup", "AI Coding Tools", "Cursor and the Claude app: which MCP servers they load and which org each one works on"],
   ["axl", "Projects", "Folders you build demos in with the AI in Cursor, each with its own org; AXL workshops too"],
   ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
   ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
@@ -372,8 +502,13 @@ async function refreshOverview() {
   renderNav();
 }
 
+/** Page ids that moved: the Claude app page is part of AI Coding Tools now. */
+function pageAlias(view) {
+  if (view === "claude-app") { state.aiFocus = "claude-desktop"; return "ai-setup"; }
+  return view;
+}
 function go(view) {
-  state.view = view;
+  state.view = view = pageAlias(view);
   try { sessionStorage.setItem("gctk-view", view); } catch {}
   render();
 }
@@ -389,7 +524,7 @@ async function render() {
   renderNav();
   state.cleanup?.();
   state.cleanup = null;
-  const view = { site: viewSite, "ai-setup": () => viewAiSetup("cursor"), "claude-app": () => viewAiSetup("claude-desktop"), demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, pricing: viewPricing, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
+  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, pricing: viewPricing, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
   try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }
 }
 
@@ -401,10 +536,59 @@ function copyButton(text) {
 }
 const navLink = (view, text) => h("a", { href: "#", onclick: (e) => { e.preventDefault(); go(view); } }, text);
 
+// Stroke icons (24×24), built as SVG elements: never parsed from markup.
+const ICON_PATHS = {
+  plus: ["M12 5v14M5 12h14"],
+  folder: ["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"],
+  org: ["M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16", "M16 9h3a1 1 0 0 1 1 1v11", "M8 7h4M8 11h4M8 15h4M3 21h18"],
+  tool: ["M14.7 6.3a4 4 0 0 0 5 5L11 20a2.1 2.1 0 0 1-3-3l8.7-8.7", "M14.7 6.3 17 4"],
+  arrow: ["M5 12h14M13 6l6 6-6 6"],
+  check: ["M5 12l5 5L20 7"],
+  key: ["M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.1-1.1"],
+  code: ["M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"],
+  chat: ["M4 5h16v11H9l-5 4z"],
+  globe: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"],
+  play: ["M7 4l13 8-13 8z"],
+  refresh: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 5v6h-6"],
+  alert: ["M12 3l10 18H2z", "M12 10v5M12 18h.01"],
+  spark: ["M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"],
+  calendar: ["M4 6h16v14H4z", "M4 10h16M9 3v4M15 3v4"],
+  eye: ["M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"],
+  layers: ["M12 3l9 5-9 5-9-5z", "M3 13l9 5 9-5"],
+  cursor: ["M5 3l14 8-6 2-2 6z"],
+  claude: ["M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"],
+  trash: ["M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"],
+};
+function icon(name) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "ic");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ICON_PATHS[name] || ICON_PATHS.spark) { const p = document.createElementNS(ns, "path"); p.setAttribute("d", d); svg.append(p); }
+  return svg;
+}
+/** Title, one short line under it, and the page's buttons on the right. */
+const pageHead = (title, sub, ...actions) => h("div", { class: "page-head" },
+  h("div", {}, h("h2", {}, title), sub ? h("p", {}, sub) : null),
+  actions.filter(Boolean).length ? h("div", { class: "actions" }, actions) : null);
+/** An org as a chip, coloured by its tier; null shows the fallback text. */
+function orgChip(name, fallback = "no org") {
+  if (!name) return h("span", { class: "chip none" }, fallback);
+  const tier = state.overview?.profiles.find((p) => p.name === name)?.tier;
+  return h("span", { class: `chip tier-${tier || "unknown"}`, title: tier ? `${name} · ${tier}` : name }, h("span", { class: "dot" }), name);
+}
+const tile = (label, n, sub, cls = "") => h("div", { class: `tile ${cls}` }, h("span", { class: "lbl" }, label), h("span", { class: "n" }, n), sub ? h("small", {}, sub) : null);
+
 // -------------------------------------------------------------- website
 // The customer's side of the demo: a fake website on its own origin (site.gctk.localhost) with the
 // org's Web Messenger. Choices are remembered in this browser.
 const SITE_KEY = "gctk-site";
+const SITE_LANGS = [
+  ["en", "English website", "For international audiences",
+    "linear-gradient(#c8102e,#c8102e) center/100% 22% no-repeat, linear-gradient(#c8102e,#c8102e) center/18% 100% no-repeat, linear-gradient(#fff,#fff) center/100% 40% no-repeat, linear-gradient(#fff,#fff) center/32% 100% no-repeat, #012169"],
+  ["de", "Deutsche Website", "Für Kunden im DACH-Raum", "linear-gradient(#000 33.4%, #dd0000 33.4% 66.7%, #ffce00 66.7%)"],
+];
 async function viewSite() {
   const meta = state.siteMeta || (state.siteMeta = await api("/api/site"));
   let saved = {};
@@ -414,32 +598,43 @@ async function viewSite() {
   cfg.brand = saved.brand || industryOf(cfg.industry).brand;
   cfg.color = saved.color || industryOf(cfg.industry).color;
   if (!meta.regions.some((r) => r.domain === cfg.domain)) cfg.domain = meta.defaultDomain;
-  const save = () => { try { localStorage.setItem(SITE_KEY, JSON.stringify(cfg)); } catch {} drawLink(); };
   const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const HEX = /^#[0-9a-f]{6}$/i;
+  const text = (v) => (v && typeof v === "object" ? v[cfg.lang] || v.en : v) || "";
+  const url = () => {
+    const q = new URLSearchParams({ industry: cfg.industry, lang: cfg.lang, brand: cfg.brand, color: cfg.color, phone: cfg.phone, ...(cfg.logo ? { logo: cfg.logo } : {}), ...(cfg.deploymentId ? { deployment: cfg.deploymentId, domain: cfg.domain } : {}) });
+    return `http://${meta.host}:${location.port}/site?${q}`;
+  };
+  const changed = () => { try { localStorage.setItem(SITE_KEY, JSON.stringify(cfg)); } catch {} drawPreview(); };
 
-  // 1. Industry
-  const cards = h("div", { class: "cards", style: "grid-template-columns:repeat(auto-fill,minmax(200px,1fr))" });
-  const drawIndustries = () => cards.replaceChildren(...meta.industries.map((i) => h("button", {
-    class: "ws-opt", "aria-pressed": String(cfg.industry === i.id), style: "flex-direction:column;gap:6px",
+  // Language
+  const langs = h("div", { class: "lang-pick" });
+  const drawLangs = () => put(langs, SITE_LANGS.map(([v, title, sub, flag]) => h("button", {
+    class: "ws-opt", "aria-pressed": String(cfg.lang === v), style: "align-items:center;gap:12px;padding:12px 14px",
+    onclick: () => { cfg.lang = v; drawLangs(); drawIndustries(); changed(); },
+  }, h("span", { class: "flag", style: `background:${flag}` }), h("div", {}, h("strong", {}, title), h("small", {}, sub)))));
+
+  // Industry
+  const cards = h("div", { class: "ws-opts" });
+  const drawIndustries = () => put(cards, meta.industries.map((i) => h("button", {
+    class: "ws-opt", "aria-pressed": String(cfg.industry === i.id), style: "flex-direction:column;gap:4px",
     onclick: () => {
       const before = industryOf(cfg.industry);
       // Brand and colour follow the industry until the user has typed their own.
       if (cfg.brand === before.brand) { cfg.brand = i.brand; brand.value = i.brand; }
       if (cfg.color === before.color) { cfg.color = i.color; color.value = i.color; }
-      cfg.industry = i.id; drawIndustries(); save();
+      cfg.industry = i.id; drawIndustries(); changed();
     },
-  }, h("span", { class: "row", style: "flex-wrap:nowrap" }, h("span", { style: `width:18px;height:18px;border-radius:5px;background:${/^#[0-9a-f]{6}$/i.test(i.color) ? i.color : "#888"};flex:none` }), h("strong", {}, i.label[cfg.lang] || i.label.en)),
-    h("small", {}, i.headline))));
+  }, h("span", { class: "row", style: "flex-wrap:nowrap;gap:8px" }, h("span", { style: `width:14px;height:14px;border-radius:4px;background:${HEX.test(i.color) ? i.color : "#888"};flex:none` }), h("strong", {}, text(i.label))),
+    h("small", {}, text(i.headline)))));
 
-  // 2. Brand
+  // Brand
   const brand = h("input", { value: cfg.brand, maxlength: 60 });
-  brand.addEventListener("input", () => { cfg.brand = brand.value.trim(); save(); });
+  brand.addEventListener("input", () => { cfg.brand = brand.value.trim(); changed(); });
   const color = h("input", { type: "color", value: cfg.color, style: "height:36px;padding:2px" });
-  color.addEventListener("input", () => { cfg.color = color.value; save(); });
-  const lang = h("select", {}, [["en", "English"], ["de", "Deutsch"]].map(([v, t]) => h("option", { value: v, selected: v === cfg.lang }, t)));
-  lang.addEventListener("change", () => { cfg.lang = lang.value; drawIndustries(); save(); });
+  color.addEventListener("input", () => { cfg.color = color.value; changed(); });
   const phone = h("input", { value: cfg.phone, maxlength: 30 });
-  phone.addEventListener("input", () => { cfg.phone = phone.value; save(); });
+  phone.addEventListener("input", () => { cfg.phone = phone.value; changed(); });
   const logoMsg = h("span", { class: "muted", style: "font-size:12px" }, cfg.logo ? "Logo uploaded." : "No logo: the initials are shown.");
   const picker = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp", hidden: true });
   picker.addEventListener("change", async () => {
@@ -449,21 +644,22 @@ async function viewSite() {
     try {
       const data = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = fail; r.readAsDataURL(f); });
       cfg.logo = (await api("/api/site/files", { method: "POST", body: { data } })).logo;
+      state.siteLogo = { name: cfg.logo, data };
       logoMsg.textContent = `${f.name} uploaded.`;
-      save();
+      changed();
     } catch (err) { logoMsg.textContent = err.message; }
   });
-  const logoRow = h("div", { class: "row" }, h("button", { class: "btn", onclick: () => picker.click() }, "Upload logo…"),
-    h("button", { class: "btn", onclick: () => { cfg.logo = ""; logoMsg.textContent = "No logo: the initials are shown."; save(); } }, "Remove"), logoMsg, picker);
+  const logoRow = h("div", { class: "row" }, h("button", { class: "btn sm", onclick: () => picker.click() }, "Upload logo…"),
+    h("button", { class: "linkbtn", onclick: () => { cfg.logo = ""; logoMsg.textContent = "No logo: the initials are shown."; changed(); } }, "Remove"), logoMsg, picker);
 
-  // 3. Chat: the deployment ID (Admin → Message → Messenger Deployments), or the whole snippet pasted.
-  const depInput = h("input", { value: cfg.deploymentId, placeholder: "e.g. 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60, or paste the snippet", style: "width:100%", spellcheck: "false" });
-  const regionSel = h("select", {}, meta.regions.map((r) => h("option", { value: r.domain, selected: r.domain === cfg.domain }, `${r.domain} (${r.key})`)));
-  const depInfo = h("div", { style: "font-size:13px;margin-top:6px" });
+  // Chat: the deployment ID (Admin → Message → Messenger Deployments), or the whole snippet pasted.
+  const depInput = h("input", { value: cfg.deploymentId, placeholder: "Deployment ID, or paste the whole snippet", style: "width:100%", spellcheck: "false" });
+  const regionSel = h("select", { style: "width:100%" }, meta.regions.map((r) => h("option", { value: r.domain, selected: r.domain === cfg.domain }, `${r.domain} (${r.key})`)));
+  const depInfo = h("div", { style: "font-size:13px;margin-top:8px" });
   const drawDep = () => {
     const raw = depInput.value.trim();
-    put(depInfo, !raw ? h("div", { class: "muted" }, "Without a deployment ID the website shows a note instead of the chat.")
-      : cfg.deploymentId ? h("div", { class: "muted" }, `The site loads deployment ${cfg.deploymentId} from apps.${cfg.domain}. In Genesys Cloud, the deployment must allow the domain ${meta.host} (or all domains).`)
+    put(depInfo, !raw ? h("span", { class: "status todo" }, "No chat yet: the website shows a note instead")
+      : cfg.deploymentId ? h("div", {}, h("span", { class: "status ok" }, "Chat connected"), h("div", { class: "muted", style: "margin-top:4px" }, `In Genesys Cloud, the deployment must allow the domain ${meta.host} (or all domains).`))
         : h("div", { class: "error" }, "That is not a deployment ID: it looks like 3f1c2a7e-9b1d-4c1e-8f2a-1b2c3d4e5f60."));
   };
   depInput.addEventListener("input", () => {
@@ -473,35 +669,53 @@ async function viewSite() {
     const host = raw.match(/https:\/\/apps\.([a-z0-9.-]+)\/genesys-bootstrap/i)?.[1];
     if (host && meta.regions.some((r) => r.domain === host)) { cfg.domain = host; regionSel.value = host; }
     if (/^\s*</.test(raw) && cfg.deploymentId) depInput.value = cfg.deploymentId;
-    drawDep(); save();
+    drawDep(); changed();
   });
-  regionSel.addEventListener("change", () => { cfg.domain = regionSel.value; drawDep(); save(); });
+  regionSel.addEventListener("change", () => { cfg.domain = regionSel.value; drawDep(); changed(); });
 
-  // 4. Open
-  const link = h("div");
-  const drawLink = () => {
-    const q = new URLSearchParams({ industry: cfg.industry, lang: cfg.lang, brand: cfg.brand, color: cfg.color, phone: cfg.phone, ...(cfg.logo ? { logo: cfg.logo } : {}), ...(cfg.deploymentId ? { deployment: cfg.deploymentId, domain: cfg.domain } : {}) });
-    const url = `http://${meta.host}:${location.port}/site?${q}`;
-    put(link, h("div", { class: "row" },
-      h("button", { class: "btn primary", onclick: () => window.open(url, "_blank", "noopener") }, "Open website"),
-      h("span", { class: "mono muted", style: "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" }, url), copyButton(url)));
+  // Live preview and the link
+  const preview = h("div");
+  const linkRow = h("div", { style: "margin-top:12px" });
+  const drawPreview = () => {
+    const i = industryOf(cfg.industry);
+    const c = HEX.test(cfg.color) ? cfg.color : i.color;
+    const initials = (cfg.brand || i.brand).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "D";
+    const mk = h("span", { class: "mk", style: `background:${c}` },
+      cfg.logo && state.siteLogo?.name === cfg.logo ? h("img", { src: state.siteLogo.data, alt: "" }) : initials);
+    put(preview, h("div", { class: "preview" },
+      h("div", { class: "bar" }, h("i"), h("i"), h("i"), h("span", {}, `${meta.host}/site · ${cfg.lang.toUpperCase()}`)),
+      h("div", { class: "top" }, mk, cfg.brand || i.brand, h("span", { style: "flex:1" }), h("span", { style: "font-size:11px;font-weight:600;color:#5d6677" }, cfg.phone)),
+      h("div", { class: "hero", style: `background:linear-gradient(160deg, color-mix(in srgb, ${c} 12%, white), #fff)` },
+        h("b", {}, text(i.headline)),
+        h("em", { style: `background:${c}` }, cfg.lang === "de" ? "Chat starten" : "Start a chat"))));
+    const u = url();
+    put(linkRow, h("div", { class: "row" },
+      h("button", { class: "btn primary", onclick: () => window.open(u, "_blank", "noopener") }, icon("globe"), "Open website"),
+      copyButton(u)));
   };
+  drawLangs();
   drawIndustries();
-  drawLink();
   drawDep();
-  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));
+  drawPreview();
+
+  const step = (n, title, ...body) => h("div", { class: "tl" }, h("span", { class: "tl-n" }, String(n)), h("div", { class: "panel" }, h("div", { class: "tl-title" }, title), ...body));
   return h("div", {},
-    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Customer website"),
-    h("p", { class: "lead" }, "The customer's side of the demo: a website for their industry, in their brand, with your Genesys Messenger on it. Chat from it like a real customer while the agent desktop is on the other screen."),
-    step(1, "Industry", cards),
-    step(2, "Brand",
-      h("div", { class: "grid" }, h("label", {}, "Brand name", brand), h("label", {}, "Brand colour", color), h("label", {}, "Language", lang), h("label", {}, "Phone number on the site", phone)),
-      h("div", { style: "margin-top:10px" }, logoRow)),
-    step(3, "Chat",
-      h("div", { class: "grid", style: "grid-template-columns:minmax(0,2fr) minmax(0,1fr)" }, h("label", {}, "Messenger deployment ID", depInput), h("label", {}, "Region of the org", regionSel)),
-      depInfo,
-      h("p", { class: "muted", style: "font-size:13px;margin-bottom:0" }, "Find the ID in Genesys Cloud under Admin → Message → Messenger Deployments (open the deployment; the ID is in its snippet). No deployment yet? Create one there with an inbound message flow to your queue, or ask the AI to help you.")),
-    step(4, "Open", link));
+    pageHead("Website", "The customer's side of the demo: a website in their brand, with your Messenger on it."),
+    h("div", { style: "display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:20px;align-items:start" },
+      h("div", { class: "timeline" },
+        step(1, "Language", langs),
+        step(2, "Industry", cards),
+        step(3, "Brand",
+          h("div", { class: "grid" }, h("label", {}, "Brand name", brand), h("label", {}, "Brand colour", color), h("label", {}, "Phone number on the site", phone)),
+          h("div", { style: "margin-top:10px" }, logoRow)),
+        step(4, "Chat",
+          h("div", { class: "grid", style: "grid-template-columns:minmax(0,2fr) minmax(0,1fr)" }, h("label", {}, "Messenger deployment ID", depInput), h("label", {}, "Region of the org", regionSel)),
+          depInfo,
+          h("details", { class: "more", style: "margin-top:10px" }, h("summary", {}, "Where do I find the ID?"),
+            h("p", { class: "muted", style: "font-size:13px;margin:8px 0 0" }, "Genesys Cloud → Admin → Message → Messenger Deployments. Open the deployment; the ID is in its snippet. No deployment yet? Create one with an inbound message flow to your queue, or ask the AI to help you.")))),
+      h("div", { style: "position:sticky;top:120px" },
+        h("div", { class: "section-title", style: "margin-top:0" }, "Preview"), preview, linkRow,
+        h("p", { class: "muted", style: "font-size:12px;margin-top:10px" }, "Chat from it like a real customer while the agent desktop is on the other screen. Your choices are remembered in this browser."))));
 }
 
 // ----------------------------------------------------------- demo ready
@@ -570,10 +784,28 @@ function demoRunner(section, base, out, reload) {
  */
 function demoBlock(kind, title, note, ...children) {
   return h("div", { class: `dblock ${kind}` },
-    h("div", { class: "dblock-head" }, h("strong", {}, title),
-      h("span", { class: "muted", style: "font-size:12px" }, kind === "live" ? "in Genesys Cloud now" : note || "nothing changes until you press the button")),
+    h("div", { class: "dblock-head" }, h("span", { class: "bubble" }, icon(kind === "live" ? "eye" : "plus")),
+      h("div", {}, h("strong", {}, title),
+        h("div", { class: "muted", style: "font-size:12px" }, kind === "live" ? "In Genesys Cloud now" : note || "Pick what you want. Nothing is created until you press the button."))),
     ...children);
 }
+
+/** Sticky bar under a list of .pick cards: how many are ticked, and the button that creates them. */
+function selBar(scope, noun, ...actions) {
+  const n = h("span", { class: "n" });
+  // The bar may sit inside scope: writing the same text again would trigger the observer forever.
+  const sync = () => {
+    const k = scope.querySelectorAll(".use:checked").length;
+    const text = k ? `${k} ${noun}${k === 1 ? "" : "s"} selected` : `Tick the ${noun}s you want`;
+    if (n.textContent !== text) n.textContent = text;
+  };
+  scope.addEventListener("change", sync);
+  new MutationObserver(sync).observe(scope, { childList: true, subtree: true });
+  sync();
+  return h("div", { class: "selbar" }, icon("check"), n, h("span", { class: "spacer" }), ...actions);
+}
+const removeBtn = (onclick, title = "Remove") => h("button", { class: "linkbtn", title, "aria-label": title, onclick }, icon("trash"));
+const addBtn = (label, onclick) => h("button", { class: "btn sm", onclick }, icon("plus"), label);
 
 /** One line per area for the overview cards: [state, text]; state ok (done), todo or bad. */
 const DEMO_STATUS = {
@@ -600,6 +832,7 @@ const DEMO_STATUS = {
   schedule: (s) => s.current && s.schedules.some((x) => x.published) ? ["ok", "Published schedule"] : ["todo", "No schedule yet"],
 };
 const DEMO_TAB_KEY = "gctk-demo-tab";
+const AREA_ICON = { coaching: "chat", learning: "layers", evaluations: "check", scorecard: "spark", schedule: "calendar", sta: "eye" };
 
 async function viewDemo() {
   const meta = state.demoMeta || (state.demoMeta = await api("/api/demo"));
@@ -644,7 +877,9 @@ async function viewDemo() {
     const stEls = {};
     const cards = h("div", { class: "dcards" }, areas.map((a) => {
       stEls[a.id] = h("span", { class: "st" }, "Checking…");
-      return h("button", { class: "dcard", "aria-pressed": a.id === tab ? "true" : "false", onclick: () => open(a.id) }, h("strong", {}, a.title), h("span", { class: "what" }, a.what), stEls[a.id]);
+      return h("button", { class: "dcard", "aria-pressed": a.id === tab ? "true" : "false", onclick: () => open(a.id) },
+        h("strong", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, h("span", { class: "bubble", style: "width:28px;height:28px;border-radius:8px" }, icon(AREA_ICON[a.id] || "spark")), a.title),
+        h("span", { class: "what" }, a.what), stEls[a.id]);
     }));
     const loadStatus = () => {
       for (const a of areas) {
@@ -689,8 +924,7 @@ async function viewDemo() {
   }
 
   return h("div", {},
-    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demo ready"),
-    h("p", { class: "lead" }, "Make an agent's Genesys Cloud home screen look lived-in before a demo. Choose the agent, then fill what is still empty. Nothing changes in Genesys Cloud until you press a button, and Clean up removes it all again afterwards."),
+    pageHead("Demo ready", "Make an agent's home screen look lived-in before a demo. Nothing changes until you press a button, and Clean up removes it all afterwards."),
     profiles.length ? [
       h("div", { class: "dstep" }, h("b", {}, "1"), h("h3", {}, "The demo agent")),
       h("div", { class: "panel" },
@@ -709,23 +943,24 @@ function demoCoaching(prof, pick, users) {
 
   const facilitator = h("select", {}, h("option", { value: "" }, "No facilitator"),
     users.filter((u) => u.id !== pick.userId).map((u) => h("option", { value: u.id }, u.name)));
-  const rows = h("div", { style: "display:grid;gap:10px" });
+  const rows = h("div", { class: "picks" });
   const addRow = (t) => {
     const r = {
-      use: h("input", { type: "checkbox", checked: true, title: "Include" }),
-      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),
+      use: h("input", { type: "checkbox", class: "use", checked: true, title: "Include" }),
+      name: h("input", { value: t.name, class: "pick-title", placeholder: "Name of the appointment" }),
       when: h("input", { type: "datetime-local", value: localInput(t.date) }),
       length: h("input", { type: "number", min: 5, max: 480, step: 5, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),
       completed: h("input", { type: "checkbox", checked: Boolean(t.completed) }),
-      description: h("input", { value: t.description, style: "width:100%" }),
+      description: h("input", { value: t.description, placeholder: "Description (optional)", style: "width:100%" }),
       state: h("span"),
     };
-    const el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },
-      h("div", { class: "row" }, r.use, r.name, r.when, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min"),
-        h("label", { class: "row", style: "font-size:12px", title: "Created, then set to completed. Completed appointments cannot be deleted later." }, r.completed, "completed"),
-        r.state,
-        h("button", { class: "btn", style: "padding:2px 8px", title: "Remove row", onclick: () => el.remove() }, "×")),
-      r.description);
+    const el = h("div", { class: "pick" },
+      h("div", { class: "pick-head" }, r.use, r.name, r.state, removeBtn(() => el.remove(), "Remove this appointment")),
+      h("div", { class: "pick-meta" },
+        h("label", {}, icon("calendar"), r.when),
+        h("label", {}, r.length, "min"),
+        h("label", { title: "Created, then set to completed. Completed appointments cannot be deleted later." }, r.completed, "already happened")),
+      h("div", { class: "pick-body" }, r.description));
     el.demo = r;
     for (const f of [r.name, r.when]) f.addEventListener("change", () => mark(r, false));
     rows.append(el);
@@ -785,14 +1020,13 @@ function demoCoaching(prof, pick, users) {
   load();
 
   return h("div", { class: "panel" },
-    h("p", { class: "muted", style: "margin-top:0" }, "Appointments show up in the agent's calendar and Development view. Genesys Cloud only accepts appointments in the future; tick completed for a session that is already done."),
+    h("p", { class: "muted", style: "margin-top:0" }, "Shown in the agent's calendar and Development view. Only future dates work."),
     demoBlock("live", `${pick.userName || "The agent"}'s appointments`, "", list),
-    demoBlock("setup", "Suggested appointments", "change anything you like; nothing is created until you press the button",
-      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row", title: "The facilitator and the agent need the permission coaching:appointment:participate." }, "Facilitator (optional)", facilitator)),
+    demoBlock("setup", "Add appointments", "Suggestions: edit, untick or add your own.",
+      h("div", { class: "settings-row" }, h("label", { title: "The facilitator and the agent need the permission coaching:appointment:participate." }, "Facilitator (optional)", facilitator)),
       rows,
-      h("div", { class: "row", style: "margin-top:10px" },
-        h("button", { class: "btn", onclick: () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }) }, "+ Appointment"),
-        h("span", { class: "spacer" }), createBtn)),
+      h("div", { style: "margin-top:8px" }, addBtn("Appointment", () => addRow({ name: "Coaching session", description: "", lengthInMinutes: 30, date: workday(3, "13:00") }))),
+      selBar(rows, "appointment", createBtn)),
     out);
 }
 
@@ -811,16 +1045,17 @@ function demoLearning(pick) {
   const newRow = (t, checked) => {
     const r = {
       kind: "new",
-      use: h("input", { type: "checkbox", checked }),
-      name: h("input", { value: t.name, style: "flex:1;min-width:220px" }),
+      use: h("input", { type: "checkbox", class: "use", checked }),
+      name: h("input", { value: t.name, class: "pick-title", placeholder: "Name of the module" }),
       due: h("input", { type: "date", value: dateInput(workday(t.dueWorkdays, "17:00")) }),
       length: h("input", { type: "number", min: 15, max: 480, step: 15, value: t.lengthInMinutes, style: "width:72px", title: "Minutes" }),
-      description: h("input", { value: t.description, style: "width:100%" }),
-      content: h("textarea", { style: "min-height:70px;font-family:inherit;font-size:13px" }, t.content),
+      description: h("input", { value: t.description, placeholder: "Short description", style: "width:100%" }),
+      content: h("textarea", { placeholder: "The text the agent reads", style: "min-height:70px;font-family:inherit;font-size:13px;width:100%;margin-top:6px" }, t.content),
     };
-    r.el = h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px" },
-      h("div", { class: "row" }, r.use, r.name, h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due, r.length, h("span", { class: "muted", style: "font-size:12px" }, "min")),
-      r.description, r.content);
+    r.el = h("div", { class: "pick" },
+      h("div", { class: "pick-head" }, r.use, r.name, pill("new", "")),
+      h("div", { class: "pick-meta" }, h("label", {}, "Due", r.due), h("label", {}, r.length, "min")),
+      h("div", { class: "pick-body" }, r.description, r.content));
     return r;
   };
 
@@ -848,29 +1083,27 @@ function demoLearning(pick) {
       const available = s.modules.filter((m) => m.isPublished && !assigned.has(m.id));
       const filter = h("input", { placeholder: "Filter modules", style: "min-width:200px" });
       const orgRows = available.map((m, i) => {
-        const r = { kind: "org", id: m.id, name: m.name, use: h("input", { type: "checkbox", checked: i < 3 }), due: h("input", { type: "date", value: dateInput(workday(3 + 2 * Math.min(i, 5), "17:00")) }) };
-        r.el = h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:4px 0" }, r.use,
-          h("span", { style: "flex:1;min-width:220px" }, m.name, m.source === "GenesysBeyond" ? h("span", { class: "muted", style: "font-size:12px" }, " · Genesys Beyond") : null,
-            m.lengthInMinutes ? h("span", { class: "muted", style: "font-size:12px" }, ` · ${m.lengthInMinutes} min`) : null),
-          h("span", { class: "muted", style: "font-size:12px" }, "due"), r.due);
+        const r = { kind: "org", id: m.id, name: m.name, use: h("input", { type: "checkbox", class: "use", checked: i < 3 }), due: h("input", { type: "date", value: dateInput(workday(3 + 2 * Math.min(i, 5), "17:00")) }) };
+        r.el = h("div", { class: "pick" }, h("div", { class: "pick-head" }, r.use,
+          h("span", { style: "flex:1;min-width:200px;font-weight:600" }, m.name,
+            h("span", { class: "muted", style: "font-size:12px;font-weight:400" }, [m.source === "GenesysBeyond" ? " · Genesys Beyond" : "", m.lengthInMinutes ? ` · ${m.lengthInMinutes} min` : ""].join(""))),
+          h("label", { class: "row", style: "font-size:12px" }, "Due", r.due)));
         return r;
       });
       filter.addEventListener("input", () => { const q = filter.value.trim().toLowerCase(); for (const r of orgRows) r.el.style.display = !q || r.name.toLowerCase().includes(q) ? "" : "none"; });
       const existingNames = new Set(s.modules.map((m) => m.name));
       const newRows = templates.filter((t) => !existingNames.has(t.name)).map((t) => newRow(t, !available.length));
-      const newBox = h("div", { style: "display:grid;gap:10px" }, newRows.map((r) => r.el));
+      const newBox = h("div", { class: "picks" }, newRows.map((r) => r.el));
       rows = [...orgRows, ...newRows];
-      put(pickBox, 
-        h("strong", { style: "display:block;margin-bottom:6px" }, "Modules that already exist in the org"),
-        available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, `${available.length} published module${available.length === 1 ? "" : "s"} the agent does not have yet`)),
-          h("div", { style: "max-height:260px;overflow:auto" }, orgRows.map((r) => r.el)))
+      put(pickBox,
+        h("div", { class: "section-title", style: "margin-top:0" }, `From the org · ${available.length}`),
+        available.length ? h("div", {}, h("div", { class: "row", style: "margin-bottom:6px" }, filter, h("span", { class: "muted", style: "font-size:12px" }, "published modules the agent does not have yet")),
+          h("div", { class: "picks", style: "max-height:280px;overflow:auto" }, orgRows.map((r) => r.el)))
           : h("div", { class: "muted" }, s.modules.some((m) => m.isPublished) ? "The agent already has every published module." : "The org has no published learning modules yet; create some below."),
-        h("strong", { style: "display:block;margin:14px 0 2px" }, "Or new modules"),
-        h("p", { class: "muted", style: "margin-top:0;font-size:13px" }, "Created in the org with the text below, then assigned."),
+        h("div", { class: "section-title" }, "Or create new modules"),
         newBox,
-        h("div", { class: "row", style: "margin-top:10px" },
-          h("button", { class: "btn", onclick: () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); } }, "+ New module"),
-          h("span", { class: "spacer" }), assignBtn));
+        h("div", { style: "margin-top:8px" }, addBtn("New module", () => { const r = newRow({ name: "", description: "", content: "", lengthInMinutes: 15, dueWorkdays: 5 }, true); rows.push(r); newBox.append(r.el); })),
+        selBar(pickBox, "module", assignBtn));
     } catch (err) { put(list, h("div", { class: "error" }, err.message)); }
   };
 
@@ -886,9 +1119,9 @@ function demoLearning(pick) {
   load();
 
   return h("div", { class: "panel" },
-    h("p", { class: "muted", style: "margin-top:0" }, "Assigned modules show up on the home screen and in the Development view. To show a completed one, open it once as the agent: only the agent can complete a module."),
+    h("p", { class: "muted", style: "margin-top:0" }, "Shown on the home screen and in the Development view. Only the agent can complete a module."),
     demoBlock("live", `${pick.userName || "The agent"}'s learning`, "", list),
-    demoBlock("setup", "Assign modules", "nothing changes until you press the button", pickBox),
+    demoBlock("setup", "Assign modules", "", pickBox),
     out);
 }
 
@@ -1063,15 +1296,22 @@ function demoEvaluations(pick, users) {
     const candidates = users.filter((u) => s.evaluators.includes(u.id));
     const evaluator = h("select", {}, candidates.map((u) => h("option", { value: u.id }, u.name)));
     const rows = open.map((c, i) => {
-      const result = h("select", {}, RESULTS.map(([v, l]) => h("option", { value: v, selected: v === ["strong", "mixed", "strong", "weak"][i % 4] }, l)));
-      const comment = h("input", { value: s.defaults.comments[result.value], style: "flex:1;min-width:260px" });
+      const result = { value: ["strong", "mixed", "strong", "weak"][i % 4] };
+      const comment = h("input", { value: s.defaults.comments[result.value], placeholder: "Comment the agent reads", style: "width:100%" });
       let edited = false;
       comment.addEventListener("input", () => { edited = true; });
-      result.addEventListener("change", () => { if (!edited) comment.value = s.defaults.comments[result.value]; });
-      const use = h("input", { type: "checkbox", checked: i < 3 });
-      return { c, use, result, comment, el: h("div", { class: "row", style: "border-bottom:1px solid var(--line);padding:6px 0" }, use,
-        h("span", { style: "min-width:230px" }, time(c.start), h("span", { class: "muted", style: "font-size:12px" }, ` · ${MEDIA[c.mediaType] || c.mediaType || ""}${c.customer ? ` · ${c.customer}` : ""}`)),
-        result, comment) };
+      const seg = h("div", { class: "seg", role: "group", "aria-label": "How did the agent do?" });
+      const drawSeg = () => put(seg, RESULTS.map(([v, l]) => h("button", { type: "button", "aria-pressed": String(v === result.value), onclick: () => {
+        result.value = v; drawSeg();
+        if (!edited) comment.value = s.defaults.comments[v];
+      } }, l)));
+      drawSeg();
+      const use = h("input", { type: "checkbox", class: "use", checked: i < 3 });
+      return { c, use, result, comment, el: h("div", { class: "pick" },
+        h("div", { class: "pick-head" }, use,
+          h("span", { style: "flex:1;min-width:200px" }, h("strong", {}, time(c.start)), h("span", { class: "muted", style: "font-size:12px" }, ` · ${MEDIA[c.mediaType] || c.mediaType || ""}${c.customer ? ` · ${c.customer}` : ""}`)),
+          seg),
+        h("div", { class: "pick-body" }, comment)) };
     });
     const btn = h("button", { class: "btn primary", disabled: !rows.length || !candidates.length }, "Create evaluations");
     btn.addEventListener("click", () => {
@@ -1083,21 +1323,22 @@ function demoEvaluations(pick, users) {
         evaluations: chosen.map((r) => ({ conversationId: r.c.id, result: r.result.value, comment: r.comment.value })),
       }, btn);
     });
+    const list = h("div", { class: "picks", style: "max-height:360px;overflow:auto" }, rows.map((r) => r.el));
     put(form,
-      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Form", formSel), formName,
-        h("span", { class: "muted", style: "font-size:12px" }, "existing forms are published forms of the org; a new form is created from the template and published (published forms stay in the org)")),
-      h("div", { class: "row", style: "margin-bottom:8px" }, h("label", { class: "row" }, "Evaluator", evaluator),
-        candidates.length ? h("span", { class: "muted", style: "font-size:12px" }, "users who may score evaluations (quality:evaluation:edit)") : h("span", { class: "error", style: "margin:0" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),),
-      h("div", { class: "muted", style: "font-size:13px;margin:6px 0" }, "Tick the conversations to evaluate and choose how the agent did. The agent sees the evaluation right away."),
-      h("div", { style: "max-height:320px;overflow:auto" }, rows.map((r) => r.el)),
-      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "spacer" }), btn));
+      h("div", { class: "settings-row" },
+        h("label", { title: "Existing forms are the org's published forms. A new form is created from the template and published; published forms stay in the org." }, "Form", h("span", { class: "row" }, formSel, formName)),
+        h("label", { title: "Users who may score evaluations (quality:evaluation:edit)" }, "Evaluator", evaluator)),
+      candidates.length ? null : h("div", { class: "error" }, "Nobody in this org may score evaluations (quality:evaluation:edit)."),
+      h("div", { class: "section-title", style: "margin-top:4px" }, "Conversations to evaluate"),
+      list,
+      selBar(list, "evaluation", btn));
     syncForm();
   };
   load(true);
   return h("div", { class: "panel" },
-    h("p", { class: "muted", style: "margin-top:0" }, "Evaluations show up in the agent's performance views and feed the quality score on the scorecard. Genesys Cloud only evaluates real conversations, so the agent needs a few handled ones first."),
+    h("p", { class: "muted", style: "margin-top:0" }, "Shown in the agent's performance views and in the quality score. Only real, handled conversations can be evaluated."),
     demoBlock("live", `${pick.userName || "The agent"}'s evaluations and conversations`, "", info),
-    demoBlock("setup", "Evaluate conversations", "nothing is created until you press the button", form),
+    demoBlock("setup", "Evaluate conversations", "Tick a conversation and choose how the agent did. The agent sees it right away.", form),
     out);
 }
 
@@ -1324,24 +1565,60 @@ function demoCleanup(pick) {
 // ------------------------------------------------------------- profiles
 async function viewProfiles() {
   const o = state.overview || await api("/api/overview");
-  // Where each org is used: Cursor servers linked to it, projects and AXL workshops. Read once per visit.
+  // Where each org is used (for the warning when it is deleted): servers of Cursor and the Claude app,
+  // projects and AXL workshops. Read once per visit.
   state.orgUse = {};
+  const msg = h("div");
+  const cards = h("div");
+  const others = h("div");
+  const drawCards = () => {
+    const list = (state.overview || o).profiles;
+    put(cards, list.length ? [h("div", { class: "section-title" }, `Your orgs · ${list.length}`), h("div", { class: "card-grid" }, list.map(profileCard))] : null);
+  };
+  const drawOthers = (s) => put(others, unmanagedClients(s, msg, (next) => { drawCards(); drawOthers(next); }));
+  drawCards();
   Promise.all([api("/api/ai-setup").catch(() => ({ servers: [] })), api("/api/axl").catch(() => ({ workshops: [] }))]).then(([s, axl]) => {
+    drawOthers(s);
     const use = {};
     const add = (name, text) => (use[name] ||= []).push(text);
-    for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} (${whereText(x)})`);
-    for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "project" : "AXL workshop"} ${w.name}`);
-    for (const [name, el] of Object.entries(state.orgUseEls || {})) put(el, use[name]?.length ? [h("span", { class: "muted" }, "Used by: "), use[name].join(" · ")] : h("span", { class: "muted" }, "Not used by Cursor, the Claude app or a project yet."));
+    for (const x of s.servers) if (x.org?.profile && x.credentials !== "axl" && x.credentials !== "project") add(x.org.profile, `${toolTitle(x.name)} · ${whereText(x)}`);
+    for (const w of axl.workshops.map((y) => y.workshop)) if (w.profile) add(w.profile, `${w.lab === false ? "Project" : "AXL workshop"} ${w.name}`);
     state.orgUse = use;
   });
-  state.orgUseEls = {};
+  const usable = o.profiles.filter((p) => !p.error);
   return h("div", {},
-    h("h2", {}, "Orgs"),
-    h("p", { class: "lead" }, "One entry per Genesys Cloud org you work in, for example your demo org and a sandbox: every OAuth client gctk keeps is here. The tier says what kind of org it is (AXL workshops use sandbox and dev orgs only). Credentials go straight into your OS keychain; the servers of Cursor and the Claude app and your projects use them from here."),
-    h("p", { class: "muted", style: "margin:-8px 0 14px;font-size:13px" }, "Orgs are saved in ", h("span", { class: "mono" }, `${state.overview?.home || "~/.config/gctk"}/profiles`), ". ", navLink("data", "Where gctk keeps your data"), "."),
-    o.profiles.length ? o.profiles.map(profileCard) : h("div", { class: "panel empty" }, "No org connected yet. Add your demo org below."),
-    addProfileForm(o));
+    pageHead("Orgs", "The Genesys Cloud orgs you work in. Cursor, the Claude app and your projects take their credentials from here."),
+    msg,
+    addProfileForm(o, !o.profiles.length),
+    cards,
+    others,
+    usable.length ? h("p", { class: "muted", style: "font-size:12.5px;margin-top:16px" }, "Secrets stay in your OS keychain. ", navLink("data", "Where gctk keeps your data")) : null);
 }
+
+/**
+ * OAuth clients that MCP servers in Cursor or the Claude app bring along themselves (the secret in
+ * plain text in a config file, or in a keychain entry of its own) and that are not one of the orgs
+ * above. Each can become an org, or be linked to the org with the same client or another one.
+ */
+function unmanagedClients(s, msg, draw) {
+  const list = s.servers.filter((x) => x.genesys && x.linkOrg && (x.credentials === "plain" || x.credentials === "keychain"));
+  if (!list.length) return null;
+  const byClient = (x) => x.org?.clientId || "";
+  return [h("div", { class: "section-title" }, `OAuth clients not in gctk yet · ${list.length}`),
+    h("div", { class: "panel" },
+      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "MCP servers that bring their own OAuth client. Add the client as an org, or link the server to an org you have: it then takes its credentials from this page at every start, and a new secret is entered once."),
+      [...list].sort((a, b) => byClient(a).localeCompare(byClient(b)) || a.name.localeCompare(b.name)).map((x) => {
+        const ctx = aiCtx(msg, draw, x.editor);
+        const where = x.credentials === "plain" ? `secret in plain text in ${x.file.replace(/^\/Users\/[^/]+/, "~")}` : "secret in a keychain entry of its own";
+        return h("div", { class: "todo-row", style: "align-items:flex-start" },
+          h("div", { style: "flex:1;min-width:220px" },
+            h("div", { class: "row", style: "gap:8px" }, h("strong", {}, toolTitle(x.name)), h("span", { class: "muted", style: "font-size:12.5px" }, x.editor === "claude-desktop" ? "Claude app" : `Cursor · ${whereText(x)}`)),
+            h("div", { class: "muted", style: "font-size:12.5px" }, [x.org?.clientId ? `OAuth client ${x.org.clientId}` : "OAuth client", x.org?.region, where].filter(Boolean).join(" · "))),
+          linkControl(x, ctx));
+      }))];
+}
+
+const TIER_HINT = { sandbox: "your own demo org", dev: "a development org", test: "a test org", production: "a customer's live org" };
 
 function profileCard(p) {
   if (p.error) return h("div", { class: "panel error" }, `${p.name}: ${p.error}`);
@@ -1353,25 +1630,33 @@ function profileCard(p) {
     try { const r = await fn(); await refreshOverview(); msg.replaceChildren(h("div", { class: r && r.verified === false ? "error" : "okbox" }, r && r.verified === false ? `Stored, but verification failed: ${r.error}` : okText(r))); }
     catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }
   };
+  const creds = h("div", { hidden: true, style: "display:grid;gap:8px;margin-top:4px" },
+    h("div", { class: "grid", style: "grid-template-columns:1fr 1fr;gap:8px" }, cid, csec),
+    h("div", { class: "row" }, h("button", { class: "btn primary sm", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Save & verify"),
+      h("span", { class: "muted", style: "font-size:12px" }, "Goes into the keychain, never shown again.")));
   return h("div", { class: "panel" },
-    h("div", { class: "row" }, h("strong", {}, p.name), pill(p.tier, `t-${p.tier}`), h("span", { class: "muted" }, p.region),
-      p.active ? pill("working on", "") : null, h("span", { class: "spacer" }),
-      p.credentialsStored ? pill("credentials ok", "a-granted") : pill("no credentials", "a-missing")),
-    p.description ? h("div", { class: "muted" }, p.description) : null,
-    (state.orgUseEls[p.name] = h("div", { style: "font-size:13px;margin-top:4px" }, h("span", { class: "muted" }, "Checking where it is used…"))),
-    h("details", {}, h("summary", {}, "Credentials"),
-      h("div", { class: "row" }, cid, csec, h("button", { class: "btn", onclick: () => run(async () => { const r = await api(`/api/profiles/${p.name}/credentials`, { method: "PUT", body: { clientId: cid.value, clientSecret: csec.value } }); csec.value = ""; return r; }, (r) => `Verified: org ${r.organization?.name}.`) }, "Store & verify"))),
-    h("div", { class: "row", style: "margin-top:8px" },
-      !p.active ? h("button", { class: "btn", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Work on this org") : null,
+    h("div", { class: "row", style: "flex-wrap:nowrap" },
+      h("span", { class: "bubble", style: "width:36px;height:36px;border-radius:10px" }, icon("org")),
+      h("div", { style: "flex:1;min-width:0" },
+        h("div", { class: "row", style: "gap:6px" }, h("strong", { style: "font-size:16px" }, p.name), pill(p.tier, `t-${p.tier}`)),
+        h("div", { class: "muted", style: "font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" }, [p.region, p.description].filter(Boolean).join(" · ")),
+        p.clientId ? h("div", { class: "muted", style: "font-size:12px;white-space:nowrap", title: "The OAuth client gctk signs in with (Client Credentials). The secret is never shown." }, `OAuth client ${p.clientId}`) : null),
+      p.credentialsStored ? h("span", { class: "status ok", title: "The OAuth client ID and secret are in the keychain. gctk checks them against the org only when you save them." }, "Credentials saved") : h("span", { class: "status bad" }, "No credentials")),
+    p.active ? h("div", { class: "okbox", style: "margin:4px 0 0;font-size:13px;padding:5px 10px" }, "The AI works on this org by default.") : null,
+    creds, msg,
+    h("div", { class: "card-foot" },
+      !p.active ? h("button", { class: "btn sm", title: "The AI uses this org unless you name another one", onclick: () => run(() => api(`/api/profiles/${p.name}/activate`, { method: "POST", body: {} }), () => `The AI now works on ${p.name} by default.`) }, "Make default") : null,
+      h("button", { class: "btn sm", onclick: () => { creds.hidden = !creds.hidden; } }, icon("key"), p.credentialsStored ? "New credentials" : "Add credentials"),
       h("span", { class: "spacer" }),
-      h("button", { class: "btn danger", onclick: () => { const used = (state.orgUse || {})[p.name] || []; if (confirm(`Delete the org ${p.name} and its stored credentials?${used.length ? `\n\nThese then stop working:\n• ${used.join("\n• ")}` : ""}`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, "Delete")),
-    msg);
+      h("button", { class: "btn danger sm", title: "Delete this org and its credentials", "aria-label": `Delete ${p.name}`, onclick: () => { const used = (state.orgUse || {})[p.name] || []; if (confirm(`Delete the org ${p.name} and its stored credentials?${used.length ? `\n\nThese then stop working:\n• ${used.join("\n• ")}` : ""}`)) run(() => api(`/api/profiles/${p.name}`, { method: "DELETE" }).then(() => render()), () => "Deleted."); } }, icon("trash"))));
 }
 
-function addProfileForm(o) {
+function addProfileForm(o, open) {
+  const regions = h("datalist", { id: "gctk-regions" });
+  (state.siteMeta ? Promise.resolve(state.siteMeta) : api("/api/site").then((m) => (state.siteMeta = m))).then((m) => put(regions, m.regions.map((r) => h("option", { value: r.domain }, r.key)))).catch(() => {});
   const f = {
-    name: h("input", { placeholder: "prod-de" }), region: h("input", { placeholder: "mypurecloud.de" }),
-    tier: h("select", {}, o.tiers.map((t) => h("option", { value: t }, t))), description: h("input", { placeholder: "Customer X production" }),
+    name: h("input", { placeholder: "e.g. demo-emea" }), region: h("input", { placeholder: "e.g. mypurecloud.de", list: "gctk-regions" }),
+    tier: h("select", {}, o.tiers.map((t) => h("option", { value: t, selected: t === "sandbox" }, TIER_HINT[t] ? `${t} · ${TIER_HINT[t]}` : t))), description: h("input", { placeholder: "optional" }),
     clientId: h("input", { placeholder: "Client ID", autocomplete: "off" }), clientSecret: h("input", { type: "password", placeholder: "Client secret", autocomplete: "off" }),
   };
   const msg = h("div");
@@ -1385,11 +1670,20 @@ function addProfileForm(o) {
       if (r.verified === false) showError(new Error(`Profile created, credentials stored, but verification failed: ${r.error}`));
     } catch (err) { msg.replaceChildren(h("div", { class: "error" }, err.message)); }
   };
-  return h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "Connect an org"),
-    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "Region / domain", f.region), h("label", {}, "Tier", f.tier), h("label", {}, "Description", f.description),
-      h("label", {}, "OAuth client ID (Client Credentials)", f.clientId), h("label", {}, "Client secret", f.clientSecret)),
-    h("p", { class: "muted" }, "Name: short, e.g. demo-emea. Region: the domain you log in with, e.g. mypurecloud.de. Tier: sandbox for a personal demo org. Use a dedicated OAuth client (Client Credentials) per org; the secret is stored in the OS keychain and never shown again."),
-    h("button", { class: "btn primary", onclick: submit }, "Connect org"), msg);
+  const form = h("div", { hidden: !open, style: "margin-top:14px" },
+    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "Region", f.region), h("label", {}, "Tier", f.tier), h("label", {}, "Description", f.description),
+      h("label", {}, "OAuth client ID", f.clientId), h("label", {}, "Client secret", f.clientSecret)),
+    h("div", { class: "row", style: "margin-top:12px" }, h("button", { class: "btn primary", onclick: submit }, "Connect org"),
+      h("span", { class: "muted", style: "font-size:12.5px" }, "Use an OAuth client with Client Credentials. The secret goes into the keychain.")),
+    msg, regions);
+  const toggle = h("button", { class: "btn primary", hidden: open, onclick: () => { form.hidden = false; toggle.hidden = true; f.name.focus(); } }, icon("plus"), "Connect an org");
+  return h("div", { class: "panel intro" },
+    h("div", { class: "row", style: "flex-wrap:nowrap" },
+      h("span", { class: "bubble" }, icon("plus")),
+      h("div", { style: "flex:1" }, h("strong", { style: "font-size:16px" }, "Connect an org"),
+        h("div", { class: "muted", style: "font-size:13px" }, o.profiles.length ? "Add another Genesys Cloud org, for example a customer's sandbox." : "Start here: add the Genesys Cloud org you demo in.")),
+      toggle),
+    form);
 }
 
 // ------------------------------------------------------------------ axl
@@ -1417,8 +1711,10 @@ function axlOpenInCursor(id, small) {
 }
 
 async function viewAxl() {
-  const [st, templates] = await Promise.all([api("/api/axl"), api("/api/axl/tool-templates").catch(() => [])]);
+  const [st, templates, setup] = await Promise.all([api("/api/axl"), api("/api/axl/tool-templates").catch(() => []), api("/api/ai-setup").catch(() => null)]);
   state.toolTemplates = templates;
+  state.projSetup = setup;
+  state.axlMsg = null;
   const box = h("div", {});
   const draw = (next) => {
     const open = state.axlOpen;
@@ -1433,7 +1729,7 @@ async function viewAxl() {
 const isLabProject = (w) => w.lab !== false;
 const usesHarnessUi = (w) => isLabProject(w) || w.harness === true;
 const toolTitle = (n) => (TOOL_NAMES[n] || [n])[0];
-/** The tools a project's folder gets, in plain names. */
+/** The MCP servers a project's folder gets, in plain names. */
 const projectTools = (w) => [...(usesHarnessUi(w) ? ["AVA harness"] : []), ...(w.tools || []).map((t) => toolTitle(t.name))];
 
 /** Where a project stands: workshops by their harness, projects by their folder's tools. */
@@ -1442,10 +1738,10 @@ function projectState(x) {
   if (isLabProject(w)) return axlHarnessState(x);
   if (!w.profile || !w.folder) return ["incomplete", "", "Choose an org and a folder."];
   if (x.org?.problem) return ["problem", "s-failed", x.org.problem];
-  if (!projectTools(w).length) return ["no tools", "s-pending", "Pick the Genesys tools for this folder."];
+  if (!projectTools(w).length) return ["no tools", "s-pending", "Pick the MCP servers for this folder."];
   if (!f.exists || f.stale || (!f.connected && !(f.tools || []).some((t) => t.connected))) return [f.stale ? "out of date" : "not set up", "s-pending", "Press Set up folder."];
   const started = Object.keys(x.toolStarts || {}).length || x.lastStart;
-  return started ? ["running", "s-applied", "Cursor has started the tools of this folder."] : ["set up", "s-applied", "Open the folder in Cursor and switch its tools on (Settings → MCP)."];
+  return started ? ["running", "s-applied", "Cursor has started the MCP servers of this folder."] : ["set up", "s-applied", "Open the folder in Cursor and switch its MCP servers on (Settings → MCP)."];
 }
 
 function axlHarnessMissing(st, draw) {
@@ -1456,33 +1752,56 @@ function axlHarnessMissing(st, draw) {
     h("div", { class: "row" }, cmd, h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl/settings", { method: "PUT", body: { harnessCommand: cmd.value } })); } catch (err) { showError(err); } } }, "Save")));
 }
 
+/** What a project is, in three pictures: shown open until the user has projects. */
+function projectsExplainer(hasProjects) {
+  const steps = h("div", { class: "explain" },
+    h("div", {}, h("span", { class: "bubble" }, icon("folder")), h("div", {}, h("strong", {}, "A folder"), h("span", {}, "The folder you open in Cursor, e.g. ~/Demos/Acme Bank."))),
+    h("div", {}, h("span", { class: "bubble" }, icon("org")), h("div", {}, h("strong", {}, "One org"), h("span", {}, "The AI in that folder works only on this org, e.g. the customer's sandbox."))),
+    h("div", {}, h("span", { class: "bubble" }, icon("tool")), h("div", {}, h("strong", {}, "MCP servers"), h("span", {}, "Add-ons that let the AI work in Genesys Cloud: the AVA harness comes with gctk, others (e.g. Architect) are copied from your AI Coding Tools."))));
+  const why = h("p", { class: "muted", style: "margin:14px 0 0;font-size:13.5px" }, "Building demos for several customers? Give each one a project: the AI never mixes up their orgs. An ", h("strong", {}, "AXL workshop"), " is a project that also has the lab guide and its sessions.");
+  if (!hasProjects) return h("div", { class: "panel intro" }, h("div", { class: "sub-head", style: "margin-top:0" }, "What is a project?"), steps, why);
+  return h("details", { class: "panel more" }, h("summary", {}, icon("spark"), h("strong", {}, "What is a project?"), h("span", { class: "muted", style: "font-size:13px" }, "a folder, one org, its MCP servers")),
+    h("div", { style: "margin-top:12px" }, steps, why));
+}
+
 function axlOverview(st, draw) {
   const open = (id) => { state.axlOpen = id; draw(st); };
-  const rows = st.workshops.map((x) => {
+  const STATUS_CLS = { "s-applied": "ok", "s-failed": "bad", "s-pending": "todo", "": "off" };
+  const cards = st.workshops.map((x) => {
     const w = x.workshop;
     const [label, cls, hint] = projectState(x);
     const latest = x.sessions[0];
-    return h("tr", {},
-      h("td", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); open(w.id); } }, h("strong", {}, w.name)), isLabProject(w) ? [" ", pill("AXL workshop", "")] : null,
-        st.claudeApp?.ours && st.claudeApp.workshop === w.id ? [" ", h("span", { class: "pill", title: "The Claude app's AVA harness works on this one (page Claude app)" }, "Claude app")] : null,
-        h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, w.folder || "no folder")),
-      h("td", {}, x.org ? [x.org.profile, " ", pill(x.org.tier, `t-${x.org.tier}`)] : h("span", { class: "muted" }, "no org")),
-      h("td", {}, projectTools(w).join(", ") || h("span", { class: "muted" }, "–"),
-        isLabProject(w) && x.sessions.length ? h("div", { class: "muted", style: "font-size:12px" }, `${x.sessions.length} session${x.sessions.length > 1 ? "s" : ""} · ${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`) : null),
-      h("td", { title: hint }, pill(label, cls)),
-      h("td", { style: "white-space:nowrap;text-align:right" }, x.folder.exists ? axlOpenInCursor(w.id, true) : null, " ", h("button", { class: "btn", style: "padding:2px 10px;font-size:12px", onclick: () => open(w.id) }, "Settings")));
+    const lab = isLabProject(w);
+    return h("div", { class: "panel", style: "cursor:pointer", role: "button", tabindex: "0", onclick: () => open(w.id), onkeydown: (e) => { if (e.key === "Enter") open(w.id); } },
+      h("div", { class: "row", style: "flex-wrap:nowrap" },
+        h("span", { class: "bubble", style: "width:36px;height:36px;border-radius:10px" }, icon(lab ? "spark" : "folder")),
+        h("div", { style: "flex:1;min-width:0" }, h("strong", { style: "font-size:16px" }, w.name),
+          h("div", { class: "muted", style: "font-size:12.5px" }, lab ? "AXL workshop" : "Demo project", st.claudeApp?.ours && st.claudeApp.workshop === w.id ? " · also in the Claude app" : "")),
+        h("span", { class: `status ${STATUS_CLS[cls] ?? "off"}`, title: hint }, label.charAt(0).toUpperCase() + label.slice(1))),
+      h("div", { class: "conn", style: "grid-template-columns:auto 18px minmax(0,1fr)" },
+        h("span", { class: "muted", style: "font-size:12.5px", title: w.folder || "" }, icon("folder"), " ", w.folder ? projName(w.folder) : "no folder"),
+        h("span", { class: "arrow" }, icon("arrow")),
+        h("div", {}, orgChip(x.org?.profile, "no org"))),
+      h("div", { class: "chips" }, projectTools(w).length ? projectTools(w).map((t) => h("span", { class: "chip" }, icon("tool"), t)) : h("span", { class: "chip none" }, "no MCP servers yet")),
+      lab && x.sessions.length ? h("div", { class: "muted", style: "font-size:12.5px" }, `${x.sessions.length} session${x.sessions.length > 1 ? "s" : ""} · ${latest.name.replace(/^AXL-/i, "")}: ${(AXL_STAGES.find(([id]) => id === latest.stage) || [0, "new"])[1]}`) : null,
+      h("div", { class: "card-foot", onclick: (e) => e.stopPropagation() },
+        x.folder.exists ? axlOpenInCursor(w.id, true) : null,
+        h("span", { class: "spacer" }),
+        h("button", { class: "btn sm", onclick: () => open(w.id) }, "Settings")));
   });
   const harnessUsers = st.workshops.filter((x) => usesHarnessUi(x.workshop));
+  const newBtn = h("button", { class: "btn primary", onclick: () => open("new") }, icon("plus"), "New project");
   return h("div", {},
-    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Projects"), h("span", { class: "spacer" }),
-      h("button", { class: "btn" , onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"),
-      h("button", { class: "btn primary", onclick: () => open("new") }, "+ New project")),
-    h("p", { class: "lead" }, "A project is a folder you build a demo in with the AI in Cursor. Each project has its own org: gctk gives the folder the Genesys tools you pick, started with that org's credentials from the keychain, and nothing changes in your other folders. An AXL workshop is a project with the lab guide."),
+    pageHead("Projects", "Give a Cursor folder its own Genesys Cloud org and MCP servers.",
+      st.workshops.length ? h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, icon("refresh"), "Refresh") : null, newBtn),
+    projectsExplainer(st.workshops.length > 0),
     harnessUsers.length ? axlHarnessMissing(st, draw) : null,
     st.globalHarness.present && harnessUsers.length ? h("div", { class: "warn" }, `Your global ~/.cursor/mcp.json has its own ava-harness${st.globalHarness.inlineSecret ? " (with the client secret in plain text)" : ""}. Cursor runs it next to a project's, so switch it off in each project folder (Settings → MCP).`) : null,
     st.workshops.length
-      ? h("div", { class: "panel", style: "overflow-x:auto" }, h("table", {}, h("tr", {}, h("th", {}, "Project"), h("th", {}, "Org"), h("th", {}, "Tools"), h("th", {}, "Status"), h("th", {}, "")), rows))
-      : h("div", { class: "panel empty" }, "No projects yet. ", h("a", { href: "#", onclick: (e) => { e.preventDefault(); open("new"); } }, "Create the first one"), "."));
+      ? [h("div", { class: "section-title" }, `Your projects · ${st.workshops.length}`), h("div", { class: "card-grid" }, cards)]
+      : [otherFoldersPanel(state.projSetup, st, draw),
+        h("div", { class: "panel empty" }, h("p", { style: "margin:0 0 12px" }, "No gctk projects yet."), h("button", { class: "btn primary", onclick: () => open("new") }, icon("plus"), "Create your first project"))],
+    st.workshops.length ? otherFoldersPanel(state.projSetup, st, draw) : null);
 }
 
 /** Orgs for a project (any, production marked) or a workshop (sandbox and dev only). */
@@ -1496,10 +1815,13 @@ function projectOrgSelect(st, value, lab) {
 function confirmOrg(st, name) {
   const o = st.orgs.find((x) => x.name === name);
   if (!o || o.tier !== "production") return { ok: true };
-  return { ok: confirm(`${name} is a PRODUCTION org.\n\nThe AI tools in this folder would read and change it directly, with that org's credentials. Use a sandbox or dev org for demos where you can.\n\nLet this project work on ${name}?`), confirmProduction: true };
+  return { ok: confirm(`${name} is a PRODUCTION org.\n\nThe AI in this folder would read and change it directly, with that org's credentials. Use a sandbox or dev org for demos where you can.\n\nLet this project work on ${name}?`), confirmProduction: true };
 }
 
-/** Checkboxes for the AVA harness and the Genesys tools found in the user's configs. */
+/**
+ * Checkboxes for the folder's MCP servers: the AVA harness (part of gctk) and copies of the Genesys
+ * MCP servers in the user's Cursor and Claude app configs (program and settings, never credentials).
+ */
 function toolPicker(w, st) {
   const lab = isLabProject(w);
   const templates = state.toolTemplates || [];
@@ -1507,20 +1829,75 @@ function toolPicker(w, st) {
   const stored = w.tools || [];
   const boxes = [];
   const line = (box, title, sub) => h("label", { style: "display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:14px" }, box, h("span", {}, h("strong", {}, title), sub ? h("div", { class: "muted", style: "font-size:12px" }, sub) : null));
-  const rows = [line(harness, "AVA harness", lab ? "always on for an AXL workshop" : `builds and tests AI agents · starts ${st.harnessCommand}${st.harnessInstalled ? "" : " (not installed yet)"}`)];
-  for (const t of templates) {
+  const group = (title, sub) => h("div", { style: "margin-top:4px" }, h("div", { class: "sub-head", style: "margin:0" }, title), h("div", { class: "muted", style: "font-size:12px" }, sub));
+  const rows = [
+    group("Comes with gctk", "Nothing to install in Cursor."),
+    line(harness, "AVA harness", lab ? "always on for an AXL workshop" : `builds and tests AI agents · starts ${st.harnessCommand}${st.harnessInstalled ? "" : " (not installed yet)"}`),
+  ];
+  const own = templates.filter((t) => t.catalog), found = templates.filter((t) => !t.catalog);
+  const orgTier = state.overview?.profiles.find((p) => p.name === w.profile)?.tier;
+  if (own.length) rows.push(group("Added by you", "From the list on the AI Coding Tools page. gctk starts each one with this project's org."));
+  for (const t of own) {
     const has = stored.some((x) => x.name === t.name);
     const box = h("input", { type: "checkbox", checked: has ? true : null, style: "width:auto" });
     boxes.push([box, t.id]);
-    rows.push(line(box, toolTitle(t.name), `${t.name !== toolTitle(t.name) ? `${t.name} · ` : ""}as in ${t.from.replace(/^\/Users\/[^/]+/, "~")}`));
+    const limit = t.tiers.length < 4 ? `${t.tiers.join(", ")} orgs only` : "";
+    const barred = orgTier && !t.tiers.includes(orgTier) ? ` · not for this ${orgTier} org` : "";
+    rows.push(line(box, toolTitle(t.name), [t.description, limit].filter(Boolean).join(" · ") + barred));
+  }
+  if (found.length) rows.push(group("From your AI Coding Tools", "Genesys MCP servers you already have in Cursor or the Claude app. gctk copies the program and settings into this folder and gives them this project's org."));
+  for (const t of found) {
+    const has = stored.some((x) => x.name === t.name);
+    const box = h("input", { type: "checkbox", checked: has ? true : null, style: "width:auto" });
+    boxes.push([box, t.id]);
+    rows.push(line(box, toolTitle(t.name), `${t.name !== toolTitle(t.name) ? `${t.name} · ` : ""}copied from ${t.from.replace(/^\/Users\/[^/]+/, "~")}`));
   }
   for (const x of stored.filter((x) => !templates.some((t) => t.name === x.name))) {
     const box = h("input", { type: "checkbox", checked: true, style: "width:auto" });
     boxes.push([box, `keep:${x.name}`]);
-    rows.push(line(box, toolTitle(x.name), "set up earlier; no longer found in your editor configs"));
+    rows.push(line(box, toolTitle(x.name), "set up earlier; no longer in your AI Coding Tools"));
   }
-  if (!templates.length && !stored.length) rows.push(h("div", { class: "muted", style: "font-size:13px" }, "Other Genesys tools appear here once you have them in one of your editor configs (for example the Architect MCP server); gctk copies the program and settings, never the credentials."));
+  if (!templates.length && !stored.length) rows.push(h("div", { class: "muted", style: "font-size:13px" }, "None yet. Add one (for example Architect) under MCP Server available on ", navLink("ai-setup", "AI Coding Tools"), "."));
   return { el: h("div", { style: "display:grid;gap:8px" }, rows), read: () => ({ ...(lab ? {} : { harness: harness.checked }), tools: boxes.filter(([b]) => b.checked).map(([, id]) => id) }) };
+}
+
+/**
+ * The two skills an AXL workshop needs next to the AVA harness, and an install from their zip files
+ * (one skill per zip, as they are shared). gctk puts them into ~/.cursor/skills.
+ */
+function axlSkillsBox(skills, onInstalled) {
+  const msg = h("div");
+  const missing = skills.filter((s) => !s.path);
+  const file = h("input", { type: "file", accept: ".zip,application/zip", multiple: true, hidden: true });
+  const asBase64 = (f) => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ""));
+    r.onerror = () => reject(new Error(`Could not read ${f.name}.`));
+    r.readAsDataURL(f);
+  });
+  file.addEventListener("change", async () => {
+    const done = [];
+    let status;
+    put(msg, h("div", { class: "muted", style: "font-size:13px" }, "Installing…"));
+    try {
+      for (const f of file.files) {
+        const r = await api("/api/axl/skills", { method: "POST", body: { zip: await asBase64(f) } });
+        done.push(...r.installed);
+        status = r.status;
+      }
+      put(msg, h("div", { class: "okbox" }, `Installed ${done.join(" and ")} in ~/.cursor/skills. Cursor picks them up in a new chat.`));
+      onInstalled(status);
+    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+    file.value = "";
+  });
+  return h("div", { style: "display:grid;gap:8px" },
+    skills.map((s) => h("div", { class: "conn", style: "grid-template-columns:minmax(0,1fr) auto;padding:6px 0" },
+      h("div", { class: "tool" }, h("strong", {}, s.name), h("small", {}, s.path ? `${s.what} · ${s.path.replace(/^\/Users\/[^/]+/, "~")}${s.link ? " (a link)" : ""}` : s.what)),
+      h("div", { class: "end" }, s.path ? pill("Installed", "s-applied") : pill("Missing", "s-failed")))),
+    h("div", { class: "row" }, file,
+      h("button", { class: `btn sm${missing.length ? " primary" : ""}`, onclick: () => file.click() }, icon("plus"), missing.length ? "Install from zip…" : "Update from zip…"),
+      h("span", { class: "muted", style: "font-size:12.5px" }, missing.length ? `Choose the zip file${missing.length > 1 ? "s" : ""} you were given (${missing.map((s) => `${s.name}.zip`).join(", ")}).` : "Both are there. A newer zip replaces the skill; gctk keeps the old one in its home folder.")),
+    msg);
 }
 
 function axlNew(st, draw) {
@@ -1533,18 +1910,25 @@ function axlNew(st, draw) {
   name.addEventListener("input", () => { if (!folderTouched) folder.value = name.value.trim() ? `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}` : ""; });
   const orgBox = h("div");
   const toolsBox = h("div");
+  const skillsBox = h("div");
   let org, picker;
+  const drawSkills = () => put(skillsBox, lab ? h("div", { style: "margin-top:12px" },
+    h("div", { class: "sub-head", style: "margin:0 0 4px" }, "Skills the workshop needs"),
+    axlSkillsBox(st.skills || [], (next) => { if (next) st.skills = next.skills; drawSkills(); })) : null);
   const drawType = () => {
+    drawSkills();
     org = projectOrgSelect(st, org?.value, lab);
-    put(orgBox, h("label", {}, lab ? "Org the lab builds in (sandbox or dev)" : "Org the AI works on in this folder", org));
+    put(orgBox, h("label", {}, lab ? "The org the lab builds in (sandbox or dev)" : "The org the AI works on in this folder", org));
     picker = toolPicker({ lab: lab ? undefined : false, harness: false }, st);
-    put(toolsBox, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:6px" }, "Genesys tools for this folder"), picker.el);
+    put(toolsBox, picker.el);
     if (!folderTouched && name.value.trim()) folder.value = `~/${lab ? "AXL" : "Demos"}/${name.value.trim()}`;
   };
   const kind = (value, title, sub) => h("button", { class: "ws-opt", "aria-pressed": String(lab === value), onclick: (e) => { lab = value; for (const b of e.currentTarget.parentElement.children) b.setAttribute("aria-pressed", String(b === e.currentTarget)); drawType(); } },
     h("span", { class: "mark" }), h("span", {}, h("strong", {}, title), h("small", {}, sub)));
   drawType();
   const create = async () => {
+    const missing = lab ? (st.skills || []).filter((s) => !s.path) : [];
+    if (missing.length) { showError(new Error(`An AXL workshop needs the skill${missing.length > 1 ? "s" : ""} ${missing.map((s) => s.name).join(" and ")}. Install ${missing.length > 1 ? "them" : "it"} from the zip under step 4 first.`)); return; }
     const c = confirmOrg(st, org.value);
     if (!c.ok) return;
     try {
@@ -1553,20 +1937,24 @@ function axlNew(st, draw) {
       draw(r);
     } catch (err) { showError(err); }
   };
+  const part = (n, title, ...body) => h("div", { class: "tl" }, h("span", { class: "tl-n" }, n), h("div", { class: "panel" }, h("div", { class: "tl-title" }, title), ...body));
   return h("div", {},
     h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All projects")),
-    h("h2", { style: "font-size:22px;margin-bottom:6px" }, "New project"),
-    h("div", { class: "panel" },
-      h("div", { class: "grid", style: "grid-template-columns:1fr;gap:12px" },
+    pageHead("New project", "Four choices; gctk sets up the folder for you."),
+    h("div", { class: "timeline" },
+      part(1, "What kind of project?",
         h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px" },
-          kind(false, "Demo project", "A folder for building a demo with the AI, on any of your orgs."),
-          kind(true, "AXL workshop", "An AI Agent eXperience Lab: AVA harness, lab guide and sessions; sandbox or dev orgs only.")),
-        h("label", {}, "Name (usually the customer)", name),
-        orgBox,
-        h("label", {}, "Folder you open in Cursor (created if it does not exist)", folder),
-        toolsBox),
-      h("p", { class: "muted", style: "font-size:13px" }, "gctk creates the folder and writes the chosen tools into its .cursor/mcp.json, each started through gctk with this org's credentials from the keychain. No secret goes into the folder."),
-      h("div", { class: "row" }, h("button", { class: "btn primary", onclick: create }, "Create project"), h("button", { class: "btn", onclick: back }, "Cancel"))));
+          kind(false, "Demo project", "Build a demo with the AI, on any of your orgs."),
+          kind(true, "AXL workshop", "AVA harness, the AXL skills, lab guide and sessions; sandbox or dev orgs only."))),
+      part(2, "Name and folder",
+        h("div", { class: "grid", style: "grid-template-columns:1fr;gap:10px" },
+          h("label", {}, "Name, usually the customer", name),
+          h("label", {}, "Folder you open in Cursor (created if missing)", folder))),
+      part(3, "Org", orgBox),
+      part(4, "MCP servers and skills", toolsBox,
+        h("p", { class: "muted", style: "font-size:12.5px;margin:10px 0 0" }, "Each MCP server starts with this org's credentials from the keychain. No secret goes into the folder."),
+        skillsBox)),
+    h("div", { class: "row", style: "margin:16px 0 0 46px" }, h("button", { class: "btn primary", onclick: create }, "Create project"), h("button", { class: "btn", onclick: back }, "Cancel")));
 }
 
 // A condensed AXL Session Field Guide (2026-09-24): what to do in each step, the prompts to paste
@@ -1791,7 +2179,7 @@ function folderServers(w) {
         h("td", {}, h("strong", {}, toolTitle(x.name)), x.name !== toolTitle(x.name) ? h("div", { class: "muted mono", style: "font-size:11.5px" }, x.name) : null),
         h("td", { class: "muted" }, from(x)),
         h("td", {}, org(x), x.org?.profile && w.profile && x.genesys && x.org.profile !== w.profile && x.project !== w.folder ? [" ", pill("another org", "s-pending")] : null),
-        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder's: switch this one off here (Settings → MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on Cursor setup", "s-failed") : null))))
+        h("td", {}, own.has(x.name) && x.project !== w.folder ? h("span", { class: "muted", style: "font-size:12px" }, "same name as this folder's: switch this one off here (Settings → MCP)") : x.problems.some((p) => p.level === "warn") ? pill("needs a look on AI Coding Tools", "s-failed") : null))))
       : h("div", { class: "muted" }, "Cursor loads no MCP servers in this folder yet."));
   }).catch((err) => put(box, h("div", { class: "error" }, err.message)));
   return box;
@@ -1803,7 +2191,7 @@ function axlDetail(st, x, draw) {
   const back = () => { state.axlOpen = null; draw(st); };
   const put2 = async (body) => { try { draw(await api(axlUrl(w.id), { method: "PUT", body })); } catch (err) { showError(err); } };
   let n = 0;
-  const step = (title, ...body) => h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, `${++n}. ${title}`), ...body);
+  const step = (title, ...body) => h("div", { class: "tl" }, h("span", { class: "tl-n" }, String(++n)), h("div", { class: "panel" }, h("div", { class: "tl-title" }, title), ...body));
   const note = (text) => h("p", { class: "muted", style: "font-size:13px;margin:8px 0" }, text);
   const setupBtn = () => h("button", { class: "btn primary", disabled: !org || org.problem ? true : null, title: !org ? "Choose the org first" : null, onclick: async () => { try { draw(await api(axlUrl(w.id, "/setup-folder"), { method: "POST", body: {} })); } catch (err) { showError(err); } } }, "Set up folder");
 
@@ -1819,10 +2207,10 @@ function axlDetail(st, x, draw) {
   });
   const orgPanel = step(lab ? "Org for the workshop" : "Org for this folder",
     h("div", { class: "row" }, sel, org ? pill(org.tier, `t-${org.tier}`) : null, org?.habitat && usesHarnessUi(w) ? h("span", { class: "muted mono" }, `habitat ${org.habitat}`) : null),
-    note(lab ? "Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the folder right away; restart the tools in Cursor afterwards."
-      : "The org every Genesys tool in this folder works on. A new org goes into the folder right away; restart the tools in Cursor afterwards (switch them off and on under Settings → MCP)."),
-    org?.tier === "production" && !lab ? h("div", { class: "warn" }, "A production org: the AI tools in this folder change it directly.") : null,
-    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The folder's tools now work on ${w.profile}. Restart them in Cursor so it takes effect.`) : null,
+    note(lab ? "Only sandbox and dev orgs: the AVA harness writes straight to the org (Cursor still asks before each change). A new org goes into the folder right away; restart the MCP servers in Cursor afterwards."
+      : "The org every MCP server in this folder works on. A new org goes into the folder right away; restart them in Cursor afterwards (switch them off and on under Settings → MCP)."),
+    org?.tier === "production" && !lab ? h("div", { class: "warn" }, "A production org: the AI in this folder changes it directly.") : null,
+    st.folderUpdated && st.id === w.id ? h("div", { class: "okbox" }, `The folder's MCP servers now work on ${w.profile}. Restart them in Cursor so it takes effect.`) : null,
     org?.problem ? h("div", { class: "error" }, org.problem) : null,
     org && !org.credentialsStored ? h("div", { class: "warn" }, "No credentials stored for this org. Enter them on the Orgs page.") : null);
 
@@ -1830,13 +2218,13 @@ function axlDetail(st, x, draw) {
   const dir = h("input", { value: w.folder || "", placeholder: "~/Demos/customer", style: "flex:1;min-width:280px", "aria-label": "Project folder" });
   const folderState = !w.folder ? null
     : !f.exists ? h("div", { class: "muted" }, "The folder does not exist yet; Set up folder creates it.")
-    : f.stale ? h("div", { class: "warn" }, "The folder's tools are out of date. Press Set up folder.")
+    : f.stale ? h("div", { class: "warn" }, "The folder's MCP servers are out of date. Press Set up folder.")
     : (f.connected || (f.tools || []).some((t) => t.connected)) ? h("div", { class: "okbox" }, `Set up: the folder starts ${projectTools(w).join(", ")} with ${w.profile}.`)
     : h("div", { class: "warn" }, "Not set up yet.");
   const folderPanel = step("Folder",
     h("div", { class: "row" }, dir, h("button", { class: "btn", onclick: () => put2({ folder: dir.value }) }, "Save")),
     note(lab ? `The folder you open in Cursor for this workshop. The lab keeps each customer's session in ${x.sessionsDir || "<folder>/axl-sessions"}. gctk writes the AVA harness server into the folder's .cursor/mcp.json (your other entries there stay).`
-      : "The folder you open in Cursor for this demo. gctk writes the tools into its .cursor/mcp.json; your own entries there stay."),
+      : "The folder you open in Cursor for this demo. gctk writes the MCP servers into its .cursor/mcp.json; your own entries there stay."),
     folderState,
     w.folder ? h("div", { class: "row", style: "margin-top:8px" },
       f.exists && !f.stale && (f.connected || (f.tools || []).some((t) => t.connected)) ? null : setupBtn(),
@@ -1846,11 +2234,15 @@ function axlDetail(st, x, draw) {
   let toolsPanel = null;
   if (!lab) {
     const picker = toolPicker(w, st);
-    toolsPanel = step("Genesys tools in this folder",
-      note("Each tool starts through gctk with the org above; its credentials come from the keychain, never from the folder."),
+    toolsPanel = step("MCP servers in this folder",
+      note("Each one starts through gctk with the org above; its credentials come from the keychain, never from the folder."),
       picker.el,
-      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save tools")));
+      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save")));
   }
+
+  // Skills (workshops)
+  const skillsPanel = lab && x.skills ? step("Skills", note("The lab runs on these two Cursor skills next to the AVA harness. Cursor finds them in ~/.cursor/skills or in the folder's .cursor/skills."),
+    axlSkillsBox(x.skills, async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } })) : null;
 
   // What Cursor loads here
   const loadsPanel = step("What the AI gets in this folder",
@@ -1863,7 +2255,7 @@ function axlDetail(st, x, draw) {
     h("div", { class: cls === "s-applied" ? "okbox" : "warn" }, pill(label, cls), " ", hint),
     h("ol", { style: "margin:8px 0;padding-left:20px;font-size:13.5px" },
       h("li", {}, "Open the folder in Cursor ", f.exists ? axlOpenInCursor(w.id, true) : null),
-      h("li", {}, "Settings → MCP: switch on this folder's tools. Cursor never starts a new project server by itself; after an org change, switch them off and on again."),
+      h("li", {}, "Settings → MCP: switch on this folder's MCP servers. Cursor never starts a new project server by itself; after an org change, switch them off and on again."),
       st.globalHarness.present && usesHarnessUi(w) ? h("li", {}, "In the same place, switch off the global ava-harness (from ~/.cursor/mcp.json, its own org). Its entry stays for your other folders.") : null,
       h("li", {}, lab ? "Refresh: the status turns green once Cursor has started the harness. Then start the lab with /axl-lab-facilitator." : "Ask the AI to confirm the org: \"Which Genesys Cloud org are you connected to?\" Then start building.")),
     h("button", { class: "btn", onclick: async () => { try { draw(await api("/api/axl")); } catch (err) { showError(err); } } }, "Refresh"));
@@ -1884,15 +2276,25 @@ function axlDetail(st, x, draw) {
   }
 
   const remove = h("button", { class: "btn danger", onclick: async () => {
-    if (!confirm(`Remove the project "${w.name}" from gctk? Its tools are taken out of the folder's .cursor/mcp.json; the folder and everything in it stay.`)) return;
+    if (!confirm(`Remove the project "${w.name}" from gctk? Its MCP servers are taken out of the folder's .cursor/mcp.json; the folder and everything in it stay.`)) return;
     try { const r = await api(axlUrl(w.id), { method: "DELETE" }); state.axlOpen = null; draw(r); } catch (err) { showError(err); }
   } }, "Remove project");
 
   return h("div", {},
     h("p", {}, h("a", { href: "#", onclick: (e) => { e.preventDefault(); back(); } }, "← All projects")),
     h("div", { class: "row", style: "margin-bottom:12px" }, name, lab ? pill("AXL workshop", "") : null, pill(label, cls), h("span", { class: "spacer" }), remove),
+    h("div", { class: "panel intro" },
+      h("div", { class: "conn", style: "border:0;grid-template-columns:auto 18px auto 18px minmax(0,1fr) auto;padding:0" },
+        h("span", { class: "chip", title: w.folder || "" }, icon("folder"), w.folder ? projName(w.folder) : "no folder"),
+        h("span", { class: "arrow" }, icon("arrow")),
+        orgChip(w.profile, "no org"),
+        h("span", { class: "arrow" }, icon("arrow")),
+        h("div", { class: "chips" }, projectTools(w).length ? projectTools(w).map((t) => h("span", { class: "chip" }, icon("tool"), t)) : h("span", { class: "chip none" }, "no MCP servers")),
+        f.exists ? axlOpenInCursor(w.id, true) : null),
+      h("div", { class: "muted", style: "font-size:13px;margin-top:8px" }, hint)),
     usesHarnessUi(w) ? axlHarnessMissing(st, draw) : null,
-    orgPanel, folderPanel, toolsPanel, loadsPanel, cursorPanel, sessionsPanel, lab ? axlGuide(x) : null);
+    h("div", { class: "timeline" }, [orgPanel, folderPanel, toolsPanel, skillsPanel, loadsPanel, cursorPanel, sessionsPanel].filter(Boolean)),
+    lab ? h("div", { style: "margin-top:14px" }, axlGuide(x)) : null);
 }
 
 // -------------------------------------------------------------- pricing
@@ -2776,6 +3178,12 @@ function monIntegrations(r) {
 // and remove (background jobs, the page follows their log), commands the demo needs on this
 // computer (Start / Stop / Log), and the manual steps on the day.
 const DEMOS_KEY = "gctk-demos";
+const DEMO_PALETTE = [["#0f766e", "#22c3a6"], ["#4338ca", "#8b93ff"], ["#b45309", "#f5a524"], ["#be123c", "#fb7185"], ["#1d4ed8", "#38bdf8"], ["#6d28d9", "#c084fc"]];
+/** A demo keeps its banner colours: they follow from its id. */
+const demoColors = (id) => {
+  const [a, b] = DEMO_PALETTE[[...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7) % DEMO_PALETTE.length];
+  return `--b1:${a};--b2:${b}`;
+};
 const PREREQ = { ok: ["ready", "s-applied"], missing: ["missing", "s-failed"], manual: ["check yourself", "s-pending"], error: ["could not check", "s-pending"] };
 
 async function viewDemos() {
@@ -2796,27 +3204,30 @@ async function viewDemos() {
     return h("div", {}, h("div", { class: "row", style: "margin-bottom:10px" }, back, h("span", { class: "muted" }, `Demos / ${demo.manifest?.name || demo.folder.split("/").pop()}`)), msg, demoDetail(demo, data, pick, keep, msg));
   }
 
-  const head = [h("h2", { style: "font-size:22px;margin-bottom:6px" }, "Demos"),
-    h("p", { class: "lead" }, "Pick a demo to see what it contains, what the org needs and how to deploy it. A deploy builds the whole demo in an org with one button: queues, case plans, Copilot, knowledge, bot flow, agent scripts.")];
+  const head = [pageHead("Demos", "Complete Genesys Cloud demos, deployed into an org with one button.")];
   if (!data.demos.length) return h("div", {}, head, msg, h("div", { class: "panel empty" }, "This gctk has no demos."));
 
   const search = h("input", { type: "search", placeholder: "Search demos", value: pick.query || "", style: "min-width:260px" });
-  const grid = h("div", { class: "cards" });
+  const grid = h("div", { class: "card-grid", style: "grid-template-columns:repeat(auto-fill,minmax(360px,1fr))" });
   const card = (d) => {
     const m = d.manifest;
     if (!m) return h("div", { class: "panel" }, h("strong", {}, d.folder.split("/").pop()), h("div", { class: "error" }, d.error || "This demo cannot be read."));
     const first = ["Digital bot flow", "Inbound message flow", "Copilot assistant", "Case plan", "Agent script", "Knowledge base", "Speech & text analytics program", "Queue"];
     const rank = (l) => (first.indexOf(l) + 1 || 99);
     const kinds = (d.snapshot?.contents || []).map((c) => c.label).sort((a, b) => rank(a) - rank(b));
-    return h("div", { class: "panel", style: "cursor:pointer", role: "button", tabindex: "0", onclick: () => open(d.id), onkeydown: (ev) => { if (ev.key === "Enter") open(d.id); } },
-      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" })),
-      m.description ? h("div", { class: "muted", style: "font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" }, m.description) : null,
-      h("div", { style: "font-size:13px" }, d.snapshot ? `${d.snapshot.objects} objects: ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ` and ${kinds.length - 5} more kinds` : ""}` : h("span", { class: "muted" }, "No snapshot yet")),
-      (m.parameters || []).length ? h("div", { class: "muted", style: "font-size:12px" }, `You enter: ${m.parameters.map((p) => p.label.split(" (")[0]).join(" · ")}`) : null,
-      h("div", { class: "row", style: "margin-top:auto;flex-wrap:wrap;gap:6px" },
-        d.deployments.length ? d.deployments.map((x) => pill(`deployed in ${x.profile}`, "s-applied")) : h("span", { class: "muted", style: "font-size:12px" }, "Not deployed yet"),
-        h("span", { class: "spacer" }),
-        h("button", { class: "btn primary", onclick: (ev) => { ev.stopPropagation(); open(d.id); } }, "Open")));
+    const channels = (m.channels || []).map((c) => c.label.replace(/^.*\bwith\b\s*/i, "").replace(/^Lumea\s+/, ""));
+    return h("div", { class: "panel demo-card", style: demoColors(d.id), role: "button", tabindex: "0", onclick: () => open(d.id), onkeydown: (ev) => { if (ev.key === "Enter") open(d.id); } },
+      h("div", { class: "banner" },
+        h("div", { class: "kicker" }, d.snapshot ? `${d.snapshot.objects} objects` : "no snapshot yet", d.story ? ` · story with ${d.story.scenes?.length || 0} scenes` : ""),
+        h("h3", {}, m.name)),
+      h("div", { class: "inner" },
+        m.description ? h("div", { class: "muted", style: "font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" }, m.description) : null,
+        kinds.length ? h("div", { class: "chips" }, kinds.slice(0, 6).map((k) => h("span", { class: "chip" }, k)), kinds.length > 6 ? h("span", { class: "chip none" }, `+${kinds.length - 6} more`) : null) : null,
+        channels.length ? h("div", { class: "row", style: "gap:6px;font-size:12.5px" }, h("span", { class: "muted" }, "Customer writes via"), channels.map((c) => h("span", { class: "chip" }, icon("chat"), c))) : null,
+        h("div", { class: "card-foot" },
+          d.deployments.length ? d.deployments.map((x) => h("span", { class: "status ok" }, `Deployed in ${x.profile}`)) : h("span", { class: "status off" }, "Not deployed yet"),
+          h("span", { class: "spacer" }),
+          h("button", { class: "btn primary sm", onclick: (ev) => { ev.stopPropagation(); open(d.id); } }, "Open"))));
   };
   const draw = () => {
     const q = (pick.query || "").toLowerCase();
@@ -2872,8 +3283,8 @@ function storyPanel(d, persona) {
       h("div", { style: "font-size:13px;font-weight:600" }, c.name),
       h("table", { style: "font-size:13px;margin-top:4px" }, c.items.map((it) => h("tr", {}, h("td", { style: "vertical-align:top;white-space:nowrap;padding-right:12px" }, it.name), h("td", { class: "muted" }, it.ticksWhen))))))) : null,
     ref.topics.length ? block("Speech & text analytics topics (marked in the conversation afterwards)", ref.topics.map((tp) => h("div", { style: "font-size:13px;margin-top:4px" }, h("b", {}, tp.name), h("span", { class: "muted" }, `: ${tp.phrases.join(" · ")}`)))) : null);
-  return h("details", { class: "panel" },
-    h("summary", { style: "margin:0" }, h("strong", {}, "Demo story"), h("span", { class: "muted" }, ` · ${s.scenes.length} scenes${s.duration ? `, ${s.duration}` : ""}`)),
+  return h("details", { class: "panel more" },
+    h("summary", {}, icon("play"), h("strong", {}, "Demo story"), h("span", { class: "muted", style: "font-size:13px" }, `${s.scenes.length} scenes${s.duration ? `, ${s.duration}` : ""}: who says what, and what it triggers`)),
     s.summary ? h("p", { style: "margin:10px 0 0" }, s.summary) : null,
     s.persona ? block("Persona", h("div", { style: "font-size:14px" }, s.persona)) : null,
     (s.rules || []).length ? block("Stage rules", list(s.rules)) : null,
@@ -2888,9 +3299,9 @@ function permissionsPanel(d) {
   if (!groups.length) return null;
   const total = new Set(groups.flatMap((g) => g.items)).size;
   const text = groups.map((g) => `${g.title}\n${g.items.map((x) => `  ${x.split(" | ").join(" or ")}`).join("\n")}`).join("\n\n");
-  return h("details", { class: "panel" },
-    h("summary", { style: "margin:0" }, `Permissions the org's OAuth client needs (${total})`),
-    h("p", { class: "muted", style: "font-size:13px" }, "Give the OAuth client of the org (Client Credentials) a role with these permissions. Without them the deploy stops at the first object it may not create. Where it says \"or\", one of the two is enough."),
+  return h("details", { class: "sub-block more" },
+    h("summary", {}, icon("key"), h("strong", { style: "font-size:13.5px" }, `Permissions the org's OAuth client needs (${total})`)),
+    h("p", { class: "muted", style: "font-size:13px" }, "Give the org's OAuth client a role with these. Where it says \"or\", one is enough."),
     h("div", { class: "row", style: "margin-bottom:8px" }, h("button", { class: "btn", onclick: async (ev) => { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; setTimeout(() => (ev.target.textContent = "Copy list"), 1500); } }, "Copy list")),
     groups.map((g) => h("div", { style: "margin-top:10px" },
       h("strong", { style: "font-size:13px" }, `${g.title} (${g.items.length})`),
@@ -2924,7 +3335,7 @@ function demoDetail(d, data, pick, keep, msg) {
   const cmdBox = h("div");
   const out = h("div");
 
-  const step = (n, title, ...body) => h("div", { class: "panel" }, h("div", { class: "row" }, h("span", { class: "count", style: "margin:0;font-size:13px;min-width:24px;padding:2px 6px" }, n), h("strong", {}, title)), h("div", { style: "margin-top:10px" }, ...body));
+  const step = (n, title, ...body) => h("div", { class: "tl" }, h("span", { class: "tl-n" }, String(n)), h("div", { class: "panel" }, h("div", { class: "tl-title" }, title), ...body));
   // Background job: start it, then follow its log until it is done.
   const follow = async (url, body, title, after) => {
     const logEl = h("pre", { style: "max-height:300px;white-space:pre-wrap" }, "");
@@ -3080,17 +3491,19 @@ function demoDetail(d, data, pick, keep, msg) {
 
   const snap = d.snapshot;
   return h("div", {},
-    h("div", { class: "panel" },
-      h("div", { class: "row" }, h("strong", { style: "font-size:16px" }, m.name), h("span", { class: "spacer" }), h("label", { class: "row" }, "Org", orgSel)),
-      m.description ? h("p", { class: "muted", style: "margin:6px 0 0" }, m.description) : null),
+    h("div", { class: "banner demo-hero", style: demoColors(d.id) },
+      h("div", { class: "kicker" }, "Demo", snap ? ` · ${snap.objects} objects` : ""),
+      h("h3", {}, m.name),
+      m.description ? h("p", {}, m.description) : null,
+      h("label", { class: "org-pick" }, "Deploy into", orgSel)),
     storyBox,
-    step(1, "Prerequisites in the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. The ones it can check show their state; check the others yourself."), prereqBox),
-    permissionsPanel(d),
-    step(2, "Deploy", deployBox),
-    out,
-    step(3, "Run on this computer", cmdBox),
-    m.manual?.length ? step(4, "On the day", h("ul", { style: "margin:0;padding-left:20px" }, m.manual.map((x) => h("li", {}, x)))) : null,
-    h("details", { class: "panel" }, h("summary", { style: "margin:0" }, `What the demo contains${snap ? ` (${snap.objects} objects, ${time(snap.at)})` : ""}`),
+    h("div", { class: "section-title" }, "Get it running"),
+    h("div", { class: "timeline" },
+      step(1, "Check the org", h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "gctk cannot create these. Check the grey ones yourself."), prereqBox, permissionsPanel(d)),
+      step(2, "Deploy", deployBox, out),
+      step(3, "Start on this computer", cmdBox),
+      m.manual?.length ? step(4, "On the day", h("ul", { style: "margin:0;padding-left:20px" }, m.manual.map((x) => h("li", {}, x)))) : null),
+    h("details", { class: "panel more", style: "margin-top:14px" }, h("summary", {}, icon("layers"), h("strong", {}, "What the demo contains"), snap ? h("span", { class: "muted", style: "font-size:13px" }, `${snap.objects} objects, snapshot of ${time(snap.at)}`) : null),
       snap ? h("table", { style: "margin-top:8px" }, snap.contents.map((c) => h("tr", {}, h("td", { style: "white-space:nowrap" }, c.label), h("td", { class: "muted" }, c.names.join(" · "))))) : h("p", { class: "muted" }, "No snapshot yet."),
       snap?.unresolved ? h("div", { class: "warn" }, `${snap.unresolved} id(s) point to objects outside the demo; they stay as they are.`) : null,
       h("div", { class: "row", style: "margin-top:10px" }, d.canSnapshot ? h("button", { class: "btn", onclick: () => {
@@ -3160,23 +3573,23 @@ async function viewData() {
       h("div", { style: "margin-top:10px" }, table(d.places))),
     h("div", { class: "panel" },
       h("div", { class: "row" }, h("strong", {}, "Secrets"), h("span", { class: "muted" }, `${d.keychain}, service "gctk"`)),
-      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, other server secrets on the Cursor setup page."),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Only the names are shown. To see or delete an entry: open Keychain Access and search for gctk. Org credentials are changed on the Orgs page, other server secrets on the AI Coding Tools page."),
       h("table", {}, h("tr", {}, h("th", {}, "Entry"), h("th", {}, "What it is"), h("th", {}, "")),
         d.secrets.map((x) => h("tr", {}, h("td", { class: "mono", style: "font-size:12px" }, x.account), h("td", {}, x.what), h("td", {}, x.stored ? pill("stored", "s-applied") : pill("missing", "s-failed")))))),
     d.elsewhere.length ? h("div", { class: "panel" },
       h("strong", {}, "Written outside gctk's folder"),
-      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and Cursor config files whose entries the Cursor setup page changed."),
+      h("p", { class: "muted", style: "font-size:13px;margin:4px 0 8px" }, "Demo packages in your demo folders, and Cursor config files whose entries the AI Coding Tools page changed."),
       table(d.elsewhere)) : null);
 }
 
 // ------------------------------------------------------------- AI setup
 // The MCP servers and skills of the user's editors, read from their config files by the gctk server.
 // Secrets arrive masked; the fix buttons change the user's config files (server side).
-// Cursor setup (page id ai-setup; decision 2026-10-06: no skills). What Cursor loads in every folder,
-// the org each Genesys server works on, and one-click fixes. A folder's own servers and org belong to
-// the Projects page; folders with their own config are offered as projects.
-// Claude app (page id claude-app): the same for claude_desktop_config.json, which the Claude app loads
-// in every chat and Cowork session; it has no folders, so its one AVA harness gets a workshop here.
+// AI Coding Tools (page id ai-setup; the old page id claude-app opens it too): what Cursor loads in
+// every folder and the Claude app in every chat and Cowork session, the org each Genesys server works
+// on, and one-click fixes. A folder's own servers and org belong to the Projects page; folders with
+// their own config are offered as projects. The Claude app has no folders, so its one AVA harness
+// gets a workshop here.
 const CREDS = {
   none: ["no credentials", ""],
   plain: ["secret in plain text in the file", "s-failed"],
@@ -3188,18 +3601,13 @@ const CREDS = {
   project: ["project org (keychain, through gctk)", "s-applied"],
 };
 const FIX_LABELS = { keychain: "Move the secret to the keychain", restore: "Move the secret back into the file", remove: "Remove this entry", "clean-env": "Remove the old variable", repair: "Repair" };
-/** Plain names for the Genesys tools people meet most. */
+/** Plain names for the Genesys MCP servers people meet most. */
 const TOOL_NAMES = { "ava-harness": ["AVA harness", "builds and tests AI agents (Agentic Virtual Agents)"], "genesys-cloud-architect-mcp": ["Architect", "reads and writes Architect flows"], gctk: ["gctk", "lets the AI open this UI"] };
 const RELOAD_HINTS = {
   cursor: "Restart the server in Cursor so it picks up the change: Settings → MCP, switch it off and on.",
   "claude-desktop": "Quit the Claude app (Cmd+Q on a Mac, not just the window) and open it again: it reads its servers only when it starts.",
 };
-const EDITOR_TEXT = {
-  cursor: { title: "Cursor setup", app: "Cursor", reading: "Reading Cursor's config files…",
-    lead: "The MCP servers Cursor loads in every folder, which Genesys Cloud org each one works on, and whether it can start. Give a server another org with one click; the credentials come from your orgs and stay in the keychain. A folder's own servers and org are set on the Projects page." },
-  "claude-desktop": { title: "Claude app", app: "the Claude app", reading: "Reading the Claude app's config…",
-    lead: "The MCP servers the Claude app loads in every chat and Cowork session, which Genesys Cloud org each one works on, and whether it can start. The app has no folders of its own, so its AVA harness works on the AXL workshop you choose here. Skills are not on this computer: you upload them in the Claude app (Settings → Capabilities)." },
-};
+const APP_NAMES = { cursor: "Cursor", "claude-desktop": "Claude app" };
 const projName = (p) => (p ? p.split(/[\\/]/).filter(Boolean).pop() : "");
 const whereText = (x) => x.editor === "claude-desktop" ? "Claude app" : x.scope === "plugin" ? `plugin ${x.plugin}` : x.scope === "project" ? `folder ${projName(x.project)}` : "every folder";
 const sortServers = (list) => [...list].sort((a, b) => a.name.localeCompare(b.name) || whereText(a).localeCompare(whereText(b)));
@@ -3211,20 +3619,19 @@ function forEditor(s, editor) {
   return { ...s, files, servers: s.servers.filter((x) => x.editor === editor), secrets: s.secrets.filter((m) => m.usedBy.some((u) => paths.has(u.file))) };
 }
 
-/** editor: "cursor" (page Cursor setup) or "claude-desktop" (page Claude app). */
-async function viewAiSetup(editor = "cursor") {
-  const T = EDITOR_TEXT[editor];
+/** AI Coding Tools (page id ai-setup): Cursor and the Claude app on one page. */
+async function viewAiSetup() {
   const msg = h("div");
-  const body = h("div", {}, h("div", { class: "panel empty" }, T.reading));
-  const refresh = h("button", { class: "btn" }, "Refresh");
+  const body = h("div", {}, h("div", { class: "panel empty" }, "Reading the configs of Cursor and the Claude app…"));
+  const refresh = h("button", { class: "btn" }, icon("refresh"), "Refresh");
   let projects = [];
   let axl = null;
-  const draw = (s) => put(body, aiSetupReport(forEditor(s, editor), msg, draw, projects, editor, axl, load));
+  const draw = (s) => put(body, aiToolsReport(s, msg, draw, projects, axl, load));
   const load = async () => {
     refresh.disabled = true;
     try {
-      const [s, a] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] }))]);
-      axl = a;
+      const [s, a, templates] = await Promise.all([api("/api/ai-setup"), api("/api/axl").catch(() => ({ workshops: [] })), api("/api/axl/tool-templates").catch(() => [])]);
+      axl = { ...a, templates };
       projects = a.workshops.map((x) => x.workshop);
       draw(s);
     } catch (err) { put(body, h("div", { class: "error" }, err.message)); } finally { refresh.disabled = false; }
@@ -3232,17 +3639,17 @@ async function viewAiSetup(editor = "cursor") {
   refresh.addEventListener("click", () => { msg.replaceChildren(); state.updates = api("/api/ai-setup/updates?refresh=1").then((r) => r.programs); load(); });
   load();
   return h("div", {},
-    h("div", { class: "row" }, h("h2", { style: "font-size:22px;margin-bottom:6px" }, T.title), h("span", { class: "spacer" }), refresh),
-    h("p", { class: "lead" }, T.lead),
+    pageHead("AI Coding Tools", "Which MCP servers Cursor and the Claude app load, and which Genesys Cloud org each one works on.", refresh),
     msg, body);
 }
 
-function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, reload = null) {
+/** The fixes for one app's servers; results show in msg with that app's restart hint. */
+function aiCtx(msg, draw, editor) {
   const hint = RELOAD_HINTS[editor];
   const done = (text, next) => { put(msg, h("div", { class: "okbox" }, text, " ", hint)); draw(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const failed = (err) => { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const post = (x, kind) => api("/api/ai-setup/fix", { method: "POST", body: { file: x.file, section: x.section, name: x.name, fix: kind } });
-  const ctx = {
+  return {
     msg, draw, editor, hint,
     async fix(x, kind) {
       const names = x.env.filter((v) => v.plain).map((v) => v.name).join(", ");
@@ -3283,23 +3690,315 @@ function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, re
       try { for (const x of list) next = await post(x, kind); done(`Done for ${list.length} entries.`, next); } catch (err) { failed(err); if (next) draw(next); }
     },
   };
-  const found = s.files.filter((f) => f.exists);
-  const managed = s.secrets;
-  const details = h("details", { class: "panel", style: "margin-top:14px" },
-    h("summary", { style: "margin:0" }, h("strong", {}, "Details"), h("span", { class: "muted", style: "font-size:13px" }, ` · every entry, secrets in the keychain, ${found.length} config files`)),
+}
+
+function aiToolsReport(s, msg, draw, projects, axl, reload) {
+  state.aiAxl = axl;
+  state.aiReload = reload;
+  state.aiClaudeHere = forEditor(s, "claude-desktop").files.length > 0;
+  const cur = forEditor(s, "cursor");
+  const cla = forEditor(s, "claude-desktop");
+  const ctx = { cursor: aiCtx(msg, draw, "cursor"), "claude-desktop": aiCtx(msg, draw, "claude-desktop") };
+  const claudeHere = cla.files.length > 0;
+  // The org a server works on: its own OAuth client's, its project's, or the Claude app's workshop's.
+  const orgOf = (x) => x.org?.profile
+    || (x.scope === "project" ? projects.find((w) => w.folder === x.project)?.profile : "")
+    || (x.editor === "claude-desktop" && x.credentials === "axl" ? axl?.claudeApp?.org : "") || "";
+  // Project folders' servers belong to the Projects page; gctk's own server works on no org.
+  const genesys = s.servers.filter((x) => x.genesys && x.credentials !== "gctk-profile" && x.name !== "gctk" && x.scope !== "project");
+
+  const todoC = todoGroups(cur, ctx.cursor);
+  const todoA = claudeHere ? todoGroups(cla, ctx["claude-desktop"]) : [];
+  const attention = todoC.length || todoA.length ? h("div", { class: "panel", style: "border-color:color-mix(in srgb, var(--bad) 35%, var(--line))" },
+    h("div", { class: "app-head" }, h("span", { class: "bubble", style: "background:var(--bad-bg);color:var(--bad)" }, icon("alert")), h("strong", {}, "Needs your attention")),
+    todoC.length ? [todoA.length ? h("div", { class: "sub-head" }, "Cursor") : null, todoC] : null,
+    todoA.length ? [h("div", { class: "sub-head", style: "margin-top:10px" }, "Claude app"), todoA] : null) : null;
+
+  const mode = state.aiView === "org" ? "org" : "app";
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Show" },
+    [["app", "By app"], ["org", "By org"]].map(([id, label]) => h("button", { "aria-pressed": String(mode === id), onclick: () => { state.aiView = id; draw(s); } }, label)));
+  // The Claude app only shows where it is installed; many users have Cursor alone.
+  const claudeCard = claudeHere ? appCard(cla, ctx["claude-desktop"], orgOf) : null;
+  const cursorCard = appCard(cur, ctx.cursor, orgOf);
+  const first = state.aiFocus === "claude-desktop";
+  state.aiFocus = null;
+  const map = mode === "app"
+    ? h("div", { class: "apps" }, first ? [claudeCard, cursorCard] : [cursorCard, claudeCard])
+    : byOrgView(genesys, orgOf);
+
+  const details = h("details", { class: "panel more" },
+    h("summary", {}, icon("layers"), h("strong", {}, "Every entry and config file"), h("span", { class: "muted", style: "font-size:13px" }, "commands, variables (secrets masked), keychain items, files")),
     h("div", { style: "margin-top:10px" },
-      h("h3", { style: "margin:0 0 4px;font-size:15px" }, "Every entry"),
-      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "Open an entry for its file, command and variables (secrets masked) and the fixes for it."),
-      sortServers(s.servers).map((x) => serverRow(x, ctx)),
-      managed.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Secrets in the keychain"), managed.map((m) => secretCard(m, ctx.msg, ctx.draw, hint))] : null,
-      editor === "cursor" && s.removedSkills.length ? [h("h3", { style: "margin:16px 0 4px;font-size:15px" }, "Skills an earlier gctk removed"),
-        s.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
-      filesPanel(s, msg, draw, editor)));
-  if (editor === "claude-desktop") {
-    if (!s.files.length) return h("div", { class: "panel empty" }, "gctk did not find the Claude app on this computer. Install it from claude.ai/download, then press Refresh.");
-    return [todoPanel(s, ctx), claudeHarnessPanel(s, axl, msg, reload), coworkSkillsPanel(msg), aiOverview(s, ctx), updatesPanel(msg, "claude-desktop", reload), details];
-  }
-  return [todoPanel(s, ctx), aiOverview(s, ctx), updatesPanel(msg), folderPanel(s, projects), details];
+      detailsFor(cur, ctx.cursor, msg, draw),
+      claudeHere ? detailsFor(cla, ctx["claude-desktop"], msg, draw) : null));
+
+  return [attention,
+    h("div", { class: "section-title" }, "Who works on which org", h("span", { class: "spacer" }), seg),
+    map,
+    h("p", { class: "muted", style: "font-size:12.5px;margin:8px 0 0" }, "The MCP servers Cursor", claudeHere ? " and the Claude app load" : " loads", " in every folder, and the org their OAuth client belongs to. Folders with their own MCP servers are on the ", navLink("axl", "Projects"), " page."),
+    availablePanel(axl, msg),
+    h("div", { class: "section-title" }, "More"),
+    updatesPanel(msg, "cursor", reload),
+    claudeHere ? coworkSkillsPanel(msg) : null,
+    details];
+}
+
+/** One app: each Genesys MCP server it loads everywhere, the org it works on, and its state. */
+function appCard(sx, ctx, orgOf) {
+  const claude = ctx.editor === "claude-desktop";
+  const genesys = sortServers(sx.servers.filter((x) => x.scope !== "project" && x.genesys && x.name !== "gctk"));
+  return h("div", { class: "panel" },
+    h("div", { class: "app-head" }, h("span", { class: "bubble" }, icon(claude ? "claude" : "cursor")),
+      h("div", {}, h("strong", {}, APP_NAMES[ctx.editor]), h("div", { class: "muted", style: "font-size:12.5px" }, claude ? "in every chat and Cowork session" : "in every folder you open"))),
+    genesys.length ? genesys.map((x) => connRow(x, ctx, orgOf))
+      : h("p", { class: "muted", style: "margin:8px 0" }, claude ? "No Genesys MCP servers yet." : "No Genesys MCP servers in every folder."));
+}
+
+function serverOrg(x, orgOf) {
+  if (x.credentials === "gctk-profile") return h("span", { class: "chip none" }, "needs no org");
+  const name = orgOf(x);
+  if (name) return orgChip(name);
+  if (x.org?.clientId) return h("span", { class: "chip none", title: x.org.clientId }, "unknown OAuth client");
+  if (x.credentials === "reference") return h("span", { class: "chip none" }, "from a variable");
+  return orgChip("", "no org set");
+}
+
+function serverStatus(x) {
+  const warn = x.problems.filter((p) => p.level === "warn");
+  if (x.disabled) return h("span", { class: "status off" }, "Off");
+  if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return h("span", { class: "status bad" }, "Cannot start");
+  if (warn.some((p) => p.kind === "plain-secret")) return h("span", { class: "status bad", title: "The secret is in plain text in the config file" }, "Plain secret");
+  if (x.org?.profile && state.overview?.profiles.find((p) => p.name === x.org.profile)?.tier === "production") return h("span", { class: "status bad" }, "Production");
+  return h("span", { class: "status ok", title: "Its program exists and no secret is in plain text. gctk does not start it to check." }, "Entry OK");
+}
+
+/** Lets a Genesys server work on another of the user's orgs (its credentials then come from that org). */
+function useOrgSelect(x, ctx) {
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  if (!x.credentialKeys || !x.editable || !orgs.length) return null;
+  const sel = h("select", { "aria-label": `Org for ${x.name}` }, h("option", { value: "" }, "Change org…"),
+    orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
+  sel.addEventListener("change", () => {
+    const o = sel.value;
+    if (!o) return;
+    if (!confirm(`Let "${x.name}" (${whereText(x)}) work on ${o}?\n\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\n${x.file}`)) { sel.value = ""; return; }
+    ctx.setCredentials(x, { profile: o, keychain: true });
+  });
+  return sel;
+}
+
+/**
+ * The Claude app's AVA harness when it still runs an AXL workshop: the same org list as everywhere;
+ * choosing one links it to that org like Cursor's (the workshop then no longer decides).
+ */
+function claudeWorkshopSelect(x, ctx) {
+  if (x.editor !== "claude-desktop" || x.credentials !== "axl" || !state.aiAxl?.claudeApp?.ours) return null;
+  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+  if (!orgs.length) return null;
+  const now = state.aiAxl.claudeApp.org;
+  const sel = h("select", { "aria-label": `Org for ${x.name}` }, h("option", { value: "" }, "Change org…"),
+    orgs.filter((o) => o.name !== now).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
+  sel.addEventListener("change", async () => {
+    const o = orgs.find((p) => p.name === sel.value);
+    if (!o) return;
+    if (!confirm(`Let the Claude app's AVA harness work on ${o.name}?${o.tier === "production" ? "\n\nThis is a PRODUCTION org: the AI in the Claude app can change it directly." : ""}\n\nIts credentials then come from that org on the Orgs page, at every start.\n${x.file}`)) { sel.value = ""; return; }
+    try {
+      const next = await api("/api/ai-setup/claude-harness-org", { method: "POST", body: { profile: o.name } });
+      put(ctx.msg, h("div", { class: "okbox" }, `The Claude app's AVA harness now works on ${o.name}.`, " ", ctx.hint));
+      state.aiReload ? state.aiReload() : ctx.draw(next);
+    } catch (err) { put(ctx.msg, h("div", { class: "error" }, err.message)); }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  return sel;
+}
+
+function connRow(x, ctx, orgOf) {
+  const [title, what] = TOOL_NAMES[x.name] || [x.name, ""];
+  return h("div", { class: "conn" },
+    h("div", { class: "tool" }, h("strong", {}, title), h("small", {}, x.scope === "plugin" ? `from plugin ${x.plugin}` : what || x.name)),
+    h("span", { class: "arrow" }, icon("arrow")),
+    h("div", {}, serverOrg(x, orgOf)),
+    h("div", { class: "end" }, serverStatus(x), useOrgSelect(x, ctx) || claudeWorkshopSelect(x, ctx)));
+}
+
+/** Folders with their own .cursor/mcp.json that are no project yet: one click makes them one. */
+function otherFoldersPanel(setup, st, draw) {
+  const known = new Set(st.workshops.map((x) => x.workshop.folder).filter(Boolean));
+  const servers = (setup?.servers || []).filter((x) => x.scope === "project" && !known.has(x.project));
+  const folders = [...new Set(servers.map((x) => x.project))].sort((a, b) => projName(a).localeCompare(projName(b)));
+  if (!folders.length) return null;
+  const fresh = !st.workshops.length;
+  const make = async (folder) => {
+    try {
+      const r = await api("/api/axl/workshops", { method: "POST", body: { name: projName(folder), folder, lab: false } });
+      state.axlOpen = r.id;
+      draw(r);
+    } catch (err) { showError(err); }
+  };
+  return [h("div", { class: "section-title" }, fresh ? `Your existing Cursor folders with MCP servers · ${folders.length}` : `Other folders with their own MCP servers · ${folders.length}`),
+    h("div", { class: "panel" },
+      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, fresh
+        ? "You already set these up in Cursor yourself. Make one a project to see and choose its org here; gctk keeps your entries in the folder."
+        : "Cursor loads these when the folder is open. Make one a project to choose its org and MCP servers here."),
+      folders.map((f) => {
+        const here = servers.filter((x) => x.project === f);
+        const orgs = [...new Set(here.map((x) => x.org?.profile).filter(Boolean))];
+        return h("div", { class: "conn", title: f },
+          h("div", { class: "tool" }, h("strong", {}, projName(f)), h("small", {}, here.map((x) => toolTitle(x.name)).join(", "))),
+          h("span", { class: "arrow" }, icon("arrow")),
+          h("div", { class: "chips" }, orgs.length ? orgs.map((o) => orgChip(o)) : orgChip("", "no org set")),
+          h("div", { class: "end" }, h("button", { class: "btn sm", onclick: () => make(f) }, "Make it a project")));
+      }))];
+}
+
+
+/**
+ * The MCP servers a project can get: the AVA harness (part of gctk), the ones the user added and the
+ * Genesys MCP servers in the user's Cursor and Claude app configs (the same list the project's picker
+ * shows). Which project uses which is on the Projects page.
+ */
+function availablePanel(axl, msg) {
+  const projects = (axl?.workshops || []).map((x) => x.workshop);
+  const usedIn = (pred) => projects.filter(pred).map((w) => w.name);
+  const row = (title, what, from, action) => h("div", { class: "conn", style: "grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto" },
+    h("div", { class: "tool" }, h("strong", {}, title), h("small", {}, what)),
+    h("div", { class: "muted", style: "font-size:12.5px;overflow-wrap:anywhere" }, from),
+    h("div", { class: "end" }, action || null));
+  const inUse = (t) => usedIn((w) => (w.tools || []).some((x) => x.name === t.name));
+  const all = axl?.templates || [];
+  const own = all.filter((t) => t.catalog).map((t) => {
+    const used = inUse(t);
+    const remove = h("button", { class: "btn sm", title: used.length ? "Projects keep their copy; remove it there in the project's settings." : "" }, "Remove");
+    remove.addEventListener("click", async () => {
+      if (!confirm(`Remove ${t.name} from the list?${used.length ? `\n\nThe projects ${used.join(", ")} keep their copy until you untick it in their settings.` : ""}\n\nIn Cursor or the Claude app it stays until you remove it there (under More).`)) return;
+      try { await api(`/api/mcp-catalog/${encodeURIComponent(t.id)}`, { method: "DELETE" }); state.aiReload?.(); }
+      catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+    });
+    return row(toolTitle(t.name), t.description || "MCP server", `added by you · ${t.tiers.length === 4 ? "any org" : `${t.tiers.join(", ")} orgs only`}`, remove);
+  });
+  const found = all.filter((t) => !t.catalog).map((t) => {
+    const [title, what] = TOOL_NAMES[t.name] || [t.name, ""];
+    return row(title, what || "Genesys MCP server", `found in ${t.from.replace(/^\/Users\/[^/]+/, "~")}`);
+  });
+  const formBox = h("div");
+  const addBtn = h("button", { class: "btn sm primary", onclick: () => { put(formBox, catalogForm(msg, () => { put(formBox); addBtn.hidden = false; })); addBtn.hidden = true; } }, icon("plus"), "Add MCP server");
+  return [h("div", { class: "section-title" }, "MCP Server available", h("span", { class: "spacer" }), addBtn, h("button", { class: "btn sm", onclick: () => go("axl") }, icon("folder"), "Projects")),
+    h("div", { class: "panel" },
+      h("p", { class: "muted", style: "margin:0 0 6px;font-size:13px" }, "gctk can put these into a project folder, where each one works on the project's org. Choose them in a project's settings."),
+      formBox,
+      row("AVA harness", "builds and tests AI agents", axl?.harnessInstalled ? "comes with gctk" : "comes with gctk · ava-mcp is not installed yet"),
+      own,
+      found,
+      own.length || found.length ? null : h("p", { class: "muted", style: "margin:8px 0 0;font-size:13px" }, "No other MCP server yet. Press Add MCP server (for example for Architect); gctk also lists the Genesys MCP servers it finds in Cursor and the Claude app."))];
+}
+
+/**
+ * Adding an MCP server for projects: how it starts, which variables take the org's client ID, secret
+ * and region, and which orgs it may work on. No secret is entered here: they come from the org.
+ */
+function catalogForm(msg, close) {
+  const f = {
+    name: h("input", { placeholder: "architect" }),
+    description: h("input", { placeholder: "reads and writes Architect flows" }),
+    source: h("input", { placeholder: "npmjs.com/package/… or a GitHub link" }),
+    command: h("input", { placeholder: "npx" }),
+    args: h("textarea", { placeholder: "-y\n@scope/package-name", style: "min-height:60px" }),
+    clientIdVar: h("input", { value: "GENESYS_CLIENT_ID" }),
+    secretVar: h("input", { value: "GENESYS_CLIENT_SECRET" }),
+    regionVar: h("input", { value: "GENESYS_REGION" }),
+    regionFormat: h("select", {}, h("option", { value: "domain" }, "domain, e.g. mypurecloud.de"), h("option", { value: "key" }, "region key, e.g. eu-central-1")),
+    env: h("textarea", { placeholder: "LOG_LEVEL=info", style: "min-height:50px" }),
+  };
+  const tiers = ["sandbox", "dev", "test", "production"].map((t) => [t, h("input", { type: "checkbox", checked: t !== "production" ? true : null, style: "width:auto" })]);
+  const box = (label) => { const b = h("input", { type: "checkbox", style: "width:auto" }); return [b, h("label", { style: "display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--text)" }, b, label)]; };
+  const [inCursor, cursorLabel] = box("Cursor, in every folder");
+  const [inClaude, claudeLabel] = state.aiClaudeHere ? box("Claude app") : [null, null];
+  const org = h("select", { "aria-label": "Org outside projects" });
+  const drawOrgs = () => {
+    const allowed = tiers.filter(([, b]) => b.checked).map(([t]) => t);
+    const list = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored && allowed.includes(p.tier));
+    const keep = org.value;
+    put(org, h("option", { value: "" }, list.length ? "on the org…" : "no org of these tiers"), list.map((p) => h("option", { value: p.name, selected: p.name === keep ? true : null }, `${p.name} (${p.tier})`)));
+  };
+  for (const [, b] of tiers) b.addEventListener("change", drawOrgs);
+  drawOrgs();
+  const err = h("div");
+  const save = h("button", { class: "btn primary" }, "Add");
+  save.addEventListener("click", async () => {
+    const lines = (v) => v.split("\n").map((x) => x.trim()).filter(Boolean);
+    const env = {};
+    for (const l of lines(f.env.value)) {
+      const i = l.indexOf("=");
+      if (i < 1) { put(err, h("div", { class: "error" }, `"${l}" is not NAME=value.`)); return; }
+      env[l.slice(0, i).trim()] = l.slice(i + 1).trim();
+    }
+    const picked = tiers.filter(([, b]) => b.checked).map(([t]) => t);
+    const useIn = [inCursor.checked ? "cursor" : null, inClaude?.checked ? "claude-desktop" : null].filter(Boolean);
+    if (useIn.length && !org.value) { put(err, h("div", { class: "error" }, "Choose the org it works on in Cursor or the Claude app.")); return; }
+    if (picked.includes("production") && !confirm("Let this server work on production orgs?\n\nThe AI in a project on a production org can then change that org directly through it.")) return;
+    const chosen = (state.overview?.profiles || []).find((p) => p.name === org.value);
+    if (useIn.length && chosen?.tier === "production" && !confirm(`${chosen.name} is a PRODUCTION org. The AI in ${useIn.map((a) => APP_NAMES[a]).join(" and ")} can then change it directly through this server. Continue?`)) return;
+    const name = f.name.value.trim();
+    try {
+      const r = await api("/api/mcp-catalog", { method: "POST", body: {
+        name: f.name.value, description: f.description.value, source: f.source.value, command: f.command.value, args: lines(f.args.value),
+        clientIdVar: f.clientIdVar.value, secretVar: f.secretVar.value, regionVar: f.regionVar.value, regionFormat: f.regionFormat.value, env, tiers: picked,
+        ...(useIn.length ? { useIn, profile: org.value } : {}),
+      } });
+      const where = r.added.map((a) => APP_NAMES[a]).join(" and ");
+      put(msg, h("div", {},
+        h("div", { class: "okbox" }, `${name} is available for projects${where ? ` and works on ${org.value} in ${where}` : ""}.`, where ? ` ${r.added.map((a) => RELOAD_HINTS[a]).join(" ")}` : " Tick it in a project's settings on the Projects page."),
+        r.failed.length ? h("div", { class: "error" }, `Not added: ${r.failed.join(" · ")}`) : null));
+      close();
+      await refreshOverview();
+      state.aiReload?.();
+    } catch (e) { put(err, h("div", { class: "error" }, e.message)); }
+  });
+  const cancel = h("button", { class: "btn", onclick: close }, "Cancel");
+  return h("div", { class: "dblock", style: "margin:4px 0 12px;padding:14px;border:1px solid var(--line);border-radius:10px;display:grid;gap:12px" },
+    h("strong", {}, "Add an MCP server"),
+    h("div", { class: "muted", style: "font-size:12.5px" }, "Never enter a secret here. Whenever the server starts, gctk puts the org it works on into the variables you name below: its OAuth client ID, secret and region from the Orgs page. In a project that is the project's org."),
+    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "What it does", f.description), h("label", {}, "Where it is published", f.source)),
+    h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) minmax(0,2fr)" },
+      h("label", {}, "Command (a program on this computer, e.g. npx or uvx)", f.command), h("label", {}, "Arguments, one per line", f.args)),
+    h("div", { class: "grid" }, h("label", {}, "Variable for the client ID", f.clientIdVar), h("label", {}, "Variable for the secret", f.secretVar),
+      h("label", {}, "Variable for the region (empty if none)", f.regionVar), h("label", {}, "Region format", f.regionFormat)),
+    h("label", {}, "Other settings, NAME=value per line (no secrets)", f.env),
+    h("div", {}, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:4px" }, "May work on these org tiers"),
+      h("div", { class: "row", style: "gap:14px" }, tiers.map(([t, b]) => h("label", { style: "display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--text)" }, b, t)))),
+    h("div", {}, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:4px" }, "Also use it outside projects (optional)"),
+      h("div", { class: "row", style: "gap:14px" }, cursorLabel, claudeLabel, org),
+      h("div", { class: "muted", style: "font-size:12px;margin-top:4px" }, "gctk adds it there with this org's credentials from the Orgs page, at every start. You can change the org later under Who works on which org.")),
+    err,
+    h("div", { class: "row" }, save, cancel));
+}
+
+/** The same servers turned around: each org and every MCP server that works on it. */
+function byOrgView(genesys, orgOf) {
+  const where = (x) => x.editor === "claude-desktop" ? "Claude app" : x.scope === "project" ? `Cursor · folder ${projName(x.project)}` : x.scope === "plugin" ? `Cursor · plugin ${x.plugin}` : "Cursor · every folder";
+  const groups = new Map();
+  for (const x of genesys) { const k = orgOf(x); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
+  if (!groups.size) return h("div", { class: "panel empty" }, "No Genesys MCP server in Cursor or the Claude app yet.");
+  return h("div", { class: "card-grid" }, [...groups].sort(([a, x], [b, y]) => (!a) - (!b) || y.length - x.length || a.localeCompare(b)).map(([name, list]) => {
+    const p = state.overview?.profiles.find((q) => q.name === name);
+    return h("div", { class: "panel" },
+      h("div", { class: "app-head" }, h("span", { class: "bubble" }, icon(name ? "org" : "alert")),
+        h("div", { style: "flex:1" }, h("div", { class: "row", style: "gap:6px" }, h("strong", {}, name || "No known org"), p ? pill(p.tier, `t-${p.tier}`) : null),
+          h("div", { class: "muted", style: "font-size:12.5px" }, name ? `${list.length} MCP server${list.length === 1 ? "" : "s"} work${list.length === 1 ? "s" : ""} on it` : "OAuth clients gctk does not know, or no credentials"))),
+      sortServers(list).map((x) => h("div", { class: "conn", style: "grid-template-columns:minmax(0,1fr) auto" },
+        h("div", { class: "tool" }, h("strong", {}, toolTitle(x.name)), h("small", {}, where(x))), h("div", { class: "end" }, serverStatus(x)))));
+  }));
+}
+
+/** Every entry of one app, its keychain items and config files. */
+function detailsFor(sx, ctx, msg, draw) {
+  return h("div", { style: "margin-bottom:18px" },
+    h("h3", { style: "margin:0 0 4px;font-size:15px;display:flex;gap:6px;align-items:center" }, icon(ctx.editor === "claude-desktop" ? "claude" : "cursor"), APP_NAMES[ctx.editor]),
+    sortServers(sx.servers).map((x) => serverRow(x, ctx)),
+    sx.secrets.length ? [h("div", { class: "sub-head", style: "margin-top:12px" }, "Secrets in the keychain"), sx.secrets.map((m) => secretCard(m, msg, draw, ctx.hint))] : null,
+    ctx.editor === "cursor" && sx.removedSkills.length ? [h("div", { class: "sub-head", style: "margin-top:12px" }, "Skills an earlier gctk removed"),
+      sx.removedSkills.map((r) => h("div", { class: "todo-row" }, h("strong", {}, r.name), h("span", { class: "mono muted", style: "font-size:11px" }, r.from), h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => ctx.restoreSkill(r) }, "Restore")))] : null,
+    filesPanel(sx, msg, draw, ctx.editor));
 }
 
 /**
@@ -3308,7 +4007,9 @@ function aiSetupReport(s, msg, draw, projects, editor = "cursor", axl = null, re
  * the skills in ~/.cursor/skills).
  */
 function coworkSkillsPanel(msg) {
-  const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Skills for Cowork"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Reading the skills…"));
+  const headState = h("span", { class: "muted", style: "font-size:13px" }, "reading…");
+  const box = h("div", { style: "margin-top:10px" });
+  const panel = h("details", { class: "panel more" }, h("summary", {}, icon("claude"), h("strong", {}, "Skills for Cowork"), headState), box);
   const STATUS = { new: ["not zipped by gctk yet", "s-pending"], changed: ["changed since your last zip", "s-failed"], same: ["same as your last zip", "s-applied"] };
   const reveal = () => api("/api/claude-app/skills/reveal", { method: "POST", body: {} }).catch((err) => put(msg, h("div", { class: "error" }, err.message)));
   const draw = (r) => {
@@ -3331,10 +4032,10 @@ function coworkSkillsPanel(msg) {
           x.problems.length ? h("div", { class: "warn", style: "margin:4px 0 0;font-size:12px" }, `The upload may refuse it: ${x.problems.join("; ")}`) : null),
         pill(text, cls));
     };
+    put(headState, todo.length ? h("span", { class: "status todo" }, `${todo.length} to upload`) : r.skills.length ? h("span", { class: "status ok" }, "up to date") : "no AVA skills found");
+    if (todo.length) panel.open = true;
     put(box,
-      h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Skills for Cowork"),
-        h("span", { class: "muted" }, todo.length ? `${todo.length} to upload` : r.skills.length ? "all uploaded as zipped last" : "")),
-      h("p", { class: "muted", style: "margin:6px 0 8px;font-size:13px" }, "The lab needs the AVA skills and the lab facilitator. Cowork keeps skills in your Claude account, so gctk cannot put them there: it makes one zip per skill, and you upload them in the Claude app. gctk remembers what it zipped, so after an AVA harness update (Versions below) you see here which skills changed."),
+      h("p", { class: "muted", style: "margin:0 0 8px;font-size:13px" }, "Cowork keeps skills in your Claude account. gctk zips the AVA skills; you upload each zip in the Claude app (Settings → Capabilities → Skills)."),
       r.skills.length ? r.skills.map(row) : h("p", { class: "muted", style: "margin:0" }, `No AVA skills in ${r.source}. They come with the AVA harness; Update under Versions installs them for Cursor.`),
       r.skills.length ? h("div", { class: "row", style: "margin-top:10px" },
         todo.length ? h("button", { class: "btn primary", onclick: () => make(todo.map((x) => x.name), todo.every((x) => x.status === "new") ? "all skills" : "the changed ones") }, `Zip ${todo.length === r.skills.length ? "all" : `the ${todo.length} changed`} skill${todo.length > 1 ? "s" : ""}`) : null,
@@ -3342,68 +4043,24 @@ function coworkSkillsPanel(msg) {
         h("button", { class: "btn", onclick: reveal }, "Open the folder"),
         h("span", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, r.out)) : null);
   };
-  api("/api/claude-app/skills").then(draw).catch((err) => put(box, h("div", { class: "error" }, err.message)));
-  return box;
+  api("/api/claude-app/skills").then(draw).catch((err) => { put(headState, "could not be read"); put(box, h("div", { class: "error" }, err.message)); });
+  return panel;
 }
 
-/**
- * The Claude app has one ava-harness for every chat and Cowork session. It works on one AXL workshop
- * (or project with the harness) at a time: its org from the keychain at every start, as in Cursor.
- */
-function claudeHarnessPanel(s, axl, msg, reload) {
-  const c = axl?.claudeApp;
-  if (!c) return null;
-  const list = (axl.workshops || []).map((x) => x.workshop).filter((w) => (w.lab !== false || w.harness) && w.profile);
-  const now = list.find((w) => w.id === c.workshop) || (axl.workshops || []).map((x) => x.workshop).find((w) => w.id === c.workshop);
-  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
-  const call = async (workshop, text) => {
-    try {
-      await api("/api/axl/claude-app", { method: "POST", body: { workshop } });
-      put(msg, h("div", { class: "okbox" }, text, " ", RELOAD_HINTS["claude-desktop"]));
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      reload?.();
-    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  };
-  const orgText = (name) => { const t = tierOf(name); return h("span", {}, h("strong", {}, name), t ? [" ", pill(t, `t-${t}`)] : null); };
-  let current;
-  if (c.error) current = h("div", { class: "error" }, c.error);
-  else if (c.present && !c.ours) current = h("div", { class: "warn", style: "margin:0" }, "The Claude app has an AVA harness of its own that gctk did not set up (see below). Remove it there to let gctk start it with a workshop's org.");
-  else if (c.ours) current = h("div", { class: "todo-row" },
-    h("span", { style: "flex:1;min-width:220px" }, "Works on ", h("strong", {}, now ? now.name : c.workshop), now?.lab === false ? " (project)" : "", " with ", orgText(c.org)),
-    c.stale ? pill("out of date", "s-failed") : pill("ready", "s-applied"),
-    c.stale && now && list.includes(now) ? h("button", { class: "btn primary", onclick: () => call(now.id, `The Claude app's AVA harness now works on ${now.name} with ${now.profile}.`) }, "Update") : null,
-    h("button", { class: "btn danger", onclick: () => { if (confirm("Remove the AVA harness from the Claude app?")) call("", "Removed the AVA harness from the Claude app."); } }, "Remove"));
-  else current = h("p", { class: "muted", style: "margin:6px 0 0" }, "The Claude app has no AVA harness yet.");
-  const choices = list.filter((w) => w.id !== c.workshop);
-  const sel = h("select", { style: "min-width:260px", "aria-label": "Workshop" }, h("option", { value: "" }, c.ours ? "Switch to another workshop…" : "Choose a workshop…"),
-    choices.map((w) => h("option", { value: w.id }, `${w.name} (${w.profile})`)));
-  const use = h("button", { class: "btn primary", disabled: true }, "Use in the Claude app");
-  sel.addEventListener("change", () => { use.disabled = !sel.value; });
-  use.addEventListener("click", () => {
-    const w = list.find((x) => x.id === sel.value);
-    if (!w) return;
-    if (!confirm(`Let the Claude app's AVA harness work on "${w.name}" with the org ${w.profile}?\n\nIt then applies to every chat and Cowork session in the Claude app.\n${c.file}`)) return;
-    call(w.id, `The Claude app's AVA harness now works on ${w.name} with ${w.profile}.`);
-  });
-  const blocked = c.error || (c.present && !c.ours);
-  return h("div", { class: "panel" },
-    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "AVA harness"),
-      h("span", { class: "muted" }, "builds and tests AI agents; one for every chat and Cowork session")),
-    current,
-    blocked ? null : list.length
-      ? choices.length ? h("div", { class: "row", style: "margin-top:10px" }, sel, use) : null
-      : h("p", { class: "muted", style: "margin:8px 0 0" }, "No AXL workshop with an org yet. ", navLink("axl", "Add one on the Projects page"), "."),
-    h("p", { class: "muted", style: "margin:8px 0 0;font-size:13px" }, "Its org comes from the workshop and is read from the keychain at every start; no secret is written into the Claude app's config. When you change the workshop's org on the Projects page, gctk updates the Claude app too."));
-}
 
 /** Programs behind the servers that gctk can update (ava-mcp, gctk). The check asks GitHub, so it loads on its own. */
 const PROGRAM_NAMES = { "ava-mcp": "AVA harness (ava-mcp)", gctk: "gctk" };
 /** editor "claude-desktop": only what its servers run (the AVA harness), not gctk's npx copy for Cursor. */
 function updatesPanel(msg, editor = "cursor", onUpdated = null) {
-  const box = h("div", { class: "panel" }, h("strong", { style: "font-size:17px" }, "Versions"), h("p", { class: "muted", style: "margin:6px 0 0" }, "Checking for newer versions…"));
+  const headState = h("span", { class: "muted", style: "font-size:13px" }, "checking…");
+  const box = h("div", { style: "margin-top:10px" });
+  const panel = h("details", { class: "panel more" }, h("summary", {}, icon("refresh"), h("strong", {}, "Versions"), headState), box);
   const draw = (all) => {
     const programs = editor === "cursor" ? all : all.filter((p) => p.kind !== "gctk-npx");
-    if (!programs.length) { box.remove(); return; }
+    if (!programs.length) { panel.remove(); return; }
+    const due = programs.filter((p) => p.update).length;
+    put(headState, due ? h("span", { class: "status todo" }, `${due} update${due > 1 ? "s" : ""} available`) : h("span", { class: "status ok" }, "all up to date"));
+    if (due) panel.open = true;
     const row = (p) => {
       const ver = p.error ? h("span", { class: "muted", style: "font-size:13px" }, p.error)
         : p.update ? h("span", {}, `${p.installed} → `, h("strong", {}, p.latest))
@@ -3431,11 +4088,10 @@ function updatesPanel(msg, editor = "cursor", onUpdated = null) {
         h("strong", { style: "flex:0 0 200px" }, PROGRAM_NAMES[p.name] || p.name),
         h("span", { class: "muted", style: "font-size:13px;flex:1;min-width:160px" }, `used by ${p.servers.join(", ")}`), ver, btn);
     };
-    put(box, h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Versions"),
-      h("span", { class: "muted" }, editor === "cursor" ? "programs gctk can update for you; other servers update where they came from (plugins in Cursor)" : "programs gctk can update for you; the Claude app's own extensions update in the app")), programs.map(row));
+    put(box, h("p", { class: "muted", style: "margin:0 0 4px;font-size:13px" }, "Programs gctk can update for you. Plugins update in their app."), programs.map(row));
   };
-  (state.updates ||= api("/api/ai-setup/updates").then((r) => r.programs)).then(draw).catch((err) => { state.updates = null; put(box, h("div", { class: "muted" }, `Could not check for updates: ${err.message}`)); });
-  return box;
+  (state.updates ||= api("/api/ai-setup/updates").then((r) => r.programs)).then(draw).catch((err) => { state.updates = null; put(headState, "could not check"); put(box, h("div", { class: "muted" }, `Could not check for updates: ${err.message}`)); });
+  return panel;
 }
 
 /**
@@ -3473,7 +4129,7 @@ function linkControl(x, ctx) {
 }
 
 /** Everything that needs a look, grouped by what it is, with one button per group where gctk can fix it. */
-function todoPanel(s, ctx) {
+function todoGroups(s, ctx) {
   const having = (kind) => s.servers.filter((x) => x.problems.some((p) => p.kind === kind));
   const fixable = (kind, fix) => having(kind).filter((x) => x.problems.some((p) => p.kind === kind && p.fix === fix));
   const SAYS_MORE = ["missing-command", "launch-invalid"];
@@ -3496,26 +4152,24 @@ function todoPanel(s, ctx) {
   const broken = [...having("missing-command"), ...having("launch-invalid")];
   const removable = broken.filter((x) => x.editable && !x.problems.some((p) => p.fix === "repair"));
   const groups = [
-    group("Secrets in plain text", `Anyone who can read these files can use the secret. Move it to the Orgs page: gctk keeps it in the keychain, and you see there which OAuth clients you have.${shared ? " Several entries share one secret; as an org it is kept once." : ""}`,
+    group("Secrets in plain text", `Anyone who can read the file can use them. Move them to the keychain.${shared ? " Several entries share one secret." : ""}`,
       secrets.map((x) => row(x, "plain-secret", x.linkOrg ? linkControl(x, ctx) : canMove.includes(x) ? h("button", { class: "btn", onclick: () => ctx.fix(x, "keychain") }, "Move to keychain") : null))),
-    group("Credentials not on the Orgs page", "Each has a keychain entry of its own, so the Orgs page does not show it. Link it to an org: one place for every OAuth client, and a new secret is entered once.",
+    group("Credentials not on the Orgs page", "Link them to an org, so a new secret is entered once.",
       having("not-linked").map((x) => row(x, "not-linked", linkControl(x, ctx)))),
-    group("Entries that cannot start", `The program or script they point to is gone, so ${ctx.editor === "claude-desktop" ? "the Claude app" : "Cursor"} shows an error for them.`,
+    group("Entries that cannot start", "The program they point to is gone.",
       broken.map((x) => row(x, x.problems.some((p) => p.kind === "missing-command") ? "missing-command" : "launch-invalid", !x.editable ? null : x.problems.some((p) => p.fix === "link") ? linkControl({ ...x, linkOrg: x.linkOrg || {} }, ctx) : x.problems.some((p) => p.fix === "repair")
         ? h("button", { class: "btn primary", onclick: () => ctx.fix(x, "repair") }, "Repair")
         : h("button", { class: "btn danger", onclick: () => ctx.fix(x, "remove") }, "Remove"))),
       removable.length > 1 ? h("button", { class: "btn", onclick: () => ctx.fixAll(removable, "remove", `Remove ${removable.length} entries that cannot start`) }, "Remove all") : null),
-    group("Older gctk entries", "They load gctk as github:…, which needs git and starts slowly. Repair switches them to the download link.",
+    group("Older gctk entries", "They need git and start slowly.",
       having("old-package").map((x) => row(x, "old-package", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),
-    group("Entries that only work on this computer", "They start gctk from a development checkout or a plugin version an update deletes. Repair points them to the copy every computer with gctk has.",
+    group("Entries that only work on this computer", "They point to a gctk copy an update deletes.",
       having("unstable-path").map((x) => row(x, "unstable-path", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "repair") }, "Repair") : null))),
     group("Leftovers from an earlier gctk", "", having("obsolete-env").map((x) => row(x, "obsolete-env", x.editable ? h("button", { class: "btn", onclick: () => ctx.fix(x, "clean-env") }, "Clean up") : null))),
-    group("Secrets in headers", "Remote servers: gctk cannot move these. Use the app's variables (for example ${env:NAME} in Cursor) instead.", having("header-secret").map((x) => row(x, "header-secret", null))),
-    group("OAuth clients gctk does not know", "Add the org on the Orgs page to see which org they belong to.", having("unknown-client").map((x) => row(x, "unknown-client", null))),
-  ].filter(Boolean);
-  return groups.length
-    ? h("div", { class: "panel" }, h("h3", { style: "margin-top:0" }, "To do"), groups)
-    : h("div", { class: "okbox" }, "Nothing to fix: no secrets in plain text, and every entry can start.");
+    group("Secrets in headers", "gctk cannot move these; use a variable such as ${env:NAME}.", having("header-secret").map((x) => row(x, "header-secret", null))),
+    group("OAuth clients gctk does not know", "Add their org on the Orgs page.", having("unknown-client").map((x) => row(x, "unknown-client", null))),
+  ];
+  return groups.filter(Boolean);
 }
 
 /** One server as a compact line; the details open on click. */
@@ -3574,83 +4228,6 @@ function credentialsForm(x, ctx) {
       h("span", { class: "muted", style: "font-size:12px" }, x.credentials === "keychain" ? "Changes only this server, also when its secret is shared with others." : "")));
 }
 
-/** What the app loads (Cursor: in every folder): the Genesys tools with their org and status, then the rest. */
-function aiOverview(s, ctx) {
-  const claude = ctx.editor === "claude-desktop";
-  const orgs = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
-  const tierOf = (name) => state.overview?.profiles.find((p) => p.name === name)?.tier;
-  const everywhere = s.servers.filter((x) => x.scope !== "project");
-  const orgOf = (x) => {
-    if (x.credentials === "gctk-profile") return h("span", { class: "muted" }, "needs no org");
-    if (x.org?.profile) { const t = tierOf(x.org.profile); return h("span", {}, h("strong", {}, x.org.profile), t ? [" ", pill(t, `t-${t}`)] : null); }
-    if (x.org?.clientId) return h("span", { class: "muted" }, `an OAuth client gctk does not know (${x.org.clientId})`);
-    if (x.credentials === "reference") return h("span", { class: "muted" }, "credentials from a variable");
-    return h("span", { class: "muted" }, "no org set");
-  };
-  const status = (x) => {
-    const warn = x.problems.filter((p) => p.level === "warn");
-    if (x.disabled) return pill("switched off", "");
-    if (warn.some((p) => p.kind === "missing-command" || p.kind === "launch-invalid")) return pill("cannot start", "s-failed");
-    if (warn.some((p) => p.kind === "plain-secret")) return pill("secret in plain text", "s-failed");
-    if (x.org?.profile && tierOf(x.org.profile) === "production") return pill("production org", "s-failed");
-    return pill("ready", "s-applied");
-  };
-  const useOrg = (x) => {
-    if (!x.credentialKeys || !x.editable || !orgs.length) return null;
-    const sel = h("select", { style: "max-width:220px" }, h("option", { value: "" }, x.org?.profile ? "Use another org…" : "Use one of your orgs…"),
-      orgs.filter((o) => o.name !== x.org?.profile).map((o) => h("option", { value: o.name }, `${o.name} (${o.tier})`)));
-    sel.addEventListener("change", () => {
-      const o = sel.value;
-      if (!o) return;
-      if (!confirm(`Let "${x.name}" (${whereText(x)}) work on ${o}?\n\nIts client ID, secret and region become those of ${o}; the secret stays in the keychain.\n${x.file}`)) { sel.value = ""; return; }
-      ctx.setCredentials(x, { profile: o, keychain: true });
-    });
-    return sel;
-  };
-  const toolRow = (x) => h("div", { class: "todo-row" },
-    h("span", { class: "muted", style: "flex:0 0 200px;max-width:100%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", title: x.file }, x.scope === "plugin" ? `plugin ${x.plugin}` : claude ? "claude_desktop_config.json" : "~/.cursor/mcp.json"),
-    h("span", { style: "flex:1;min-width:200px" }, orgOf(x)), status(x), useOrg(x));
-  const genesys = everywhere.filter((x) => x.genesys);
-  const others = everywhere.filter((x) => !x.genesys);
-  const names = [...new Set(genesys.map((x) => x.name))].sort((a, b) => (a === "gctk") - (b === "gctk") || a.localeCompare(b));
-  return h("div", { class: "panel" },
-    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, claude ? "In every chat and Cowork session" : "In every folder"),
-      h("span", { class: "muted" }, genesys.length ? `${names.length} Genesys tool${names.length > 1 ? "s" : ""} from ${claude ? "claude_desktop_config.json" : "~/.cursor/mcp.json and plugins"}` : "no Genesys tools")),
-    genesys.length ? names.map((n) => {
-      const [title, what] = TOOL_NAMES[n] || [n, ""];
-      return h("div", { style: "margin-top:10px" },
-        h("div", { class: "row", style: "gap:8px" }, h("strong", {}, title), title !== n ? h("span", { class: "muted mono", style: "font-size:12px" }, n) : null, what ? h("span", { class: "muted", style: "font-size:13px" }, `· ${what}`) : null),
-        sortServers(genesys.filter((x) => x.name === n)).map(toolRow));
-    }) : h("p", { class: "muted", style: "margin:6px 0 0" }, claude ? "The Claude app has no Genesys Cloud tools yet." : "Cursor has no Genesys Cloud tools in every folder. Give single folders their own on the Projects page."),
-    others.length ? h("div", { class: "muted", style: "font-size:13px;margin-top:10px" }, `Also ${others.length} other MCP server${others.length > 1 ? "s" : ""}: ${[...new Set(others.map((x) => x.name))].join(", ")}.`) : null);
-}
-
-/** Folders with their own .cursor/mcp.json: the ones that are projects open there, the others can become one. */
-function folderPanel(s, projects) {
-  const folders = [...new Set(s.servers.filter((x) => x.scope === "project").map((x) => x.project))].sort((a, b) => projName(a).localeCompare(projName(b)));
-  if (!folders.length) return null;
-  const open = (id) => { state.axlOpen = id; go("axl"); };
-  const make = async (folder) => {
-    try {
-      const r = await api("/api/axl/workshops", { method: "POST", body: { name: projName(folder), folder, lab: false } });
-      open(r.id);
-    } catch (err) { showError(err); }
-  };
-  return h("div", { class: "panel" },
-    h("div", { class: "grp-head" }, h("strong", { style: "font-size:17px" }, "Folders with their own servers"), h("span", { class: "muted" }, "Cursor loads these only in that folder, next to the ones above")),
-    folders.map((f) => {
-      const here = s.servers.filter((x) => x.project === f);
-      const p = projects.find((w) => w.folder === f);
-      const bad = here.some((x) => x.problems.some((q) => q.level === "warn"));
-      return h("div", { class: "todo-row" },
-        h("span", { style: "flex:1;min-width:220px" }, h("strong", {}, projName(f)), p ? [" ", pill(p.lab === false ? "project" : "AXL workshop", "")] : null,
-          h("div", { class: "muted mono", style: "font-size:11.5px;overflow-wrap:anywhere" }, f)),
-        h("span", { class: "muted", style: "font-size:13px;min-width:200px" }, here.map((x) => toolTitle(x.name)).join(", ")),
-        bad ? pill("needs a look", "s-failed") : null,
-        p ? h("button", { class: "btn", onclick: () => open(p.id) }, "Open project") : h("button", { class: "btn", title: "Choose its org and Genesys tools on the Projects page", onclick: () => make(f) }, "Make it a project"));
-    }));
-}
-
 /** A keychain item gctk created; a rotated OAuth secret is entered here once for all its servers. */
 function secretCard(m, msg, draw, hint = RELOAD_HINTS.cursor) {
   const inputs = m.names.map((n) => [n, h("input", { type: "password", autocomplete: "new-password", placeholder: "new value", style: "flex:1;min-width:220px" })]);
@@ -3698,6 +4275,7 @@ function filesPanel(s, msg, draw, editor = "cursor") {
   if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "This browser has not opened gctk yet. Ask the AI to open the gctk UI, or run `gctk ui` in a terminal; after that this address works as a bookmark.")); return; }
   try {
     await refreshOverview();
+    state.view = pageAlias(state.view);
     // A page this tab remembers that no longer exists opens Orgs.
     if (![...VIEWS, ...MINOR_VIEWS].some(([id]) => id === state.view)) {
       state.view = "profiles";

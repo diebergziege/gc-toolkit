@@ -55,13 +55,13 @@ function size(p: string): { bytes: number; items?: number } {
 const HOME_PLACES: Array<[string, string, string]> = [
   ["profiles", "Orgs", "One file per org: name, region and tier. No secrets; those are in the keychain."],
   ["config.yaml", "The org you work on, the UI's port", "Which org the AI and the pages use by default, and the port the UI keeps so you can bookmark it."],
-  ["mcp-launch.json", "Cursor setup: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
-  ["ai-setup.json", "Cursor setup: added locations", "Config files and folders you added on the Cursor setup page."],
-  ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (Cursor setup, Details) can put them back."],
+  ["mcp-launch.json", "AI Coding Tools: servers started through gctk", "For every MCP server whose secret you moved to the keychain: its command and variables (signed)."],
+  ["ai-setup.json", "AI Coding Tools: added locations", "Config files and folders you added on the AI Coding Tools page."],
+  ["removed-skills", "Skills an earlier gctk removed", "Kept so Restore (AI Coding Tools, More) can put them back."],
   ["demos", "Demos: deployments and logs", "This computer's copy of each org's deployment (the org keeps the original in its data table \"gctk demos\"), the commands that run, and their logs."],
   ["demo-sources.json", "Demos: snapshot sources", "Only for whoever maintains a demo: the org its snapshot is read from, and the texts replaced in it."],
   ["demo-ready", "Demo ready: what the page did", "Every change Demo ready made in an org, so Clean up removes exactly that."],
-  ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the Genesys tools of each folder (programs and settings, no credentials)."],
+  ["axl.json", "Projects and AXL workshops", "Your projects and workshops: org, folder and the MCP servers of each folder (programs and settings, no credentials)."],
   ["claude-app-skills", "Claude app: skill zips", "The zips of the AVA skills and the lab facilitator you upload in the Claude app, and which version of each you last zipped."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
   ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],
@@ -106,7 +106,7 @@ export function dataInfo(opts: { has?: (account: string) => boolean } = {}): Dat
   for (const account of [...new Set(launches.map((l) => l.account))]) {
     const users = launches.filter((l) => l.account === account);
     const names = [...new Set(users.map((u) => u.server))];
-    secrets.push({ account, what: `Secret of ${names.join(", ")} (Cursor setup, ${users.length} entr${users.length > 1 ? "ies" : "y"} in editor configs)`, stored: stored(account) });
+    secrets.push({ account, what: `Secret of ${names.join(", ")} (AI Coding Tools, ${users.length} entr${users.length > 1 ? "ies" : "y"} in editor configs)`, stored: stored(account) });
   }
   secrets.push({ account: "__approval-key__", what: "Key that signs the AI setup launch records", stored: stored("__approval-key__") });
   secrets.push({ account: tokenAccount(home), what: "Session token of the local UI", stored: stored(tokenAccount(home)) });

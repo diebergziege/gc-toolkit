@@ -1,8 +1,8 @@
 # Genesys Cloud Toolkit: development notes
 
 - Scope (maintainer decisions 2026-09-30 and 2026-10-01): gctk is a local UI that makes the user's AI
-  setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, Cursor setup,
-  Claude app, Projects (with AXL), Demos, Website, Demo ready, Pricing, Monitoring. The UI runs no AI and depends on no coding assistant; do not
+  setup and Genesys Cloud demos transparent and easy for non-technical users: Orgs, AI Coding Tools
+  (Cursor and the Claude app), Projects (with AXL), Demos, Website, Demo ready, Pricing, Monitoring. The UI runs no AI and depends on no coding assistant; do not
   add a page or route that starts an agent. The plugin ships no skills and no hooks, and its MCP
   server only opens the UI and reads the setup (`gc_ui`, `gc_ai_setup`, `gc_axl`); it gives the AI
   no tools to read or change an org. Removed on purpose: the Chat page, bot tests, AI agent briefs,
@@ -20,7 +20,7 @@
 - `dist/gctk.js` bundles everything, so package.json has no runtime `dependencies` (all are
   devDependencies): `npx` then starts gctk in a second or two. Cursor without the plugin starts it as
   `npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz mcp` (README
-  button); `github:…` needs git on the user's computer, so Cursor setup flags it and repairs it.
+  button); `github:…` needs git on the user's computer, so AI Coding Tools flags it and repairs it.
 - The root `.mcp.json` is the Claude Code plugin's MCP config (Claude Code only loads plugin servers
   from a file with exactly that name). It uses `${CLAUDE_PLUGIN_ROOT}`, so do not approve it as a
   project server when working in this repo; test with `claude --plugin-dir .` instead.
@@ -108,7 +108,10 @@
   `site.gctk.localhost` (page and logos, never the API), so the Genesys Messenger script never runs
   on the UI's origin. Every query value is escaped; logos are raster only (no SVG) and served
   sandboxed. The user only enters the deployment ID (and the region); the page reads nothing from
-  the org and writes nothing to it.
+  the org and writes nothing to it. Every industry has the same copy in English and German
+  (products with prices, stats, reviews, news with dates relative to today, legal form for the
+  footer); the site switches language with `?lang=` (EN/DE in its top bar) and its cookie banner is
+  remembered in the site origin's localStorage. Keep one inline script besides the Messenger snippet.
 - Pricing (UI page "Pricing", page id `pricing`, decision 2026-11-02): `src/core/pricing.ts` holds
   Genesys Cloud list prices (USD), add-ons, AI Experience token rates, fair use allowances, rules,
   use cases and the calculator (`estimate`, run by the server so tests cover it). Every licence,
@@ -134,10 +137,9 @@
   call charges are not in the overview (Admin excludes them too).
   Needs Billing > Subscription > View and the scope billing:readonly. Replace it with the announced
   public Contract and Billing API once that exists.
-- Cursor setup (`src/core/ai-setup.ts`, UI page "Cursor setup", page id `ai-setup`, MCP tool
+- AI Coding Tools (`src/core/ai-setup.ts`, UI page "AI Coding Tools", page id `ai-setup`, MCP tool
   `gc_ai_setup`, hidden CLI `gctk mcp-launch`, decisions 2026-10-01 and 2026-10-06): reads Cursor's MCP
-  configs (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json) and, for the page "Claude app",
-  the Claude app's (see below); no other editor, no
+  configs (~/.cursor/mcp.json, Cursor plugins, folders' .cursor/mcp.json) and the Claude app's (see below); no other editor, no
   skills (skills an earlier gctk moved aside can still be restored). Secrets
   leave the module only masked (page and tool). Fixes change the user's config files and exist only
   as UI routes (a click), never as MCP tools; plugin files and JSON with comments are never
@@ -157,11 +159,29 @@
   that other servers share, so only that server changes.
   Entries gctk writes into editor configs (mcp-launch, AXL harness) start `~/.config/gctk/bin/gctk.js`
   (`src/core/stable-gctk.ts`), a copy that a newer gctk refreshes, never the versioned plugin cache path
-  an update deletes; "Repair" (`repairServer`) points an old entry to it. The page leads with what
-  loads in every folder (tool → org → status, "use another org" = `setCredentials` with a profile);
+  an update deletes; "Repair" (`repairServer`) points an old entry to it. The page (decision 2026-11-04: the former pages "Cursor setup" and "Claude app" merged, page id
+  `claude-app` is an alias that opens it) leads with what needs attention, then who works on which org
+  (by app or by org: tool → org → status, "use another org" = `setCredentials` with a profile; only servers
+  loaded in every folder, never gctk's own), then "MCP Server available" (the AVA harness, the
+  MCP catalog and `toolTemplates`; which project uses which is on Projects), and keeps every file and entry under "More".
+  MCP catalog (decision 2026-11-04, `CatalogServer` in `src/core/ai-setup.ts`, `mcp-catalog.json` in the
+  gctk home, routes `/api/mcp-catalog`): the user adds MCP servers for projects on that page (name,
+  command and arguments, which variables get client ID, secret and region, the region as domain or
+  key, other settings, the org tiers it may work on). The only place the page sends a command; the
+  server resolves it to an absolute program on this computer and refuses settings and arguments
+  that look like secrets. `projectTemplates` offers the catalog before `toolTemplates`; a project
+  keeps its copy (`regionFormat`, `tiers`, checked when saved and at every start). Optionally the
+  form also puts it into Cursor (`~/.cursor/mcp.json`) and/or the Claude app on a chosen org
+  (`addCatalogToApp`: a plain entry, then `linkToOrg` with the catalog's variables; the signed launch
+  record keeps `catalog`, `regionFormat` and `tiers`, so a later "Change org" and every start check
+  the tiers). An entry of the same name is never replaced. Statuses
+  say what gctk checked: "Entry OK" is the config entry, "Credentials saved" on Orgs is the keychain
+  (each org card shows the start of its client ID, `showClientId`; below the cards "OAuth clients not
+  in gctk yet" lists servers whose OAuth client lives in a config file or a keychain entry of its own,
+  with the same `linkControl` as AI Coding Tools);
+  neither contacts the org;
   per-folder views belong to Projects, so folders with their own config link there ("Make it a project").
-  Versions (`src/core/updates.ts`, routes `/api/ai-setup/updates` and `/update`, a click only, also on
-  the Claude app page; an `axl-harness` entry runs the Projects page's harness command): uv
+  Versions (`src/core/updates.ts`, routes `/api/ai-setup/updates` and `/update`, a click only; an `axl-harness` entry runs the Projects page's harness command): uv
   tools behind a server (receipt in uv's tool folder; GitHub release wheel of the same repository, or
   PyPI) are reinstalled with uv, ava-mcp then refreshes the AVA skills (`ava-mcp update <dir> --yes`) in
   `~/.cursor` and project folders that have them (not links: ava-mcp cannot replace those). gctk
@@ -177,16 +197,23 @@
   The folder's `.cursor/mcp.json` gets the AVA harness and/or `tools`: copies of Genesys servers from the
   user's configs (`toolTemplates`, program and settings only), each started by hidden
   `gctk project-tool --project <id> --tool <name>`. Command, arguments and which variables get the
-  credentials live in `axl.json`, never in the folder; the page sends template ids, not commands.
-  Cursor only (no Claude Code project config).
-- Claude app (decision 2026-10-12, UI page "Claude app", page id `claude-app`): the Cursor setup page's
+  credentials live in `axl.json`, never in the folder; the project page sends template ids, not
+  commands (commands are entered only in the MCP catalog). Cursor only (no Claude Code project config).
+  An AXL workshop needs the skills axl-lab-facilitator and axl-capsule next to the AVA harness
+  (`src/core/axl-skills.ts`, decision 2026-11-04): the page shows them from the folder's
+  `.cursor/skills` or `~/.cursor/skills`, blocks a new workshop without them, and installs them
+  from their zip files (route `/api/axl/skills`, base64 JSON, own unzip that refuses links and paths
+  outside the skill folder) into `~/.cursor/skills`; a replaced skill goes to `skill-backups/`.
+- Claude app (decision 2026-10-12, part of the UI page "AI Coding Tools"; page id `claude-app` opens it): the
   parts for `claude_desktop_config.json` (`claudeAppConfigFile` in `src/core/paths.ts`, read only where
   the app's settings folder exists; `GCTK_CLAUDE_APP_CONFIG` overrides it, and vitest points it to a
   missing file so tests never touch the real one). gctk rewrites only `mcpServers` and keeps the app's
-  own keys (preferences). The app (chat and Cowork) has no folders, so its one `ava-harness` works on
-  the workshop the user picks (`useInClaudeApp` in `src/core/axl.ts`, the same `gctk axl-harness`
-  entry, never a secret); saving a workshop syncs it (`syncClaudeApp`), removing the workshop removes
-  it, and an ava-harness the user set up there is never overwritten. Skills for Cowork live in the
+  own keys (preferences). The app (chat and Cowork) has no folders; its `ava-harness` gets an org
+  like Cursor's servers ("Change org" on AI Coding Tools, `linkToOrg`). An older entry that runs an
+  AXL workshop (`useInClaudeApp`, `gctk axl-harness`) still works and follows the workshop
+  (`syncClaudeApp`); choosing an org turns it into a plain entry first
+  (`claudeHarnessUnlinkWorkshop`, route `/api/ai-setup/claude-harness-org`, undone if linking fails).
+  An ava-harness the user set up there is never overwritten by the workshop path. Skills for Cowork live in the
   user's Claude account (uploaded in the app, one zip per skill), which gctk cannot reach: "Skills for
   Cowork" (`src/core/claude-skills.ts`, Claude app only) zips the ava-* skills and axl-lab-facilitator
   from ~/.cursor/skills into `claude-app-skills/` in the gctk home (tags in the frontmatter become

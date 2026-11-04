@@ -15,6 +15,9 @@ describe("demo website: page", () => {
     for (const i of INDUSTRIES) {
       expect(i.copy.de.topics).toHaveLength(i.copy.en.topics.length);
       expect(i.copy.de.faq).toHaveLength(i.copy.en.faq.length);
+      for (const k of ["products", "stats", "reviews", "news"] as const) expect(i.copy.de[k]).toHaveLength(i.copy.en[k].length);
+      expect(i.copy.en.products.filter((p) => p[4])).toHaveLength(1);
+      expect(i.copy.de.news.map((n) => n[0])).toEqual(i.copy.en.news.map((n) => n[0]));
     }
   });
 

@@ -7,6 +7,7 @@ import {
   axlStatus,
   claudeAppHarness,
   formatAxlStatus,
+  claudeHarnessUnlinkWorkshop,
   harnessEnv,
   lastHarnessStart,
   recordHarnessStart,
@@ -367,6 +368,20 @@ describe("projects (folders that are not AXL workshops)", () => {
     profile("sbx", "production", "euw2.pure.cloud");
     expect(() => projectToolSpec({ project: w.id, tool: "genesys-cloud-architect-mcp" })).toThrow(/production org/);
   });
+
+  it("gives a catalog tool the region key it asks for, and only the org tiers it allows", () => {
+    profile("sbx", "sandbox");
+    profile("prod", "production");
+    const cmd = path.join(tmp, "architect-mcp");
+    fs.writeFileSync(cmd, "");
+    const limited = { ...tool(cmd), regionFormat: "key" as const, tiers: ["sandbox" as const, "dev" as const] };
+    const w = saveWorkshop({ name: "Acme", profile: "sbx", lab: false, tools: [limited] });
+    expect(loadAxlSettings().workshops[0]!.tools![0]).toMatchObject({ regionFormat: "key", tiers: ["sandbox", "dev"] });
+    expect(projectToolSpec({ project: w.id, tool: limited.name }).env.GENESYS_REGION).toBe("eu-central-1");
+    expect(() => saveWorkshop({ id: w.id, profile: "prod", confirmProduction: true })).toThrow(/sandbox or dev orgs/);
+    profile("sbx", "production");
+    expect(() => projectToolSpec({ project: w.id, tool: limited.name })).toThrow(/sandbox or dev orgs|production org/);
+  });
 });
 
 describe("in the Claude app", () => {
@@ -404,6 +419,24 @@ describe("in the Claude app", () => {
     expect(formatAxlStatus(axlStatus(noGlobal()), undefined)).toContain("Lab");
     removeWorkshop(w.id);
     expect(read()).toEqual({ preferences: { a: 1 }, mcpServers: { other: { command: "x" } } });
+  });
+
+  it("turns its workshop-run harness into a plain entry for linking to an org, and can undo it", () => {
+    profile("lab", "sandbox");
+    const w = saveWorkshop({ name: "Lab", profile: "lab" });
+    fs.mkdirSync(path.dirname(appFile()), { recursive: true });
+    fs.writeFileSync(appFile(), JSON.stringify({ preferences: { a: 1 }, mcpServers: {} }));
+    useInClaudeApp(w.id, fakeGctk(), process.execPath, appFile());
+    const before = read();
+    const harness = path.join(tmp, "ava-mcp");
+    fs.writeFileSync(harness, "#!/bin/sh\n", { mode: 0o755 });
+    saveHarnessCommand(harness);
+    const undo = claudeHarnessUnlinkWorkshop(appFile());
+    expect(read()).toEqual({ preferences: { a: 1 }, mcpServers: { "ava-harness": { command: harness, args: ["serve"], env: { FASTMCP_LOG_LEVEL: "ERROR", GENESYS_CLIENT_ID: "", GENESYS_CLIENT_SECRET: "", AVA_HABITAT: "" } } } });
+    expect(claudeAppHarness(appFile())).toMatchObject({ present: true, ours: false });
+    expect(() => claudeHarnessUnlinkWorkshop(appFile())).toThrow(/not run through an AXL workshop/);
+    undo();
+    expect(read()).toEqual(before);
   });
 
   it("never overwrites an ava-harness the user set up in the app", () => {
