@@ -64,6 +64,10 @@ itself.
   server, started with the org's credentials from the keychain, checks the two skills a workshop
   needs (axl-lab-facilitator and axl-capsule) and installs them from their zip files, and lists the sessions with the
   artifacts they reached
+- **Partner**: the **Enablement Radar**. Upload the Excel export of the Genesys Partner Demo Org
+  Readiness Checklist (Microsoft Forms) and compare all partners at a glance, see which topics most
+  partners need help with, or pick a partner and read every answer with its notes, grouped by
+  channels, AI, agent and supervisor, and platform. The file stays on this computer
 - **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
   link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
   at list price; and **Live billing**, an org's real licences, token use per AI feature and fair use
@@ -158,6 +162,7 @@ Open button; this is the overview:
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
+| `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
 | `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
@@ -191,7 +196,7 @@ Open button; this is the overview:
 
 | Command | Purpose |
 |---|---|
-| `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup` (AI Coding Tools; `claude-app` opens it too), `demos`, `site`, `demo`, `axl`, `monitoring` |
+| `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup` (AI Coding Tools; `claude-app` opens it too), `demos`, `site`, `demo`, `axl`, `partner`, `pricing`, `monitoring`, `data` |
 | `gctk profile add/list/show/use/remove` | manage orgs from a terminal |
 | `gctk login [profile]` / `logout` | store or delete an org's credentials in the keychain (`--from-env` for CI) |
 | `gctk mcp` | run the MCP server (stdio) |

@@ -12,7 +12,7 @@ const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
 
 const INSTRUCTIONS = `Genesys Cloud Toolkit: a local web UI that makes the user's AI setup and Genesys Cloud demos
 transparent. gc_ui opens it (orgs, AI setup, projects and AXL workshops, demo website, Demo ready,
-pricing and live billing, monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and MCP servers a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
+the partner Enablement Radar, pricing and live billing, monitoring); gc_ai_setup tells which MCP servers Cursor loads and which org each server works on; gc_axl tells which org and MCP servers a project folder or AXL workshop has. Secrets are never shown. Org credentials are entered
 on the Orgs page of the UI, never in the chat.`;
 
 type ToolResult = { content: Array<{ type: "text"; text: string }>; isError?: boolean };

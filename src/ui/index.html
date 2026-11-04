@@ -298,6 +298,26 @@ button.sm { padding: 3px 10px; font-size: 12.5px; }
 .preview .mk img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .preview .hero { padding: 18px 14px 20px; }
 .preview .hero b { display: block; font-size: 18px; line-height: 1.2; margin-bottom: 10px; }
+/* ---- Partner: Enablement Radar. */
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.stack { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--neutral-bg); min-width: 80px; }
+.stack i { display: block; height: 100%; }
+.stack .s-r { background: var(--ok); } .stack .s-a { background: var(--warn); }
+.strip { display: flex; gap: 2px; flex-wrap: wrap; }
+.strip i { width: 11px; height: 11px; border-radius: 3px; background: var(--neutral-bg); }
+.strip i.ready { background: var(--ok); } .strip i.attention { background: var(--warn); }
+.radar-table td { vertical-align: middle; }
+.radar-table tr.pick-row { cursor: pointer; }
+.radar-table tr.pick-row:hover td { background: var(--neutral-bg); }
+.gap-row { display: grid; grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) 70px; gap: 10px; align-items: center; padding: 4px 0; font-size: 13px; }
+.rq { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+.rq:first-of-type { border-top: 0; }
+.rq .q strong { display: block; }
+.rq .q small { color: var(--muted); font-size: 12.5px; }
+.rq .note { margin-top: 6px; padding: 6px 10px; border-left: 3px solid var(--warn); background: var(--warn-bg); border-radius: 0 6px 6px 0; white-space: pre-wrap; font-size: 13px; }
+.rq .note.plain { border-left-color: var(--line); background: var(--bg); }
+.partner-hero h3 { font-size: 22px; margin: 0 0 4px; }
 .preview .hero em { display: inline-block; font-style: normal; color: #fff; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; }
 </style>
 </head>
@@ -414,6 +434,7 @@ const VIEWS = [
   ["demos", "Demos", "Deploy a whole demo into an org with one button, and start what it needs on this computer"],
   ["site", "Website", "A customer website for the industry, in the customer's brand, with your Messenger on it"],
   ["demo", "Demo ready", "Fill the agent's home screen with demo data: coaching, learning, evaluations, scorecard, schedule"],
+  ["partner", "Partner", "Enablement Radar: your partners' survey answers on how demo-ready their orgs are, partner by partner"],
 ];
 const MINOR_VIEWS = [
   ["pricing", "Pricing", "Genesys Cloud licences, AI tokens and prices explained with sources, a calculator, and an org's live billing broken down"],
@@ -524,7 +545,7 @@ async function render() {
   renderNav();
   state.cleanup?.();
   state.cleanup = null;
-  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, pricing: viewPricing, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
+  const view = { site: viewSite, "ai-setup": viewAiSetup, demos: viewDemos, data: viewData, demo: viewDemo, axl: viewAxl, partner: viewPartner, pricing: viewPricing, monitoring: viewMonitoring, profiles: viewProfiles }[state.view] || viewProfiles;
   try { main().replaceChildren(await view()); } catch (err) { main().replaceChildren(h("div", { class: "error" }, err.message)); }
 }
 
@@ -3079,6 +3100,189 @@ function pricingSources(cat) {
     h("h3", { style: "margin-top:0" }, "Where the figures come from"),
     h("p", { class: "muted", style: "font-size:13px" }, `Checked on ${cat.asOf}. Genesys changes prices and rates now and then; each page has a revision history.`),
     h("ul", {}, Object.values(cat.docs).map((d) => h("li", {}, extLink(d)))));
+}
+
+// -------------------------------------------------------------- partner
+// Enablement Radar: the partner survey's Excel export, uploaded here and kept in the gctk home.
+// "All partners" compares them; one partner shows every answer, grouped as in the checklist.
+const RADAR_STATUS = { ready: ["Ready", "ok"], attention: ["Needs attention", "todo"], unanswered: ["No answer", "off"] };
+const radarPct = (r) => r.answered ? Math.round((r.ready / r.answered) * 100) : null;
+const radarStack = (ready, attention) => {
+  const all = ready + attention;
+  return h("span", { class: "stack", title: `${ready} ready, ${attention} need attention` },
+    all ? [h("i", { class: "s-r", style: `width:${(ready / all) * 100}%` }), h("i", { class: "s-a", style: `width:${(attention / all) * 100}%` })] : null);
+};
+/** One partner name may have answered more than once: the newest answer counts. */
+function radarPartners(radar) {
+  const by = new Map();
+  for (const r of radar.responses) by.set(r.partner, [...(by.get(r.partner) || []), r]);
+  for (const list of by.values()) list.sort((a, b) => String(b.submitted || "").localeCompare(String(a.submitted || "")));
+  return [...by.entries()].map(([name, list]) => ({ name, latest: list[0], all: list })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
+async function viewPartner() {
+  if (state.radar === undefined) state.radar = (await api("/api/partner/radar")).radar;
+  const radar = state.radar;
+  const msg = h("div");
+  const picker = h("input", { type: "file", accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", hidden: true });
+  const upload = async (f) => {
+    if (!f) return;
+    put(msg, h("div", { class: "muted", style: "font-size:13px" }, `Reading ${f.name}…`));
+    try {
+      const data = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, "")); r.onerror = () => fail(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
+      state.radar = (await api("/api/partner/radar", { method: "POST", body: { file: data, name: f.name } })).radar;
+      state.radarPartner = "";
+      render();
+    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+    picker.value = "";
+  };
+  picker.addEventListener("change", () => upload(picker.files[0]));
+  const choose = (label, primary) => h("button", { class: `btn${primary ? " primary" : ""}`, onclick: () => picker.click() }, icon("plus"), label);
+
+  const head = [pageHead("Partner", "How ready your partners are to demo Genesys Cloud, from their own answers."), h("div", { class: "section-title" }, icon("eye"), "Enablement Radar")];
+  if (!radar) {
+    const drop = h("div", { class: "drop" },
+      h("span", { class: "bubble" }, icon("layers")),
+      h("strong", { style: "font-size:16px" }, "Upload the survey results"),
+      h("span", { class: "muted", style: "max-width:560px" }, "The Excel file Microsoft Forms exports for the Genesys Partner Demo Org Readiness Checklist (Open results in Excel). Drop it here or choose it. It stays on this computer."),
+      choose("Choose Excel file…", true), picker);
+    drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+    drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); upload(e.dataTransfer.files[0]); });
+    return h("div", {}, head, h("div", { class: "panel" }, drop, msg));
+  }
+
+  const partners = radarPartners(radar);
+  if (state.radarPartner && !partners.some((p) => p.name === state.radarPartner)) state.radarPartner = "";
+  const sel = h("select", { "aria-label": "Partner", style: "min-width:280px", onchange: () => { state.radarPartner = sel.value; state.radarSubmission = null; render(); } },
+    h("option", { value: "" }, `All partners (${partners.length})`),
+    partners.map((p) => h("option", { value: p.name, selected: p.name === state.radarPartner }, p.name)));
+  const remove = h("button", { class: "btn danger", onclick: async () => {
+    if (!confirm(`Remove the survey results (${radar.fileName}) from this computer?`)) return;
+    try { await api("/api/partner/radar", { method: "DELETE" }); state.radar = null; state.radarPartner = ""; render(); } catch (err) { showError(err); }
+  } }, icon("trash"), "Remove");
+  const bar = h("div", { class: "panel row" },
+    h("label", { style: "flex-direction:row;align-items:center;gap:8px;font-size:13px;color:var(--text)" }, h("strong", {}, "Partner"), sel),
+    h("span", { class: "spacer" }),
+    h("span", { class: "muted", style: "font-size:12.5px" }, `${radar.fileName} · ${radar.responses.length} answers · uploaded ${time(radar.importedAt)}`),
+    choose("Replace file…"), remove, picker);
+  const chosen = partners.find((p) => p.name === state.radarPartner);
+  return h("div", {}, head, bar, msg, chosen ? radarPartner(radar, chosen) : radarOverview(radar, partners));
+}
+
+function radarOverview(radar, partners) {
+  const statusTopics = radar.topics.filter((t) => t.kind === "status");
+  const latest = partners.map((p) => p.latest);
+  const withOrg = latest.filter((r) => r.answered);
+  const avg = withOrg.length ? Math.round(withOrg.reduce((n, r) => n + radarPct(r), 0) / withOrg.length) : 0;
+  const gaps = statusTopics.map((t) => {
+    const answers = latest.map((r) => r.answers.find((a) => a.topic === t.id)?.status);
+    return { t, ready: answers.filter((s) => s === "ready").length, attention: answers.filter((s) => s === "attention").length };
+  }).sort((a, b) => b.attention - a.attention || a.ready - b.ready);
+  const filter = h("input", { type: "search", placeholder: "Filter by partner name", "aria-label": "Filter by partner name", style: "min-width:240px", value: state.radarFilter || "" });
+  const rows = latest.slice().sort((a, b) => (radarPct(b) ?? -1) - (radarPct(a) ?? -1) || a.partner.localeCompare(b.partner)).map((r) => {
+    const tr = h("tr", { class: "pick-row", title: `Show every answer of ${r.partner}`, onclick: () => { state.radarPartner = r.partner; render(); } },
+      h("td", {}, h("strong", {}, r.partner), h("div", { class: "muted", style: "font-size:12px" }, [r.orgName, r.region, r.subscription].filter(Boolean).join(" · ") || (r.hasOrg || "no demo org named"))),
+      h("td", { style: "width:170px" }, r.answered ? h("div", { class: "row", style: "flex-wrap:nowrap" }, radarStack(r.ready, r.attention), h("strong", { style: "min-width:38px;text-align:right" }, `${radarPct(r)} %`)) : h("span", { class: "status todo" }, "No demo org")),
+      h("td", { style: "text-align:right" }, r.answered ? r.attention : "–"),
+      h("td", {}, h("div", { class: "strip" }, statusTopics.map((t) => {
+        const s = r.answers.find((a) => a.topic === t.id)?.status || "unanswered";
+        return h("i", { class: s, title: `${t.label}: ${RADAR_STATUS[s][0]}` });
+      }))),
+      h("td", { class: "muted", style: "font-size:12px;white-space:nowrap" }, r.submitted || ""));
+    tr.dataset.name = r.partner.toLowerCase();
+    return tr;
+  });
+  const applyFilter = () => {
+    state.radarFilter = filter.value;
+    const q = filter.value.trim().toLowerCase();
+    for (const tr of rows) tr.hidden = Boolean(q) && !tr.dataset.name.includes(q);
+  };
+  filter.addEventListener("input", applyFilter);
+  applyFilter();
+  return h("div", {},
+    h("div", { class: "tiles" },
+      tile("Partners", partners.length, radar.responses.length > partners.length ? `${radar.responses.length} answers; the newest of each partner counts` : "one answer each"),
+      tile("Average readiness", `${avg} %`, `of the ${statusTopics.length} readiness questions, partners with a demo org`),
+      tile("Fully demo-ready", withOrg.filter((r) => !r.attention).length, "nothing needs attention", "good"),
+      tile("Without a demo org", latest.length - withOrg.length, "answered no readiness question", latest.length - withOrg.length ? "bad" : "")),
+    h("div", { class: "panel" },
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("h3", { style: "margin:0" }, "Partners"), h("span", { class: "spacer" }), filter),
+      h("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px" }, "Each square is one readiness question in the order of the checklist: green ready, amber needs attention. Click a partner to see every answer."),
+      h("table", { class: "radar-table" },
+        h("thead", {}, h("tr", {}, h("th", {}, "Partner and demo org"), h("th", {}, "Ready"), h("th", { style: "text-align:right" }, "Gaps"), h("th", {}, "Answers"), h("th", {}, "Submitted"))),
+        h("tbody", {}, rows))),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "Where partners need enablement"),
+      h("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px" }, "Readiness questions by how many partners answered \"Needs attention\"."),
+      gaps.map((g) => h("div", { class: "gap-row" },
+        h("span", { title: g.t.question }, g.t.label),
+        radarStack(g.ready, g.attention),
+        h("span", { class: "muted", style: "text-align:right" }, `${g.attention} of ${g.ready + g.attention}`)))));
+}
+
+function radarPartner(radar, p) {
+  const r = p.all.find((x) => x.id === state.radarSubmission) || p.latest;
+  const onlyGaps = Boolean(state.radarOnlyGaps);
+  const answerOf = (t) => r.answers.find((a) => a.topic === t.id) || { topic: t.id };
+  const pct = radarPct(r);
+  const tts = radar.topics.find((t) => t.id === "tts");
+  const facts = [
+    ["Demo org", r.orgName], ["Region", r.region], ["Subscription", r.subscription],
+    ["TTS engine", tts ? answerOf(tts).text : undefined], ["Has a demo org", r.hasOrg],
+  ].filter(([, v]) => v);
+  const seg = h("div", { class: "seg" }, [[false, "All answers"], [true, "Needs attention only"]].map(([v, label]) =>
+    h("button", { "aria-pressed": String(onlyGaps === v), onclick: () => { state.radarOnlyGaps = v; render(); } }, label)));
+  const submissions = p.all.length > 1 ? h("label", { style: "flex-direction:row;align-items:center;gap:6px" }, "Answer of",
+    h("select", { onchange: (e) => { state.radarSubmission = e.target.value; render(); } }, p.all.map((x, i) => h("option", { value: x.id, selected: x.id === r.id }, `${x.submitted || `#${x.id}`}${i ? "" : " (newest)"}`)))) : null;
+
+  const answerRow = (t) => {
+    const a = answerOf(t);
+    let value;
+    if (t.kind === "status") {
+      const [label, cls] = RADAR_STATUS[a.status || "unanswered"];
+      value = h("span", { class: `status ${cls}` }, label);
+    } else if (t.kind === "choices") {
+      value = a.choices?.length ? h("div", { class: "chips" }, a.choices.map((c) => h("span", { class: "chip" }, c))) : h("span", { class: "status off" }, "None");
+    } else value = a.text ? h("span", {}, a.text) : h("span", { class: "status off" }, "No answer");
+    return h("div", { class: "rq" },
+      h("div", {}, value),
+      h("div", { class: "q" },
+        h("strong", {}, t.label),
+        h("small", { title: t.description || "" }, t.question),
+        a.text && t.kind === "status" ? h("div", { class: "note plain" }, a.text) : null,
+        a.note ? h("div", { class: `note${a.status === "attention" || (t.kind === "choices" && !a.choices?.length) ? "" : " plain"}` }, a.note) : null));
+  };
+  const groups = radar.groups.map((g) => {
+    const topics = radar.topics.filter((t) => t.group === g && t.id !== "tts")
+      .filter((t) => r.answered || answerOf(t).note || answerOf(t).text || answerOf(t).choices?.length)
+      .filter((t) => !onlyGaps || answerOf(t).status === "attention" || (t.kind === "choices" && !answerOf(t).choices?.length));
+    if (!topics.length) return null;
+    const st = topics.filter((t) => t.kind === "status").map((t) => answerOf(t).status);
+    const ready = st.filter((s) => s === "ready").length;
+    const attention = st.filter((s) => s === "attention").length;
+    return h("div", { class: "panel" },
+      h("div", { class: "row", style: "margin-bottom:4px" }, h("h3", { style: "margin:0" }, g), h("span", { class: "spacer" }),
+        st.length ? [radarStack(ready, attention), h("span", { class: "muted", style: "font-size:12.5px" }, `${ready} of ${ready + attention} ready`)] : null),
+      topics.map(answerRow));
+  });
+  return h("div", {},
+    h("div", { class: "panel partner-hero intro" },
+      h("div", { class: "row", style: "align-items:flex-start" },
+        h("div", {},
+          h("h3", {}, r.partner),
+          h("div", { class: "muted", style: "font-size:13px" },
+            r.email ? h("a", { href: `mailto:${r.email}` }, r.email) : null, r.email && r.submitted ? " · " : null, r.submitted ? `submitted ${r.submitted}` : null)),
+        h("span", { class: "spacer" }),
+        h("button", { class: "btn sm", onclick: () => { state.radarPartner = ""; render(); } }, "All partners")),
+      facts.length ? h("dl", { class: "kv", style: "margin:12px 0 0;max-width:520px" }, facts.map(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])) : null),
+    h("div", { class: "tiles" },
+      tile("Readiness", pct === null ? "–" : `${pct} %`, r.answered ? `${r.ready} of ${r.answered} questions ready` : "no readiness question answered", pct === 100 ? "good" : ""),
+      tile("Ready", r.ready, "can be demonstrated", "good"),
+      tile("Needs attention", r.attention, "what the partner needs help with", r.attention ? "bad" : "")),
+    r.answered ? null : h("div", { class: "warn" }, `${r.partner} answered "${r.hasOrg || "no"}" to having an active demo org, so the readiness questions are empty.`),
+    r.answered ? h("div", { class: "row", style: "margin-bottom:12px" }, seg, h("span", { class: "spacer" }), submissions) : submissions,
+    groups.some(Boolean) ? groups : r.answered ? h("div", { class: "panel empty" }, onlyGaps ? "Nothing needs attention." : "No answers.") : null);
 }
 
 // ----------------------------------------------------------- monitoring

@@ -112,6 +112,14 @@
   (products with prices, stats, reviews, news with dates relative to today, legal form for the
   footer); the site switches language with `?lang=` (EN/DE in its top bar) and its cookie banner is
   remembered in the site origin's localStorage. Keep one inline script besides the Messenger snippet.
+- Partner (UI page "Partner", page id `partner`, decision 2026-11-04): section "Enablement Radar"
+  (`src/core/partner-radar.ts`, routes `/api/partner/radar`) reads the Microsoft Forms Excel export of
+  the Genesys Partner Demo Org Readiness Checklist (base64 JSON, own xlsx reader on top of the AXL
+  skills' `unzip`, first sheet only). Columns are found by their header, not their position: the
+  respondent columns (`META`), then one column per question, each "Please describe …" column the
+  note of the question before it; `KNOWN` gives the checklist's questions a short name and a group,
+  an unknown question lands in "Other". The last upload is kept in `partner-radar.json` (partner
+  contacts' email addresses: personal data) until Remove. No org is read or written.
 - Pricing (UI page "Pricing", page id `pricing`, decision 2026-11-02): `src/core/pricing.ts` holds
   Genesys Cloud list prices (USD), add-ons, AI Experience token rates, fair use allowances, rules,
   use cases and the calculator (`estimate`, run by the server so tests cover it). Every licence,

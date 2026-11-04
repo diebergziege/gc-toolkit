@@ -32,6 +32,7 @@ import { dataInfo, dataPath } from "../core/data-info.js";
 import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, joinDemo, leaveDemo, listDemos, orgDemoStatus, orgDivisions, orgUsers, orgWhatsApp, registerDeployment, removeDemo, startCommand, stopAllLocal, stopCommand, takeSnapshot } from "../core/demos.js";
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { installAxlSkillZip } from "../core/axl-skills.js";
+import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
@@ -44,7 +45,7 @@ const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
 const MAX_BODY = 1024 * 1024;
 /** Skill zips for AXL workshops arrive base64 encoded in JSON (the lab facilitator is several MB). */
 const MAX_SKILL_BODY = 48 * 1024 * 1024;
-/** Logo uploads on the Website page arrive base64 encoded in JSON. */
+/** Logo uploads on the Website page and the partner survey arrive base64 encoded in JSON. */
 const MAX_UPLOAD_BODY = 4 * 1024 * 1024;
 
 export interface UiServer {
@@ -466,6 +467,15 @@ route("POST", "/api/demos/:id/commands/:cmd/start", ({ params, body }) => startC
 route("POST", "/api/demos/:id/commands/:cmd/stop", async ({ params }) => ({ stopped: await stopCommand(params.id!, params.cmd!) }));
 route("GET", "/api/demos/:id/commands/:cmd/log", ({ params }) => ({ log: commandLog(params.id!, params.cmd!) }));
 
+// Partner: the Enablement Radar, answers of the partner survey from its Excel export (no org).
+route("GET", "/api/partner/radar", () => ({ radar: loadRadar() }));
+route("POST", "/api/partner/radar", ({ body }) => {
+  const data = pickStr(body, "file") ?? "";
+  if (!data || !/^[A-Za-z0-9+/=]+$/.test(data)) throw new HttpError(400, "Choose the survey's Excel file (.xlsx).");
+  return { radar: importRadar(Buffer.from(data, "base64"), pickStr(body, "name")) };
+});
+route("DELETE", "/api/partner/radar", () => ({ removed: removeRadar(), radar: null }));
+
 // Your data: where gctk keeps what (paths, sizes, keychain entries by name).
 route("GET", "/api/data", () => dataInfo());
 route("POST", "/api/data/open", async ({ body }) => {
@@ -681,7 +691,7 @@ export async function startUi(
         const m = r.pattern.exec(url.pathname);
         if (!m) continue;
         const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1]!)]));
-        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) ? MAX_UPLOAD_BODY : url.pathname === "/api/axl/skills" ? MAX_SKILL_BODY : MAX_BODY);
+        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) || url.pathname === "/api/partner/radar" ? MAX_UPLOAD_BODY : url.pathname === "/api/axl/skills" ? MAX_SKILL_BODY : MAX_BODY);
         return send(res, 200, (await r.handler({ params, query: url.searchParams, body })) ?? {});
       }
       return send(res, 404, { error: "Not found." });

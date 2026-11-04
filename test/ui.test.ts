@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { saveProfile } from "../src/core/profiles.js";
 import { portFree, startUi, type UiServer, uiUrl } from "../src/ui/server.js";
+import { HEADER, ROWS, xlsx } from "./radar-fixture.js";
 
 describe("UI server", () => {
   let ui: UiServer;
@@ -127,6 +128,19 @@ describe("UI server", () => {
     const e = await call("/api/pricing/estimate", { method: "POST", body: JSON.stringify({ seats: { cx1: 2 }, usage: { voiceBotMinutes: 17 * 300 } }) });
     expect(await e.json()).toMatchObject({ monthly: 150 + 50, tokens: { total: 300, billable: 50 } });
     expect((await call("/api/pricing/billing?profile=prod-de&periodEnding=yesterday")).status).toBe(400);
+  });
+
+  it("Partner: uploads the survey export, keeps it and removes it", async () => {
+    expect(await (await call("/api/partner/radar")).json()).toEqual({ radar: null });
+    expect((await call("/api/partner/radar", { method: "POST", body: JSON.stringify({ file: "not base64!" }) })).status).toBe(400);
+    const bad = await call("/api/partner/radar", { method: "POST", body: JSON.stringify({ file: Buffer.from("hello").toString("base64") }) });
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toMatch(/not an Excel file/);
+    const up = await call("/api/partner/radar", { method: "POST", body: JSON.stringify({ file: xlsx([HEADER, ...ROWS]).toString("base64"), name: "survey.xlsx" }) });
+    expect(up.status).toBe(200);
+    expect(((await up.json()) as { radar: { responses: Array<{ partner: string }> } }).radar.responses.map((r) => r.partner)).toEqual(["Example Partner", "Other Partner"]);
+    expect(((await (await call("/api/partner/radar")).json()) as { radar: { fileName: string } }).radar.fileName).toBe("survey.xlsx");
+    expect(await (await call("/api/partner/radar", { method: "DELETE" })).json()).toEqual({ removed: true, radar: null });
   });
 
   it("has no routes for plans, approvals or policies any more", async () => {
