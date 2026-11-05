@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { keychainName, readSecret, hasStoredCredentials } from "./credentials.js";
+import { loadInstallRecord } from "./install.js";
 import { gctkHome } from "./paths.js";
 import { listProfiles, loadProfile } from "./profiles.js";
 
@@ -65,6 +66,8 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["claude-app-skills", "Claude app: skill zips", "The zips of the AVA skills and the lab facilitator you upload in the Claude app, and which version of each you last zipped."],
   ["partner-radar.json", "Partner: Enablement Radar", "The partner survey you uploaded last: partner names, their contacts' email addresses and every answer. Remove on the Partner page deletes it."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
+  ["app", "gctk, installed", "gctk and its demos as `gctk install` put them here (for use without Cursor); the top bar's Update gctk replaces them."],
+  ["install.json", "gctk install: what it added", "The command, the app to click and the Claude app entry `gctk install` wrote outside this folder, so `gctk uninstall` removes exactly those."],
   ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],
   ["cache", "Cache", "Website logos and staged schedule uploads; safe to delete."],
   ["ui.json", "The running UI", "Port and process of the background UI (no token; that is in the keychain)."],
@@ -117,6 +120,10 @@ export function dataInfo(opts: { has?: (account: string) => boolean } = {}): Dat
   for (const file of [...new Set(launches.map((l) => l.file))]) {
     elsewhere.push({ key: `config:${file}`, label: "Editor config changed by AI setup", what: "Entries here start through gctk (secret in the keychain)", path: file, exists: fs.existsSync(file), ...size(file) });
   }
+  const installed = loadInstallRecord();
+  for (const file of installed?.files ?? []) elsewhere.push({ key: `install:${file}`, label: "Added by gctk install", what: /\.app$|\.lnk$|\.desktop$/.test(file) ? "The app you open gctk with" : "The gctk command", path: file, exists: fs.existsSync(file), ...size(file) });
+  if (installed?.rc) elsewhere.push({ key: `install:${installed.rc.file}`, label: "Shell startup file changed by gctk install", what: "One line puts the gctk command on the PATH", path: installed.rc.file, exists: fs.existsSync(installed.rc.file), ...size(installed.rc.file) });
+  if (installed?.claudeApp) elsewhere.push({ key: `install:${installed.claudeApp}`, label: "Claude app config changed by gctk install", what: "The gctk MCP server (open the UI from a chat)", path: installed.claudeApp, exists: fs.existsSync(installed.claudeApp), ...size(installed.claudeApp) });
   let keychain = "no keychain on this system";
   try {
     keychain = keychainName();

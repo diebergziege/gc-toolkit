@@ -5,6 +5,7 @@ import path from "node:path";
 import { GCTK_PACKAGE, type ServerInfo } from "./ai-setup.js";
 import { harnessCommandOf, loadAxlSettings } from "./axl.js";
 import { GctkError } from "./errors.js";
+import { appGctkJs } from "./install.js";
 import { olderVersion, runningGctkJs, stableGctkJs } from "./stable-gctk.js";
 
 /**
@@ -314,7 +315,7 @@ function dropGctkNpx(o: UpdateOptions): string | undefined {
 // ------------------------------------------------------- gctk itself (top bar)
 
 /** How the gctk that runs this UI was installed, which decides how it is updated. */
-export type GctkInstall = "npx" | "claude-plugin" | "cursor-plugin" | "editor-copy" | "dev" | "other";
+export type GctkInstall = "npx" | "app" | "claude-plugin" | "cursor-plugin" | "editor-copy" | "dev" | "other";
 
 export interface GctkVersion {
   running: string;
@@ -329,6 +330,7 @@ export function gctkInstall(js: string | undefined = runningGctkJs(), home = os.
   const p = path.resolve(js);
   const under = (...parts: string[]) => p.startsWith(`${path.join(home, ...parts)}${path.sep}`);
   if (p.split(path.sep).includes("_npx")) return "npx";
+  if (real(p) === real(appGctkJs())) return "app";
   if (under(".claude", "plugins")) return "claude-plugin";
   if (under(".cursor", "plugins")) return "cursor-plugin";
   if (p === path.resolve(stableGctkJs())) return "editor-copy";

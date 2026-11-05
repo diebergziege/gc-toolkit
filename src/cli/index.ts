@@ -1,13 +1,15 @@
+import { spawnSync } from "node:child_process";
 import { Command, Option } from "commander";
 import { runLaunch } from "../core/ai-setup.js";
 import { runHarness, runProjectTool } from "../core/axl.js";
 import { GenesysClient } from "../core/client.js";
 import { deleteCredentials, hasStoredCredentials, keychainName, storeCredentials } from "../core/credentials.js";
-import { setSnapshotSource, snapshotSource } from "../core/demos.js";
+import { builtInDemosDir, setSnapshotSource, snapshotSource } from "../core/demos.js";
+import { appGctkJs, installGctk, loadInstallRecord, uninstallGctk, updateInstalledGctk } from "../core/install.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { formatError, GctkError } from "../core/errors.js";
 import { toJson } from "../core/output.js";
-import { paths } from "../core/paths.js";
+import { gctkHome, paths } from "../core/paths.js";
 import {
   assertProfileName,
   getActiveProfileName,
@@ -183,6 +185,51 @@ program
     console.log(`gctk UI is running in the background${running ? ` (pid ${running.info.pid})` : ""}: ${url}`);
     console.log("This link contains a session token; do not share it. Stop it with the button in the UI or `gctk ui --stop`.");
     if (o.open) await openBrowser(target(url));
+  });
+
+// ----------------------------------------------------------------- install
+/** Starts the installed copy's UI (it replaces a background UI that runs another copy). */
+const startInstalledUi = (open: boolean) => {
+  stopRunningUi();
+  spawnSync(process.execPath, [appGctkJs(), "ui", ...(open ? [] : ["--no-open"])], { stdio: "inherit" });
+};
+
+program
+  .command("install")
+  .description("install gctk on this computer for use without Cursor: a gctk command, an app to click, and gctk in the Claude app")
+  .option("--no-claude-app", "do not add gctk to the Claude app")
+  .option("--no-open", "do not open the UI afterwards")
+  .action((o: { claudeApp: boolean; open: boolean }) => {
+    const from = runningGctkJs();
+    if (!from) throw new GctkError("INVALID_INPUT", "Install from the built gctk (dist/gctk.js or npx), not from the sources.");
+    const r = installGctk({ from, version: VERSION, demos: builtInDemosDir(), claudeApp: o.claudeApp });
+    console.log(`Installed gctk ${VERSION} in ${r.app}.`);
+    console.log(`Command: ${r.command}`);
+    if (r.launcher) console.log(`App: ${r.launcher}`);
+    for (const n of r.notes) console.log(`- ${n}`);
+    console.log("Updates: the button \"Update gctk\" in the UI's top bar, or `gctk update`. Remove it with `gctk uninstall`.");
+    startInstalledUi(o.open);
+  });
+
+program
+  .command("update")
+  .description("update the gctk that `gctk install` installed to the newest version from GitHub")
+  .action(async () => {
+    if (!loadInstallRecord()) throw new GctkError("INVALID_INPUT", "gctk was not installed with `gctk install` on this computer; it updates where it came from (Cursor, Claude Code).");
+    const r = await updateInstalledGctk();
+    console.log(r.from === r.to ? `gctk ${r.to} is the newest already.` : `Updated gctk${r.from ? ` from ${r.from}` : ""} to ${r.to}.`);
+    if (await findRunningUi()) startInstalledUi(false);
+  });
+
+program
+  .command("uninstall")
+  .description("remove what `gctk install` added (command, app, Claude app entry); your orgs and settings stay")
+  .action(() => {
+    stopRunningUi();
+    const removed = uninstallGctk();
+    if (!removed.length) return console.log("gctk install had not added anything on this computer.");
+    for (const r of removed) console.log(`Removed ${r}`);
+    console.log(`Your orgs, keychain entries and settings stay in ${gctkHome()}; delete that folder to remove them too.`);
   });
 
 // --------------------------------------------------------------------- axl

@@ -485,6 +485,7 @@ function gctkUpdateDialog(v) {
   const reopen = "Then ask the AI to open the gctk UI: the new version replaces this one.";
   const steps = {
     npx: null,
+    app: null,
     "claude-plugin": ["In Claude Code, type /plugin and update the genesys-cloud-toolkit marketplace (or its plugin).", "Restart Claude Code.", reopen],
     "cursor-plugin": ["Quit Cursor and open it again; it updates its plugins at the start. If it still runs the old version, update the gctk plugin in Cursor's settings (Plugins).", reopen],
   }[v.install] || ["Update gctk where you installed it (the plugin in Cursor or Claude Code), then restart that editor.", reopen];
@@ -498,12 +499,17 @@ function gctkUpdateDialog(v) {
       run.remove();
       put(out, h("div", { class: "okbox" }, `Done. ${r.next}`));
       state.gctkVersion = null;
+      // The installed copy restarts on the new version: reload as soon as that one answers.
+      if (r.restart) for (let i = 0; i < 40; i++) {
+        await new Promise((ok) => setTimeout(ok, 1000));
+        try { if ((await api("/api/overview")).version !== v.running) { location.reload(); return; } } catch {}
+      }
     } catch (err) { put(out, h("div", { class: "error" }, err.message)); run.disabled = false; run.textContent = "Update gctk"; }
   });
   const dlg = h("dialog", { class: "gctk-update", "aria-labelledby": "gctk-update-title" },
     h("h3", { id: "gctk-update-title", style: "margin-top:0" }, `gctk ${v.latest} is out`),
     h("p", { class: "muted", style: "margin:0 0 8px" }, `You have ${v.running}. Updating keeps your orgs, projects and settings.`),
-    steps ? h("ol", {}, steps.map((x) => h("li", {}, x))) : h("p", {}, "gctk deletes the copy Cursor downloaded; Cursor downloads the newest at its next start."),
+    steps ? h("ol", {}, steps.map((x) => h("li", {}, x))) : h("p", {}, v.install === "app" ? "gctk downloads the newest version from GitHub, replaces the installed one and starts again." : "gctk deletes the copy npx downloaded; Cursor (or the npx command) downloads the newest at its next start."),
     out,
     h("div", { class: "row", style: "margin-top:12px;justify-content:flex-end" }, steps ? null : run, close));
   close.addEventListener("click", () => dlg.close());

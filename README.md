@@ -1,8 +1,9 @@
 # Genesys Cloud Toolkit (`gctk`)
 
 A local web UI that makes your AI setup and your Genesys Cloud demos transparent and easy, also for
-non-technical users. It runs on your computer, opens from Cursor or Claude Code, and needs no AI
-itself.
+non-technical users. It runs on your computer, opens from Cursor, Claude Code, the Claude app or
+its own app icon, and needs no AI itself. You do not need Cursor: see
+[Without Cursor](#without-cursor-install-gctk-on-your-computer).
 
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
   straight into the OS keychain, never into a file or the chat. Each org shows the start of its
@@ -85,6 +86,14 @@ You need **Node.js 22 or newer**. If `node --version` in a terminal says nothing
 version, install the LTS version from [nodejs.org](https://nodejs.org) (the normal installer for Mac
 or Windows; it brings `npx` along). Nothing else: no git, no clone, no build.
 
+Pick the way that fits you:
+
+| You use | Install |
+|---|---|
+| Cursor | [one click](#cursor-one-click) or [the plugin](#cursor-as-a-plugin) |
+| Claude Code | [the plugin](#claude-code-terminal) |
+| No Cursor (the Claude app, or nothing) | [one command, then an app to click](#without-cursor-install-gctk-on-your-computer) |
+
 ### Cursor: one click
 
 [![Add gctk to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=gctk&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImh0dHBzOi8vZ2l0aHViLmNvbS9kaWViZXJnemllZ2UvZ2MtdG9vbGtpdC9hcmNoaXZlL3JlZnMvaGVhZHMvbWFpbi50YXIuZ3oiLCJtY3AiXX0=)
@@ -121,11 +130,38 @@ claude plugin install genesys-cloud-toolkit@genesys-cloud-toolkit
 
 **Updates:** `/plugin` → Marketplaces → genesys-cloud-toolkit → Update, then restart Claude Code.
 
-### Without an editor
+### Without Cursor: install gctk on your computer
+
+For everyone without Cursor, for example with the Claude app or no AI tool at all. Run this once in
+a terminal (Mac: **Terminal**; Windows: **Command Prompt**, see below):
 
 ```bash
-npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz ui
+npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz install
 ```
+
+It opens the gctk UI and sets up the rest:
+
+| | Mac | Windows | Linux |
+|---|---|---|---|
+| gctk to click | **gctk** in your Applications folder (Spotlight, Launchpad; drag it to the Dock) | **gctk** in the Start menu and on the Desktop | **gctk** in the applications menu |
+| `gctk` command | `~/.local/bin/gctk` | `%LOCALAPPDATA%\gctk\bin\gctk.cmd` | `~/.local/bin/gctk` |
+| Claude app | gctk added to it, if it is installed: quit and reopen the app, then ask *"Open the gctk UI."* | same | (no Claude app) |
+
+gctk itself lives in `~/.config/gctk/app/`. Clicking **gctk** starts the UI in the background and
+opens it in your browser; nothing else needs a terminal after this.
+
+- **Windows:** in PowerShell, `npx` may be blocked ("running scripts is disabled on this system").
+  Use the Command Prompt (`cmd`), or type `npx.cmd` instead of `npx`.
+- **Updates:** when a newer gctk is out, the top bar says **Update gctk to …**; one click downloads
+  it, replaces the installed one and reloads the page. In a terminal: `gctk update`.
+- **Remove:** `gctk uninstall` removes the app, the command, the PATH line and the Claude app entry.
+  Your orgs and settings stay in `~/.config/gctk` (delete that folder to remove them too); the org
+  credentials are in the keychain under `gctk`.
+- Install with `--no-claude-app` to leave the Claude app alone. Running `install` again repairs
+  everything (for example after a new Node.js version).
+
+Only want to try it once, without installing anything? Run the same link with `ui` instead of
+`install`.
 
 Orgs, credentials, AXL workshops and Demo ready's records are kept across updates; the UI restarts
 with the new version by itself.
@@ -135,8 +171,9 @@ with the new version by itself.
 1. **Create an OAuth client** in Genesys Cloud (Admin → OAuth, grant type Client Credentials) with a
    role that covers what you use: the Demo ready sections you fill, Monitoring's object counts, and
    for AXL what the AVA harness builds.
-2. **Ask the AI** in Cursor or Claude Code: *"Open the gctk UI."* It opens on the Orgs page. Enter
-   name, region, tier and the client ID and secret there.
+2. **Open gctk:** ask the AI in Cursor, Claude Code or the Claude app *"Open the gctk UI."*, or
+   click the **gctk** app. It opens on the Orgs page. Enter name, region, tier and the client ID and
+   secret there.
 3. **Check Cursor:** open **AI Coding Tools** to see which MCP servers work on which org and move
    plain-text secrets into the keychain.
 4. **Prepare the demo:** Website for the customer's side, Demo ready for the agent's home screen.
@@ -164,6 +201,7 @@ Open button; this is the overview:
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
 | `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
+| `~/.config/gctk/app/`, `install.json` | gctk as `gctk install` put it here, and what it added outside this folder (command, app, Claude app entry) |
 | `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
 | OS keychain, service `gctk` | org client IDs and secrets, AI setup secrets, the signing key, the UI token |
@@ -197,6 +235,8 @@ Open button; this is the overview:
 | Command | Purpose |
 |---|---|
 | `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup` (AI Coding Tools; `claude-app` opens it too), `demos`, `site`, `demo`, `axl`, `partner`, `pricing`, `monitoring`, `data` |
+| `gctk install [--no-claude-app] [--no-open]` | install gctk for use without Cursor: a `gctk` command, an app to click, gctk in the Claude app |
+| `gctk update` / `gctk uninstall` | update that install from GitHub / remove what it added (orgs and settings stay) |
 | `gctk profile add/list/show/use/remove` | manage orgs from a terminal |
 | `gctk login [profile]` / `logout` | store or delete an org's credentials in the keychain (`--from-env` for CI) |
 | `gctk mcp` | run the MCP server (stdio) |

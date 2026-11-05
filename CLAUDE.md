@@ -112,6 +112,18 @@
   (products with prices, stats, reviews, news with dates relative to today, legal form for the
   footer); the site switches language with `?lang=` (EN/DE in its top bar) and its cookie banner is
   remembered in the site origin's localStorage. Keep one inline script besides the Messenger snippet.
+- Without Cursor (decision 2026-11-05, `src/core/install.ts`, CLI `gctk install` / `update` /
+  `uninstall`): run once through the npx tarball, `install` copies gctk.js and the demos into
+  `app/` in the gctk home (repository layout, so `builtInDemosDir` finds them), writes a `gctk`
+  command (`~/.local/bin`, with a PATH line in the shell startup file when needed; Windows
+  `%LOCALAPPDATA%\gctk\bin\gctk.cmd` and the user PATH), an app to click (macOS
+  `~/Applications/gctk.app`, Windows Start menu and Desktop shortcuts through PowerShell, Linux
+  `.desktop`) and the `gctk` MCP server in the Claude app (never replacing one the user set up).
+  `install.json` lists what it wrote outside the gctk home; `uninstall` removes exactly that.
+  `gctkInstall` reports `app` for that copy: the top bar's update downloads the GitHub tarball (own
+  tar reader), replaces `app/` whole and starts the new UI, which replaces the old one; the page
+  reloads when the version changed. Never test this with a fake `HOME` on macOS: the keychain
+  (`security`) then hangs and shows "Keychain Not Found" to the user.
 - Partner (UI page "Partner", page id `partner`, decision 2026-11-04): section "Enablement Radar"
   (`src/core/partner-radar.ts`, routes `/api/partner/radar`) reads the Microsoft Forms Excel export of
   the Genesys Partner Demo Org Readiness Checklist (base64 JSON, own xlsx reader on top of the AXL

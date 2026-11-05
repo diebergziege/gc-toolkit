@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
@@ -33,6 +34,7 @@ import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, 
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { installAxlSkillZip } from "../core/axl-skills.js";
 import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
+import { appGctkJs, updateInstalledGctk } from "../core/install.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
@@ -153,6 +155,13 @@ const gctkVersion = (refresh = false) => {
 route("GET", "/api/gctk-version", ({ query }) => gctkVersion(query.get("refresh") === "1"));
 route("POST", "/api/gctk-version/update", async () => {
   const v = await gctkVersion();
+  if (v.install === "app") {
+    // The installed copy (gctk install): replaced from GitHub, then a new UI of that version takes this one's place.
+    const r = await updateInstalledGctk();
+    gctkCache = undefined;
+    setTimeout(() => spawn(process.execPath, [appGctkJs(), "ui", "--no-open"], { detached: true, stdio: "ignore" }).unref(), 300);
+    return { from: r.from, next: `gctk ${r.to} is installed and starts now; this page reloads by itself.`, restart: true };
+  }
   const r = updateGctk(v.install);
   gctkCache = undefined;
   return r;
