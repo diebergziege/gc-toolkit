@@ -120,6 +120,8 @@
   `~/Applications/gctk.app`, Windows Start menu and Desktop shortcuts through PowerShell, Linux
   `.desktop`) and the `gctk` MCP server in the Claude app (never replacing one the user set up).
   `install.json` lists what it wrote outside the gctk home; `uninstall` removes exactly that.
+  The README runs it as `main.tar.gz?install`: npx never downloads a link it has cached, and Cursor's
+  `main.tar.gz` may be an old gctk without `install`; so `install` never replaces a newer `app/`.
   `gctkInstall` reports `app` for that copy: the top bar's update downloads the GitHub tarball (own
   tar reader), replaces `app/` whole and starts the new UI, which replaces the old one; the page
   reloads when the version changed. Never test this with a fake `HOME` on macOS: the keychain

@@ -132,12 +132,25 @@ claude plugin install genesys-cloud-toolkit@genesys-cloud-toolkit
 
 ### Without Cursor: install gctk on your computer
 
-For everyone without Cursor, for example with the Claude app or no AI tool at all. Run this once in
-a terminal (Mac: **Terminal**; Windows: **Command Prompt**, see below):
+For everyone without Cursor, for example with the Claude app or no AI tool at all.
+
+**1. Node.js (once).** gctk runs on Node.js 22 or newer, which brings the `npx` command along. Open
+a terminal (Mac: **Terminal**, in Applications → Utilities; Windows: **Command Prompt**, search for
+`cmd` in the Start menu) and type `node --version`. If it says "command not found" (Mac), "is not
+recognized" (Windows) or a version below `v22`, install the **LTS** version from
+[nodejs.org](https://nodejs.org/en/download): the normal installer, click through it, then close the
+terminal and open a new one. The installer asks for your computer's password; on a managed company
+laptop without admin rights, get Node.js from your company's software portal (Self Service, Company
+Portal) or ask IT. Nothing else: no git, no account, only internet access to github.com.
+
+**2. gctk (once).** In that terminal, run:
 
 ```bash
-npx -y https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz install
+npx -y "https://github.com/diebergziege/gc-toolkit/archive/refs/heads/main.tar.gz?install" install
 ```
+
+(Copy it as it is: the `?install` in the link makes npx download the newest gctk even when it has
+an older one from Cursor.)
 
 It opens the gctk UI and sets up the rest:
 

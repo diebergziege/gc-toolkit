@@ -176,6 +176,19 @@ describe("updating the installed gctk", () => {
   });
 });
 
+describe("an older gctk running install", () => {
+  it("keeps the newer installed copy and still repairs the launchers", () => {
+    installGctk({ ...source(), version: "2.0.0", node: "/n", home, platform: "linux", env: { PATH: "" }, claudeApp: false });
+    const desktop = path.join(home, ".local", "share", "applications", "gctk.desktop");
+    fs.rmSync(desktop);
+    const r = installGctk({ ...source(), version: "1.9.0", node: "/n", home, platform: "linux", env: { PATH: "" }, claudeApp: false });
+    expect(r.notes[0]).toMatch(/Kept the installed gctk 2.0.0/);
+    expect(JSON.parse(fs.readFileSync(path.join(appDir(), "package.json"), "utf8")).version).toBe("2.0.0");
+    expect(loadInstallRecord()?.version).toBe("2.0.0");
+    expect(fs.existsSync(desktop)).toBe(true);
+  });
+});
+
 describe("the Claude app's own gctk", () => {
   it("is never replaced or removed", () => {
     fs.mkdirSync(path.dirname(claudeConfig), { recursive: true });

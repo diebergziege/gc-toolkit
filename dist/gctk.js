@@ -41726,12 +41726,20 @@ function installGctk(o) {
   const platform = o.platform ?? process.platform;
   const env = o.env ?? process.env;
   const node2 = o.node ?? process.execPath;
-  if (path10.resolve(o.from) !== path10.resolve(appGctkJs())) writeApp({ js: fs10.readFileSync(o.from), version: o.version, demos: o.demos });
-  const js2 = appGctkJs();
   const files = [];
   const notes = [];
+  let have;
+  try {
+    have = JSON.parse(fs10.readFileSync(path10.join(appDir(), "package.json"), "utf8")).version;
+  } catch {
+    have = void 0;
+  }
+  const keep = have && fs10.existsSync(appGctkJs()) && olderVersion(o.version, have);
+  if (keep) notes.push(`Kept the installed gctk ${have}, which is newer than this one (${o.version}).`);
+  else if (path10.resolve(o.from) !== path10.resolve(appGctkJs())) writeApp({ js: fs10.readFileSync(o.from), version: o.version, demos: o.demos });
+  const js2 = appGctkJs();
   const result = { app: appDir(), command: "", claudeApp: "skipped", notes };
-  const record2 = { version: o.version, node: node2, installedAt: (/* @__PURE__ */ new Date()).toISOString(), files };
+  const record2 = { version: keep ? have : o.version, node: node2, installedAt: (/* @__PURE__ */ new Date()).toISOString(), files };
   if (platform === "win32") {
     const local = env.LOCALAPPDATA ?? path10.join(home, "AppData", "Local");
     const bin = path10.join(local, "gctk", "bin");
@@ -56389,7 +56397,7 @@ async function startUi(opts = {}) {
 
 // src/ui/daemon.ts
 var VERSION3 = true ? "0.38.0" : "dev";
-var BUILD_ID = true ? "676fcb6" : "dev";
+var BUILD_ID = true ? "e2262d8" : "dev";
 var UI_BUILD = `${VERSION3}+${BUILD_ID}`;
 var tokenAccount2 = () => `__ui-token__${crypto11.createHash("sha256").update(gctkHome()).digest("hex").slice(0, 12)}`;
 var infoFile = () => path19.join(gctkHome(), "ui.json");

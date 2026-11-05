@@ -6,6 +6,7 @@ import zlib from "node:zlib";
 import { GCTK_PACKAGE } from "./ai-setup.js";
 import { GctkError } from "./errors.js";
 import { claudeAppConfigFile, gctkHome } from "./paths.js";
+import { olderVersion } from "./stable-gctk.js";
 
 /**
  * gctk for people without Cursor (decision 2026-11-05): `gctk install`, run once through npx, puts
@@ -156,12 +157,21 @@ export function installGctk(o: InstallOptions): InstallResult {
   const platform = o.platform ?? process.platform;
   const env = o.env ?? process.env;
   const node = o.node ?? process.execPath;
-  if (path.resolve(o.from) !== path.resolve(appGctkJs())) writeApp({ js: fs.readFileSync(o.from), version: o.version, demos: o.demos });
-  const js = appGctkJs();
   const files: string[] = [];
   const notes: string[] = [];
+  // npx keeps the first download of a link, so a later install may run an older gctk than the updated app/.
+  let have: string | undefined;
+  try {
+    have = (JSON.parse(fs.readFileSync(path.join(appDir(), "package.json"), "utf8")) as { version?: string }).version;
+  } catch {
+    have = undefined;
+  }
+  const keep = have && fs.existsSync(appGctkJs()) && olderVersion(o.version, have);
+  if (keep) notes.push(`Kept the installed gctk ${have}, which is newer than this one (${o.version}).`);
+  else if (path.resolve(o.from) !== path.resolve(appGctkJs())) writeApp({ js: fs.readFileSync(o.from), version: o.version, demos: o.demos });
+  const js = appGctkJs();
   const result: InstallResult = { app: appDir(), command: "", claudeApp: "skipped", notes };
-  const record: InstallRecord = { version: o.version, node, installedAt: new Date().toISOString(), files };
+  const record: InstallRecord = { version: keep ? have! : o.version, node, installedAt: new Date().toISOString(), files };
 
   if (platform === "win32") {
     const local = env.LOCALAPPDATA ?? path.join(home, "AppData", "Local");
