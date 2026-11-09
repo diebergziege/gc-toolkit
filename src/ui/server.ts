@@ -34,6 +34,7 @@ import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, 
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { installAxlSkillZip } from "../core/axl-skills.js";
 import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
+import { importDevOrgs, loadDevOrgs, removeDevOrgs } from "../core/partner-dev-orgs.js";
 import { appGctkJs, runningEdition, updateInstalledGctk } from "../core/install.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
@@ -486,6 +487,14 @@ route("POST", "/api/partner/radar", ({ body }) => {
   return { radar: importRadar(Buffer.from(data, "base64"), pickStr(body, "name")) };
 });
 route("DELETE", "/api/partner/radar", () => ({ removed: removeRadar(), radar: null }));
+// Partner: which partner dev orgs run on CX4 (GC4 Dev/Lab) and which on CX3, from the dev org report (no org).
+route("GET", "/api/partner/dev-orgs", () => ({ devOrgs: loadDevOrgs() }));
+route("POST", "/api/partner/dev-orgs", ({ body }) => {
+  const data = pickStr(body, "file") ?? "";
+  if (!data || !/^[A-Za-z0-9+/=]+$/.test(data)) throw new HttpError(400, "Choose the dev org report (.csv or .xlsx).");
+  return { devOrgs: importDevOrgs(Buffer.from(data, "base64"), pickStr(body, "name")) };
+});
+route("DELETE", "/api/partner/dev-orgs", () => ({ removed: removeDevOrgs(), devOrgs: null }));
 
 // Your data: where gctk keeps what (paths, sizes, keychain entries by name).
 route("GET", "/api/data", () => dataInfo());
@@ -702,7 +711,7 @@ export async function startUi(
         const m = r.pattern.exec(url.pathname);
         if (!m) continue;
         const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1]!)]));
-        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) || url.pathname === "/api/partner/radar" ? MAX_UPLOAD_BODY : url.pathname === "/api/axl/skills" ? MAX_SKILL_BODY : MAX_BODY);
+        const body = req.method === "GET" ? {} : await readBody(req, /\/files$/.test(url.pathname) || url.pathname === "/api/partner/radar" || url.pathname === "/api/partner/dev-orgs" ? MAX_UPLOAD_BODY : url.pathname === "/api/axl/skills" ? MAX_SKILL_BODY : MAX_BODY);
         return send(res, 200, (await r.handler({ params, query: url.searchParams, body })) ?? {});
       }
       return send(res, 404, { error: "Not found." });

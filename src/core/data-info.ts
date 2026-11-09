@@ -67,6 +67,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["partner-radar.json", "Partner: Enablement Radar", "The partner survey you uploaded last: partner names, their contacts' email addresses and every answer. Remove on the Partner page deletes it."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
   ["app", "gctk, installed", "gctk and its demos as `gctk install` put them here (for use without Cursor); the top bar's Update gctk replaces them."],
+  ["partner-dev-orgs.json", "Partner: dev orgs", "The dev org report you uploaded last on the Partner page (partner names, org IDs, part numbers, regions, dates)."],
   ["node", "Node.js for gctk", "The Node.js the gctk download brought along, which runs gctk; `gctk uninstall` removes it."],
   ["install.json", "gctk install: what it added", "The command, the app to click and the Claude app entry `gctk install` wrote outside this folder, so `gctk uninstall` removes exactly those."],
   ["bin", "gctk for your editors", "A copy of gctk that the entries gctk writes into editor configs start, so plugin updates do not break them."],

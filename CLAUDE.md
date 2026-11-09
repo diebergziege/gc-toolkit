@@ -148,6 +148,14 @@
   note of the question before it; `KNOWN` gives the checklist's questions a short name and a group,
   an unknown question lands in "Other". The last upload is kept in `partner-radar.json` (partner
   contacts' email addresses: personal data) until Remove. No org is read or written.
+  Tab "Dev orgs: CX3 → CX4" (decision 2026-11-09, `src/core/partner-dev-orgs.ts`, routes
+  `/api/partner/dev-orgs`): the report of all partner DEV/LAB orgs, one row per subscription line, as
+  UTF-16 tab-separated text (the Salesforce/Tableau export; quoted fields may hold line breaks),
+  UTF-8 CSV or xlsx; columns by header (Account Name, Org ID, Part Number required). An org (org ID +
+  account; the report has an org ID shared by two accounts) is CX4 when one of its part numbers is in
+  `CX4_PARTS` (GC-170-DEV-LABBUC/P/V, the maintainer's rule; GCFR-170-DEV-LABBUP counts as CX3), a
+  partner is upgraded, partly or cx3. Dates are day first ("22/05/2026 00:00:00"). Kept in
+  `partner-dev-orgs.json` until Remove.
 - Pricing (UI page "Pricing", page id `pricing`, decision 2026-11-02): `src/core/pricing.ts` holds
   Genesys Cloud list prices (USD), add-ons, AI Experience token rates, fair use allowances, rules,
   use cases and the calculator (`estimate`, run by the server so tests cover it). Every licence,

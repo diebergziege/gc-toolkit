@@ -3134,7 +3134,20 @@ function radarPartners(radar) {
   return [...by.entries()].map(([name, list]) => ({ name, latest: list[0], all: list })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
+const PARTNER_TABS = [["radar", "Enablement Radar"], ["dev-orgs", "Dev orgs: CX3 → CX4"]];
 async function viewPartner() {
+  if (!state.partnerTab) { try { state.partnerTab = sessionStorage.getItem("gctk-partner-tab") || "radar"; } catch { state.partnerTab = "radar"; } }
+  const tab = PARTNER_TABS.some(([id]) => id === state.partnerTab) ? state.partnerTab : "radar";
+  const tabs = h("div", { class: "dtabs", role: "tablist" }, PARTNER_TABS.map(([id, label]) => h("button", { role: "tab", "aria-selected": String(id === tab), onclick: () => {
+    state.partnerTab = id;
+    try { sessionStorage.setItem("gctk-partner-tab", id); } catch {}
+    render();
+  } }, label)));
+  const head = [pageHead("Partner", "How ready your partners are to demo Genesys Cloud, and whose dev orgs already run on CX4."), tabs];
+  return tab === "dev-orgs" ? viewDevOrgs(head) : viewRadar(head);
+}
+
+async function viewRadar(pageTop) {
   if (state.radar === undefined) state.radar = (await api("/api/partner/radar")).radar;
   const radar = state.radar;
   const msg = h("div");
@@ -3153,7 +3166,7 @@ async function viewPartner() {
   picker.addEventListener("change", () => upload(picker.files[0]));
   const choose = (label, primary) => h("button", { class: `btn${primary ? " primary" : ""}`, onclick: () => picker.click() }, icon("plus"), label);
 
-  const head = [pageHead("Partner", "How ready your partners are to demo Genesys Cloud, from their own answers."), h("div", { class: "section-title" }, icon("eye"), "Enablement Radar")];
+  const head = [...pageTop, h("p", { class: "muted", style: "margin:0 0 12px;font-size:13px" }, "The partners' own answers to the Partner Demo Org Readiness Checklist.")];
   if (!radar) {
     const drop = h("div", { class: "drop" },
       h("span", { class: "bubble" }, icon("layers")),
@@ -3297,6 +3310,152 @@ function radarPartner(radar, p) {
     r.answered ? null : h("div", { class: "warn" }, `${r.partner} answered "${r.hasOrg || "no"}" to having an active demo org, so the readiness questions are empty.`),
     r.answered ? h("div", { class: "row", style: "margin-bottom:12px" }, seg, h("span", { class: "spacer" }), submissions) : submissions,
     groups.some(Boolean) ? groups : r.answered ? h("div", { class: "panel empty" }, onlyGaps ? "Nothing needs attention." : "No answers.") : null);
+}
+
+// Dev orgs: the report of all partner DEV/LAB orgs, uploaded here and kept in the gctk home. The
+// server sorts each org into CX4 (part numbers GC-170-DEV-LABBUC/P/V) or CX3 (every other).
+const DEV_STATUS = { upgraded: ["All on CX4", "ok"], partly: ["Partly on CX4", "todo"], cx3: ["Still on CX3", "bad"] };
+const devPct = (n, all) => all ? Math.round((n / all) * 100) : 0;
+const devStack = (cx4, cx3) => {
+  const all = cx4 + cx3;
+  return h("span", { class: "stack", title: `${cx4} on CX4, ${cx3} on CX3` },
+    all ? [h("i", { class: "s-r", style: `width:${(cx4 / all) * 100}%` }), h("i", { class: "s-a", style: `width:${(cx3 / all) * 100}%` })] : null);
+};
+/** When the org's subscription runs, in words: ended, starts later, or until. */
+function devTerm(o) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (o.end && o.end < today) return h("span", { class: "status off" }, `ended ${o.end}`);
+  if (o.start && o.start > today) return h("span", { class: "status todo" }, `starts ${o.start}`);
+  return h("span", { class: "muted" }, o.end ? `until ${o.end}` : "");
+}
+
+async function viewDevOrgs(pageTop) {
+  if (state.devOrgs === undefined) state.devOrgs = (await api("/api/partner/dev-orgs")).devOrgs;
+  const data = state.devOrgs;
+  const msg = h("div");
+  const picker = h("input", { type: "file", accept: ".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", hidden: true });
+  const upload = async (f) => {
+    if (!f) return;
+    put(msg, h("div", { class: "muted", style: "font-size:13px" }, `Reading ${f.name}…`));
+    try {
+      const file = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, "")); r.onerror = () => fail(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
+      state.devOrgs = (await api("/api/partner/dev-orgs", { method: "POST", body: { file, name: f.name } })).devOrgs;
+      state.devOpen = new Set();
+      render();
+    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+    picker.value = "";
+  };
+  picker.addEventListener("change", () => upload(picker.files[0]));
+  const choose = (label, primary) => h("button", { class: `btn${primary ? " primary" : ""}`, onclick: () => picker.click() }, icon("plus"), label);
+  const head = [...pageTop, h("p", { class: "muted", style: "margin:0 0 12px;font-size:13px" },
+    "Which partners already run their DEV/LAB org on CX4 (GC4 Dev/Lab) and who is still on CX3. An org counts as CX4 when one of its part numbers is GC-170-DEV-LABBUC, GC-170-DEV-LABBUP or GC-170-DEV-LABBUV; every other part number is CX3.")];
+
+  if (!data) {
+    const drop = h("div", { class: "drop" },
+      h("span", { class: "bubble" }, icon("layers")),
+      h("strong", { style: "font-size:16px" }, "Upload the dev org report"),
+      h("span", { class: "muted", style: "max-width:560px" }, "The report of all partner dev orgs as CSV or Excel, with the columns Account Name, Part Number and Org ID (Region and subscription dates are shown too). Drop it here or choose it. It stays on this computer; upload a newer report any time to see the latest state."),
+      choose("Choose file…", true), picker);
+    drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+    drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); upload(e.dataTransfer.files[0]); });
+    return h("div", {}, head, h("div", { class: "panel" }, drop, msg));
+  }
+
+  const remove = h("button", { class: "btn danger", onclick: async () => {
+    if (!confirm(`Remove the dev org report (${data.fileName}) from this computer?`)) return;
+    try { await api("/api/partner/dev-orgs", { method: "DELETE" }); state.devOrgs = null; render(); } catch (err) { showError(err); }
+  } }, icon("trash"), "Remove");
+  const bar = h("div", { class: "panel row" },
+    h("strong", {}, data.fileName),
+    h("span", { class: "muted", style: "font-size:12.5px" }, `uploaded ${time(data.importedAt)}`),
+    h("span", { class: "spacer" }),
+    choose("Upload newer report…"), remove, picker);
+
+  const orgs = data.orgs;
+  const cx4 = orgs.filter((o) => o.generation === "cx4").length;
+  const count = (s) => data.partners.filter((p) => p.status === s).length;
+  const tiles = h("div", { class: "tiles" },
+    tile("Dev orgs", orgs.length, `of ${data.partners.length} partners`),
+    tile("On CX4", cx4, `${devPct(cx4, orgs.length)} % of the dev orgs`, "good"),
+    tile("Still on CX3", orgs.length - cx4, `${devPct(orgs.length - cx4, orgs.length)} % of the dev orgs`, orgs.length - cx4 ? "bad" : ""),
+    tile("Partners fully on CX4", count("upgraded"), `${count("partly")} more partly (some orgs on CX4)`, "good"),
+    tile("Partners only on CX3", count("cx3"), "no dev org on CX4 yet", count("cx3") ? "bad" : ""));
+
+  // Partners: filter by name and status; a click shows the partner's orgs.
+  state.devOpen ||= new Set();
+  const byPartner = new Map();
+  for (const o of orgs) byPartner.set(o.partner, [...(byPartner.get(o.partner) || []), o]);
+  const filter = h("input", { type: "search", placeholder: "Filter by partner, org ID or region", "aria-label": "Filter partners", style: "min-width:260px", value: state.devFilter || "" });
+  const which = state.devStatus || "all";
+  const seg = h("div", { class: "seg" }, [["all", `All (${data.partners.length})`], ["cx3", `Still on CX3 (${count("cx3")})`], ["partly", `Partly (${count("partly")})`], ["upgraded", `All on CX4 (${count("upgraded")})`]].map(([v, label]) =>
+    h("button", { "aria-pressed": String(which === v), onclick: () => { state.devStatus = v; render(); } }, label)));
+  const orgRow = (o) => h("tr", { class: "dev-org" },
+    h("td", { style: "padding-left:28px" }, h("span", { class: "mono", style: "font-size:12px" }, o.orgId)),
+    h("td", {}, h("span", { class: `status ${o.generation === "cx4" ? "ok" : "bad"}` }, o.generation.toUpperCase())),
+    h("td", { colspan: 2, style: "font-size:12.5px" }, o.products.join(", "), h("div", { class: "muted mono", style: "font-size:11.5px" }, o.parts.join(", "))),
+    h("td", { style: "font-size:12.5px;white-space:nowrap" }, o.region || "", h("div", { style: "font-size:12px" }, devTerm(o))));
+  const rank = { cx3: 0, partly: 1, upgraded: 2 };
+  const sorted = data.partners.slice().sort((a, b) => rank[a.status] - rank[b.status] || b.orgs - a.orgs || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  const groups = sorted.map((p) => {
+    const list = byPartner.get(p.name) || [];
+    const [label, cls] = DEV_STATUS[p.status];
+    const regions = [...new Set(list.map((o) => o.region).filter(Boolean))];
+    const arrow = h("span", { class: "muted", style: "display:inline-block;width:16px" });
+    const tr = h("tr", { class: "pick-row" },
+      h("td", {}, arrow, h("strong", {}, p.name)),
+      h("td", { style: "white-space:nowrap" }, h("span", { class: `status ${cls}` }, label)),
+      h("td", { style: "width:160px" }, devStack(p.cx4, p.cx3)),
+      h("td", { style: "text-align:right;white-space:nowrap" }, `${p.cx4} of ${p.orgs} on CX4`),
+      h("td", { class: "muted", style: "font-size:12.5px", title: regions.join(", ") }, regions.length > 3 ? `${regions.slice(0, 3).join(", ")} +${regions.length - 3} more` : regions.join(", ")));
+    const body = h("tbody", {}, tr);
+    const draw = () => {
+      const open = state.devOpen.has(p.name);
+      arrow.textContent = open ? "▾" : "▸";
+      tr.title = open ? "Hide the dev orgs" : "Show the dev orgs";
+      body.replaceChildren(tr, ...(open ? list.map(orgRow) : []));
+    };
+    tr.addEventListener("click", () => { state.devOpen.has(p.name) ? state.devOpen.delete(p.name) : state.devOpen.add(p.name); draw(); });
+    draw();
+    body.dataset.status = p.status;
+    body.dataset.text = [p.name, ...list.map((o) => `${o.orgId} ${o.region || ""}`)].join(" ").toLowerCase();
+    return body;
+  });
+  const shown = h("span", { class: "muted", style: "font-size:12.5px" });
+  const applyFilter = () => {
+    state.devFilter = filter.value;
+    const q = filter.value.trim().toLowerCase();
+    let n = 0;
+    for (const g of groups) {
+      g.hidden = (which !== "all" && g.dataset.status !== which) || (Boolean(q) && !g.dataset.text.includes(q));
+      if (!g.hidden) n++;
+    }
+    shown.textContent = `${n} partner${n === 1 ? "" : "s"}`;
+  };
+  filter.addEventListener("input", applyFilter);
+  applyFilter();
+
+  // Regions: where the upgrade has come furthest.
+  const regions = new Map();
+  for (const o of orgs) {
+    const r = regions.get(o.region || "unknown") || { cx4: 0, cx3: 0 };
+    r[o.generation]++;
+    regions.set(o.region || "unknown", r);
+  }
+  const regionRows = [...regions.entries()].sort((a, b) => (b[1].cx4 + b[1].cx3) - (a[1].cx4 + a[1].cx3)).map(([name, r]) =>
+    h("div", { class: "gap-row", style: "grid-template-columns:minmax(160px, 260px) minmax(0, 1fr) 130px" }, h("span", {}, name), devStack(r.cx4, r.cx3), h("span", { class: "muted", style: "text-align:right;white-space:nowrap" }, `${r.cx4} of ${r.cx4 + r.cx3} on CX4`)));
+
+  return h("div", {}, head, bar, msg, tiles,
+    h("div", { class: "panel" },
+      h("div", { class: "row", style: "margin-bottom:8px" }, h("h3", { style: "margin:0" }, "Partners"), shown, h("span", { class: "spacer" }), seg, filter),
+      h("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px" }, "Partners still on CX3 first. The bar shows a partner's dev orgs: green on CX4, amber on CX3. Click a partner to see each org with its part numbers and subscription."),
+      h("table", { class: "radar-table" },
+        h("thead", {}, h("tr", {}, h("th", {}, "Partner"), h("th", {}, "Status"), h("th", {}, "Dev orgs"), h("th", { style: "text-align:right" }, "CX4"), h("th", {}, "Region"))),
+        groups)),
+    h("div", { class: "panel" },
+      h("h3", { style: "margin-top:0" }, "By region"),
+      h("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px" }, "Dev orgs per AWS region, green on CX4, amber on CX3."),
+      regionRows));
 }
 
 // ----------------------------------------------------------- monitoring

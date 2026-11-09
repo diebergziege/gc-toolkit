@@ -116,8 +116,11 @@ everything. It needs internet access to nodejs.org and github.com.
 - **Partner**: the **Enablement Radar**. Upload the Excel export of the Genesys Partner Demo Org
   Readiness Checklist (Microsoft Forms) and compare all partners at a glance, see which topics most
   partners need help with, or pick a partner and read every answer with its notes, grouped by
-  channels, AI, agent and supervisor, and platform. The file stays on this computer. Also on its
-  own as [gctk Partner](#for-partner-managers-gctk-partner)
+  channels, AI, agent and supervisor, and platform. **Dev orgs: CX3 → CX4**: upload the report of all
+  partner DEV/LAB orgs (CSV or Excel) and see which partners already run on CX4 (GC4 Dev/Lab: part
+  numbers GC-170-DEV-LABBUC, -LABBUP, -LABBUV) and who is still on CX3, partner by partner, org by
+  org and by region. The files stay on this computer. Also on its own as
+  [gctk Partner](#for-partner-managers-gctk-partner)
 - **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
   link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
   at list price; and **Live billing**, an org's real licences, token use per AI feature and fair use
@@ -141,8 +144,12 @@ Start menu (Windows).
 2. Open **gctk Partner** and drop the Excel file on the page (or **Choose Excel file…**).
 3. Compare all partners, see which topics most need help, or pick one partner to read their answers.
 
-The file and its answers stay on your computer (`~/.config/gctk/partner-radar.json`) until you
-remove them. Installing the full gctk later (the other download, or
+The tab **Dev orgs: CX3 → CX4** works the same way with the report of all partner dev orgs (the
+CSV or Excel export with Account Name, Part Number and Org ID): it shows who has upgraded to CX4
+(GC4 Dev/Lab), who partly, and who is still on CX3. Upload a newer report to see the latest state.
+
+The files stay on your computer (`~/.config/gctk/partner-radar.json`, `partner-dev-orgs.json`)
+until you remove them. Installing the full gctk later (the other download, or
 `gctk install --edition full`) turns gctk Partner into gctk; the survey stays.
 
 ## Install
@@ -283,6 +290,7 @@ Open button; this is the overview:
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
 | `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
+| `~/.config/gctk/partner-dev-orgs.json` | Partner: the dev org report you uploaded last (partner names, org IDs, part numbers, regions, dates) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
 | `~/.config/gctk/app/`, `install.json` | gctk as `gctk install` put it here, and what it added outside this folder (command, app, Claude app entry) |
 | `~/.config/gctk/node/` | the Node.js the [download](#download) brought along, which runs gctk |
