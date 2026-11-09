@@ -4288,8 +4288,10 @@ function availablePanel(axl, msg) {
 }
 
 /**
- * Adding an MCP server for projects: how it starts, which variables take the org's client ID, secret
- * and region, and which orgs it may work on. No secret is entered here: they come from the org.
+ * Adding an MCP server for projects: from a GitHub link (gctk downloads it and fills in the form) or
+ * by hand. Which variables take the org's client ID, secret and region, which org tiers it may work
+ * on, and optionally an org from the Orgs page for Cursor or the Claude app. No secret is entered
+ * here: they come from the org.
  */
 function catalogForm(msg, close) {
   const f = {
@@ -4304,19 +4306,69 @@ function catalogForm(msg, close) {
     regionFormat: h("select", {}, h("option", { value: "domain" }, "domain, e.g. mypurecloud.de"), h("option", { value: "key" }, "region key, e.g. eu-central-1")),
     env: h("textarea", { placeholder: "LOG_LEVEL=info", style: "min-height:50px" }),
   };
+  const home = (p) => p.replace(/^\/Users\/[^/]+/, "~");
+
+  // From GitHub: gctk downloads the repository and reads the MCP config it ships.
+  const ghUrl = h("input", { placeholder: "https://github.com/MakingChatbots/genesys-cloud-plugins", "aria-label": "GitHub link" });
+  const ghBtn = h("button", { class: "btn" }, "Read");
+  const ghOut = h("div");
+  const tech = h("details", { open: true }, h("summary", { style: "cursor:pointer;font-size:13px" }, "How it starts"));
+  const fill = (repo, sv) => {
+    f.name.value = sv.name;
+    f.description.value = sv.description || "";
+    f.source.value = repo.source;
+    f.command.value = sv.command;
+    f.args.value = sv.args.join("\n");
+    f.clientIdVar.value = sv.keys.clientId || "";
+    f.secretVar.value = sv.keys.secret || "";
+    f.regionVar.value = sv.keys.region || "";
+    f.regionFormat.value = "domain";
+    f.env.value = Object.entries(sv.env).map(([k, v]) => `${k}=${v}`).join("\n");
+    tech.open = !sv.keys.clientId || !sv.keys.secret || sv.settings.length > 0;
+    const creds = [["client ID", sv.keys.clientId], ["secret", sv.keys.secret], ["region", sv.keys.region]].filter(([, v]) => v).map(([w, v]) => `${w} in ${v}`);
+    return h("div", { style: "display:grid;gap:6px;font-size:13px" },
+      h("div", { class: "okbox" }, `Downloaded ${repo.repo} to ${home(repo.folder)}. It starts with: ${home([sv.command, ...sv.args].join(" "))}`),
+      h("div", { class: "muted" }, creds.length ? `The org's OAuth credentials go into ${creds.join(", ")}.` : "gctk did not find the variables for the client ID and secret; fill them in under How it starts."),
+      sv.settings.length ? h("div", { class: "warn" }, "Fill in these settings under How it starts (Other settings): ", sv.settings.map((x) => `${x.name}${x.title ? ` (${x.title})` : ""}${x.secret ? ", a secret gctk cannot keep" : ""}`).join(", ")) : null,
+      sv.missing.length ? h("div", { class: "warn" }, `These files are not in the repository; it probably has to be built first (npm install), which gctk does not do: ${sv.missing.join(", ")}`) : null,
+      repo.skills.length ? h("div", { class: "muted" }, `The repository also has skills (${repo.skills.join(", ")}); gctk adds only the MCP server.`) : null);
+  };
+  ghBtn.addEventListener("click", async () => {
+    ghBtn.disabled = true;
+    put(ghOut, h("div", { class: "muted", style: "font-size:13px" }, "Downloading from GitHub…"));
+    try {
+      const repo = await api("/api/mcp-catalog/github", { method: "POST", body: { url: ghUrl.value } });
+      const info = h("div");
+      if (repo.servers.length > 1) {
+        const pick = h("select", { "aria-label": "MCP server" }, repo.servers.map((sv, i) => h("option", { value: String(i) }, sv.name)));
+        pick.addEventListener("change", () => put(info, fill(repo, repo.servers[Number(pick.value)])));
+        put(ghOut, h("label", {}, `${repo.repo} has ${repo.servers.length} MCP servers`, pick), info);
+      } else put(ghOut, info);
+      put(info, fill(repo, repo.servers[0]));
+    } catch (e) { put(ghOut, h("div", { class: "error" }, e.message)); }
+    finally { ghBtn.disabled = false; }
+  });
+  ghUrl.addEventListener("keydown", (e) => { if (e.key === "Enter") ghBtn.click(); });
+
+  // OAuth credentials: always an org from the Orgs page.
   const tiers = ["sandbox", "dev", "test", "production"].map((t) => [t, h("input", { type: "checkbox", checked: t !== "production" ? true : null, style: "width:auto" })]);
   const box = (label) => { const b = h("input", { type: "checkbox", style: "width:auto" }); return [b, h("label", { style: "display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--text)" }, b, label)]; };
-  const [inCursor, cursorLabel] = box("Cursor, in every folder");
-  const [inClaude, claudeLabel] = state.aiClaudeHere ? box("Claude app") : [null, null];
-  const org = h("select", { "aria-label": "Org outside projects" });
+  const [inCursor, cursorLabel] = box("in Cursor, every folder");
+  const [inClaude, claudeLabel] = state.aiClaudeHere ? box("in the Claude app") : [null, null];
+  const org = h("select", { "aria-label": "Org whose OAuth credentials it uses" });
+  const noOrg = h("div");
   const drawOrgs = () => {
     const allowed = tiers.filter(([, b]) => b.checked).map(([t]) => t);
-    const list = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored && allowed.includes(p.tier));
+    const withCreds = (state.overview?.profiles || []).filter((p) => !p.error && p.credentialsStored);
+    const list = withCreds.filter((p) => allowed.includes(p.tier));
     const keep = org.value;
-    put(org, h("option", { value: "" }, list.length ? "on the org…" : "no org of these tiers"), list.map((p) => h("option", { value: p.name, selected: p.name === keep ? true : null }, `${p.name} (${p.tier})`)));
+    put(org, h("option", { value: "" }, list.length ? "only in projects" : "no org of these tiers"), list.map((p) => h("option", { value: p.name, selected: p.name === keep ? true : null }, `${p.name} (${p.tier})`)));
+    put(noOrg, withCreds.length ? null : h("div", { class: "muted", style: "font-size:12.5px" }, "No org has OAuth credentials yet. ", h("button", { class: "btn sm", onclick: () => go("profiles") }, "Add them on the Orgs page")));
   };
   for (const [, b] of tiers) b.addEventListener("change", drawOrgs);
+  org.addEventListener("change", () => { if (org.value && !inCursor.checked && !inClaude?.checked) inCursor.checked = true; });
   drawOrgs();
+
   const err = h("div");
   const save = h("button", { class: "btn primary" }, "Add");
   save.addEventListener("click", async () => {
@@ -4328,8 +4380,8 @@ function catalogForm(msg, close) {
       env[l.slice(0, i).trim()] = l.slice(i + 1).trim();
     }
     const picked = tiers.filter(([, b]) => b.checked).map(([t]) => t);
-    const useIn = [inCursor.checked ? "cursor" : null, inClaude?.checked ? "claude-desktop" : null].filter(Boolean);
-    if (useIn.length && !org.value) { put(err, h("div", { class: "error" }, "Choose the org it works on in Cursor or the Claude app.")); return; }
+    const useIn = org.value ? [inCursor.checked ? "cursor" : null, inClaude?.checked ? "claude-desktop" : null].filter(Boolean) : [];
+    if (org.value && !useIn.length) { put(err, h("div", { class: "error" }, `Tick Cursor or the Claude app for ${org.value}, or choose "only in projects".`)); return; }
     if (picked.includes("production") && !confirm("Let this server work on production orgs?\n\nThe AI in a project on a production org can then change that org directly through it.")) return;
     const chosen = (state.overview?.profiles || []).find((p) => p.name === org.value);
     if (useIn.length && chosen?.tier === "production" && !confirm(`${chosen.name} is a PRODUCTION org. The AI in ${useIn.map((a) => APP_NAMES[a]).join(" and ")} can then change it directly through this server. Continue?`)) return;
@@ -4350,20 +4402,29 @@ function catalogForm(msg, close) {
     } catch (e) { put(err, h("div", { class: "error" }, e.message)); }
   });
   const cancel = h("button", { class: "btn", onclick: close }, "Cancel");
-  return h("div", { class: "dblock", style: "margin:4px 0 12px;padding:14px;border:1px solid var(--line);border-radius:10px;display:grid;gap:12px" },
-    h("strong", {}, "Add an MCP server"),
-    h("div", { class: "muted", style: "font-size:12.5px" }, "Never enter a secret here. Whenever the server starts, gctk puts the org it works on into the variables you name below: its OAuth client ID, secret and region from the Orgs page. In a project that is the project's org."),
-    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "What it does", f.description), h("label", {}, "Where it is published", f.source)),
+  const sub = (text) => h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:4px" }, text);
+  tech.append(h("div", { style: "display:grid;gap:12px;margin-top:10px" },
     h("div", { class: "grid", style: "grid-template-columns:minmax(0,1fr) minmax(0,2fr)" },
-      h("label", {}, "Command (a program on this computer, e.g. npx or uvx)", f.command), h("label", {}, "Arguments, one per line", f.args)),
+      h("label", {}, "Command (a program on this computer, e.g. npx, uvx or node)", f.command), h("label", {}, "Arguments, one per line", f.args)),
     h("div", { class: "grid" }, h("label", {}, "Variable for the client ID", f.clientIdVar), h("label", {}, "Variable for the secret", f.secretVar),
       h("label", {}, "Variable for the region (empty if none)", f.regionVar), h("label", {}, "Region format", f.regionFormat)),
-    h("label", {}, "Other settings, NAME=value per line (no secrets)", f.env),
-    h("div", {}, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:4px" }, "May work on these org tiers"),
-      h("div", { class: "row", style: "gap:14px" }, tiers.map(([t, b]) => h("label", { style: "display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--text)" }, b, t)))),
-    h("div", {}, h("div", { style: "font-size:12px;color:var(--muted);margin-bottom:4px" }, "Also use it outside projects (optional)"),
-      h("div", { class: "row", style: "gap:14px" }, cursorLabel, claudeLabel, org),
-      h("div", { class: "muted", style: "font-size:12px;margin-top:4px" }, "gctk adds it there with this org's credentials from the Orgs page, at every start. You can change the org later under Who works on which org.")),
+    h("label", {}, "Other settings, NAME=value per line (no secrets)", f.env)));
+  return h("div", { class: "dblock", style: "margin:4px 0 12px;padding:14px;border:1px solid var(--line);border-radius:10px;display:grid;gap:12px" },
+    h("strong", {}, "Add an MCP server"),
+    h("div", {}, sub("From GitHub (optional): gctk downloads the repository and fills in the form from its MCP config"),
+      h("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, ghUrl, ghBtn)),
+    ghOut,
+    h("div", { class: "grid" }, h("label", {}, "Name", f.name), h("label", {}, "What it does", f.description), h("label", {}, "Where it is published", f.source)),
+    tech,
+    h("div", { style: "display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:8px" },
+      h("strong", { style: "font-size:13.5px" }, "OAuth credentials"),
+      h("div", { class: "muted", style: "font-size:12.5px" }, "Never enter a secret here. Whenever the server starts, gctk gives it the OAuth client ID, secret and region of an org from the Orgs page. In a project that is the project's org."),
+      h("div", {}, sub("May work on these org tiers"),
+        h("div", { class: "row", style: "gap:14px" }, tiers.map(([t, b]) => h("label", { style: "display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--text)" }, b, t)))),
+      h("div", {}, sub("Outside projects, use the credentials of"),
+        h("div", { class: "row", style: "gap:14px" }, org, cursorLabel, claudeLabel),
+        noOrg,
+        h("div", { class: "muted", style: "font-size:12px;margin-top:4px" }, "You can change the org later under Who works on which org."))),
     err,
     h("div", { class: "row" }, save, cancel));
 }

@@ -218,7 +218,15 @@
   form also puts it into Cursor (`~/.cursor/mcp.json`) and/or the Claude app on a chosen org
   (`addCatalogToApp`: a plain entry, then `linkToOrg` with the catalog's variables; the signed launch
   record keeps `catalog`, `regionFormat` and `tiers`, so a later "Change org" and every start check
-  the tiers). An entry of the same name is never replaced. Statuses
+  the tiers). An entry of the same name is never replaced. From GitHub (`src/core/mcp-github.ts`, route
+  `POST /api/mcp-catalog/github {url}`): github.com links only; the tarball (`archive/HEAD.tar.gz`,
+  size and file limits, `..` and links skipped, exec bits kept) replaces `mcp-servers/<owner>__<repo>`
+  in the gctk home; `serversIn` reads `.claude-plugin`/`.cursor-plugin` `plugin.json` (`mcpServers`
+  path or inline, `userConfig`), then `.mcp.json`/`mcp.json`, skips remote servers, replaces
+  `${CLAUDE_PLUGIN_ROOT}` etc. with the folder and maps client ID / secret / region variables (name or
+  userConfig title) to the catalog keys. The page only pre-fills the form; adding goes through
+  `addCatalogServer` as before. No npm install, no skills; removing a catalog entry keeps the
+  download (projects and app entries may still start it). Statuses
   say what gctk checked: "Entry OK" is the config entry, "Credentials saved" on Orgs is the keychain
   (each org card shows the start of its client ID, `showClientId`; below the cards "OAuth clients not
   in gctk yet" lists servers whose OAuth client lives in a config file or a keychain entry of its own,

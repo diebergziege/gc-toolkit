@@ -34,6 +34,7 @@ import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, 
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { installAxlSkillZip } from "../core/axl-skills.js";
 import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
+import { readGithubRepo } from "../core/mcp-github.js";
 import { importDevOrgs, loadDevOrgs, removeDevOrgs } from "../core/partner-dev-orgs.js";
 import { appGctkJs, runningEdition, updateInstalledGctk } from "../core/install.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
@@ -310,6 +311,8 @@ route("POST", "/api/mcp-catalog", ({ body }) => {
   }
   return { catalog: loadCatalog(), added, failed };
 });
+// Downloads a GitHub repository into mcp-servers/ and returns its MCP servers as a filled-in form.
+route("POST", "/api/mcp-catalog/github", async ({ body }) => readGithubRepo(str(body, "url")));
 route("DELETE", "/api/mcp-catalog/:id", ({ params }) => (removeCatalogServer(params.id!), loadCatalog()));
 route("POST", "/api/axl/workshops", ({ body }) => {
   const w = saveWorkshop({ name: pickStr(body, "name"), profile: pickStr(body, "profile"), folder: pickStr(body, "folder"), ...projectFields(body) });

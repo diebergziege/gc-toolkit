@@ -83,7 +83,11 @@ everything. It needs internet access to nodejs.org and github.com.
   attention, then shows which org each MCP server works on (by app or by org) and the MCP servers available
   for projects, where **Add MCP server** adds your own (for example Architect: how it starts, which
   variables take the org's client ID, secret and region, which org tiers it may work on; never a secret),
-  optionally also into Cursor and the Claude app on an org you choose; every file and entry is under **More**. The Claude app shows only where it is installed. For Cursor: the MCP servers it loads in every folder (`~/.cursor/mcp.json` and Cursor
+  optionally also into Cursor and the Claude app with the OAuth credentials of an org from the Orgs page. Paste a
+  GitHub link (e.g. `https://github.com/MakingChatbots/genesys-cloud-plugins` for the Architect MCP) and press
+  **Read**: gctk downloads the repository, reads its MCP config (`.mcp.json`, `mcp.json` or a Claude Code or Cursor
+  plugin manifest) and fills in the form, so you only pick the org; no terminal or git needed. A repository that has
+  to be built first (npm install) is pointed out, not built; every file and entry is under **More**. The Claude app shows only where it is installed. For Cursor: the MCP servers it loads in every folder (`~/.cursor/mcp.json` and Cursor
   plugins), which gctk org each Genesys server's OAuth client belongs to, and whether it can start.
   The **Orgs** page is the one place for OAuth credentials: a server is linked to an org and takes
   client ID, secret and region from there at every start, so a rotated secret is entered once.
@@ -310,6 +314,8 @@ Open button; this is the overview:
 | `~/.config/gctk/demo-sources.json` | Demos, maintainers only: which org a demo's snapshot is read from, texts replaced in it |
 | `~/.config/gctk/demo-ready/` | Demo ready: every change it made, for Clean up |
 | `~/.config/gctk/axl.json`, `harness-starts.json` | Projects and AXL workshops: org, folder, tools; when Cursor last started them |
+| `~/.config/gctk/mcp-catalog.json` | MCP servers you added on AI Coding Tools (how they start, no secrets) |
+| `~/.config/gctk/mcp-servers/` | GitHub repositories Add MCP server downloaded (Read again to update) |
 | `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
 | `~/.config/gctk/partner-dev-orgs.json` | Partner: the dev org report you uploaded last (partner names, org IDs, part numbers, regions, dates) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |

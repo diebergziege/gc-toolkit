@@ -335,9 +335,9 @@ function removeFromClaudeApp(file: string): boolean {
 
 // ------------------------------------------------------------------ update
 
-/** Files of a tar archive (GitHub's tarballs: ustar with pax headers). */
-export function untar(buf: Buffer): Array<[string, Buffer]> {
-  const out: Array<[string, Buffer]> = [];
+/** Files of a tar archive (GitHub's tarballs: ustar with pax headers), with their mode. Links are left out. */
+export function untar(buf: Buffer): Array<[string, Buffer, number]> {
+  const out: Array<[string, Buffer, number]> = [];
   let off = 0;
   let longName: string | undefined;
   while (off + 512 <= buf.length) {
@@ -359,14 +359,14 @@ export function untar(buf: Buffer): Array<[string, Buffer]> {
       continue;
     }
     longName = undefined;
-    if (type === "0" || type === "7") out.push([name, Buffer.from(data)]);
+    if (type === "0" || type === "7") out.push([name, Buffer.from(data), parseInt(field(100, 8).trim() || "644", 8) & 0o777]);
   }
   return out;
 }
 
 /** gctk.js, version and demos from GitHub's tarball of gctk (the archive's top folder is dropped). */
 export function readGctkTarball(tgz: Buffer): { js: Buffer; version: string; demos: Array<[string, Buffer]> } {
-  let files: Array<[string, Buffer]>;
+  let files: Array<[string, Buffer, number]>;
   try {
     files = untar(zlib.gunzipSync(tgz));
   } catch {
