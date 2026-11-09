@@ -36,6 +36,7 @@ import { installAxlSkillZip } from "../core/axl-skills.js";
 import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
 import { readGithubRepo } from "../core/mcp-github.js";
 import { importDevOrgs, loadDevOrgs, removeDevOrgs } from "../core/partner-dev-orgs.js";
+import { addPartnerGroup, loadPartnerGroups, removePartnerGroup, updatePartnerGroup } from "../core/partner-groups.js";
 import { appGctkJs, runningEdition, updateInstalledGctk } from "../core/install.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
@@ -498,6 +499,10 @@ route("POST", "/api/partner/dev-orgs", ({ body }) => {
   return { devOrgs: importDevOrgs(Buffer.from(data, "base64"), pickStr(body, "name")) };
 });
 route("DELETE", "/api/partner/dev-orgs", () => ({ removed: removeDevOrgs(), devOrgs: null }));
+route("GET", "/api/partner/groups", () => ({ groups: loadPartnerGroups() }));
+route("POST", "/api/partner/groups", ({ body }) => ({ group: addPartnerGroup(body), groups: loadPartnerGroups() }));
+route("PUT", "/api/partner/groups/:id", ({ params, body }) => ({ group: updatePartnerGroup(params.id!, body), groups: loadPartnerGroups() }));
+route("DELETE", "/api/partner/groups/:id", ({ params }) => (removePartnerGroup(params.id!), { groups: loadPartnerGroups() }));
 
 // Your data: where gctk keeps what (paths, sizes, keychain entries by name).
 route("GET", "/api/data", () => dataInfo());

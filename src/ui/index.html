@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>gctk · Genesys Cloud Toolkit</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff4f1f'/%3E%3Cstop offset='1' stop-color='%23ff9a3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='46' text-anchor='middle' font-family='-apple-system,Segoe UI,Helvetica,Arial,sans-serif' font-size='42' font-weight='800' fill='%23fff'%3Eg%3C/text%3E%3C/svg%3E">
 <style nonce="__NONCE__">
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #e2e6ec;
@@ -3390,11 +3391,77 @@ async function viewDevOrgs(pageTop) {
     h("span", { class: "spacer" }),
     choose("Upload newer report…"), remove, picker);
 
-  const orgs = data.orgs;
+  // Partner groups: the overview for only the partners of one group.
+  if (state.partnerGroups === undefined) state.partnerGroups = (await api("/api/partner/groups")).groups;
+  const allGroups = state.partnerGroups;
+  const group = allGroups.find((g) => g.id === state.devGroup);
+  const lower = (n) => n.toLowerCase();
+  const inGroup = group ? new Set(group.partners.map(lower)) : null;
+  const partners = inGroup ? data.partners.filter((p) => inGroup.has(lower(p.name))) : data.partners;
+  const orgs = inGroup ? data.orgs.filter((o) => inGroup.has(lower(o.partner))) : data.orgs;
+  const inReport = new Map(data.partners.map((p) => [lower(p.name), p]));
+  const absent = group ? group.partners.filter((n) => !inReport.has(lower(n))) : [];
+  const editBox = h("div");
+  const openEditor = (g) => {
+    const name = h("input", { value: g?.name || "", placeholder: "e.g. DACH partners", "aria-label": "Group name" });
+    const chosen = new Map((g?.partners || []).map((n) => [lower(n), n]));
+    const names = [...new Map([...data.partners.map((p) => p.name), ...(g?.partners || [])].map((n) => [lower(n), n])).values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    const find = h("input", { type: "search", placeholder: "Find partners", "aria-label": "Find partners", style: "min-width:220px" });
+    const counter = h("span", { class: "muted", style: "font-size:12.5px" });
+    const recount = () => { counter.textContent = `${chosen.size} chosen`; };
+    const rows = names.map((n) => {
+      const b = h("input", { type: "checkbox", checked: chosen.has(lower(n)) ? true : null, style: "width:auto" });
+      b.addEventListener("change", () => { b.checked ? chosen.set(lower(n), n) : chosen.delete(lower(n)); recount(); });
+      const p = inReport.get(lower(n));
+      const row = h("label", { style: "display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--text);padding:3px 0" }, b, n,
+        p ? h("span", { class: `status ${DEV_STATUS[p.status][1]}` }, DEV_STATUS[p.status][0]) : h("span", { class: "muted", style: "font-size:12px" }, "not in this report"));
+      return { row, b, text: lower(n) };
+    });
+    find.addEventListener("input", () => { const q = lower(find.value.trim()); for (const r of rows) r.row.hidden = Boolean(q) && !r.text.includes(q); });
+    const pickShown = h("button", { class: "btn sm", onclick: () => { for (const r of rows) if (!r.row.hidden && !r.b.checked) { r.b.checked = true; r.b.dispatchEvent(new Event("change")); } } }, "Choose all shown");
+    const clear = h("button", { class: "btn sm", onclick: () => { for (const r of rows) if (r.b.checked) { r.b.checked = false; r.b.dispatchEvent(new Event("change")); } } }, "Clear");
+    const err = h("div");
+    const save = h("button", { class: "btn primary" }, g ? "Save group" : "Create group");
+    save.addEventListener("click", async () => {
+      try {
+        const body = { name: name.value, partners: [...chosen.values()] };
+        const r = await api(g ? `/api/partner/groups/${encodeURIComponent(g.id)}` : "/api/partner/groups", { method: g ? "PUT" : "POST", body });
+        state.partnerGroups = r.groups;
+        state.devGroup = r.group.id;
+        render();
+      } catch (e) { put(err, h("div", { class: "error" }, e.message)); }
+    });
+    recount();
+    put(editBox, h("div", { class: "dblock", style: "margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;display:grid;gap:10px" },
+      h("strong", {}, g ? `Edit ${g.name}` : "New group of partners"),
+      h("label", { style: "max-width:360px" }, "Name", name),
+      h("div", { class: "row", style: "gap:8px" }, find, pickShown, clear, h("span", { class: "spacer" }), counter),
+      h("div", { style: "max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px" }, rows.map((r) => r.row)),
+      err,
+      h("div", { class: "row" }, save, h("button", { class: "btn", onclick: () => put(editBox) }, "Cancel"))));
+    name.focus();
+  };
+  const delGroup = group ? h("button", { class: "btn sm danger", onclick: async () => {
+    if (!confirm(`Delete the group ${group.name}? The report and the partners stay.`)) return;
+    try { state.partnerGroups = (await api(`/api/partner/groups/${encodeURIComponent(group.id)}`, { method: "DELETE" })).groups; state.devGroup = ""; render(); } catch (err) { showError(err); }
+  } }, icon("trash"), "Delete group") : null;
+  const groupBar = h("div", { class: "panel" },
+    h("div", { class: "row", style: "gap:10px" },
+      h("strong", {}, "Show"),
+      h("div", { class: "seg", style: "flex-wrap:wrap" }, [["", `All partners (${data.partners.length})`], ...allGroups.map((g) => [g.id, `${g.name} (${g.partners.length})`])].map(([id, label]) =>
+        h("button", { "aria-pressed": String((group?.id || "") === id), onclick: () => { state.devGroup = id; render(); } }, label))),
+      h("span", { class: "spacer" }),
+      group ? h("button", { class: "btn sm", onclick: () => openEditor(group) }, "Edit group") : null,
+      delGroup,
+      h("button", { class: "btn sm", onclick: () => openEditor(null) }, icon("plus"), "New group")),
+    allGroups.length ? null : h("div", { class: "muted", style: "font-size:12.5px;margin-top:6px" }, "Make a group of the partners you look after, e.g. one territory, to see the overview for just them."),
+    absent.length ? h("div", { class: "warn", style: "font-size:13px" }, `Not in this report: ${absent.join(", ")}`) : null,
+    editBox);
+
   const cx4 = orgs.filter((o) => o.generation === "cx4").length;
-  const count = (s) => data.partners.filter((p) => p.status === s).length;
+  const count = (s) => partners.filter((p) => p.status === s).length;
   const tiles = h("div", { class: "tiles" },
-    tile("Dev orgs", orgs.length, `of ${data.partners.length} partners`),
+    tile("Dev orgs", orgs.length, `of ${partners.length} partners${group ? ` in ${group.name}` : ""}`),
     tile("On CX4", cx4, `${devPct(cx4, orgs.length)} % of the dev orgs`, "good"),
     tile("Still on CX3", orgs.length - cx4, `${devPct(orgs.length - cx4, orgs.length)} % of the dev orgs`, orgs.length - cx4 ? "bad" : ""),
     tile("Partners fully on CX4", count("upgraded"), `${count("partly")} more partly (some orgs on CX4)`, "good"),
@@ -3406,7 +3473,7 @@ async function viewDevOrgs(pageTop) {
   for (const o of orgs) byPartner.set(o.partner, [...(byPartner.get(o.partner) || []), o]);
   const filter = h("input", { type: "search", placeholder: "Filter by partner, org ID or region", "aria-label": "Filter partners", style: "min-width:260px", value: state.devFilter || "" });
   const which = state.devStatus || "all";
-  const seg = h("div", { class: "seg" }, [["all", `All (${data.partners.length})`], ["cx3", `Still on CX3 (${count("cx3")})`], ["partly", `Partly (${count("partly")})`], ["upgraded", `All on CX4 (${count("upgraded")})`]].map(([v, label]) =>
+  const seg = h("div", { class: "seg" }, [["all", `All (${partners.length})`], ["cx3", `Still on CX3 (${count("cx3")})`], ["partly", `Partly (${count("partly")})`], ["upgraded", `All on CX4 (${count("upgraded")})`]].map(([v, label]) =>
     h("button", { "aria-pressed": String(which === v), onclick: () => { state.devStatus = v; render(); } }, label)));
   const orgRow = (o) => h("tr", { class: "dev-org" },
     h("td", { style: "padding-left:28px" }, h("span", { class: "mono", style: "font-size:12px" }, o.orgId)),
@@ -3414,7 +3481,7 @@ async function viewDevOrgs(pageTop) {
     h("td", { colspan: 2, style: "font-size:12.5px" }, o.products.join(", "), h("div", { class: "muted mono", style: "font-size:11.5px" }, o.parts.join(", "))),
     h("td", { style: "font-size:12.5px;white-space:nowrap" }, o.region || "", h("div", { style: "font-size:12px" }, devTerm(o))));
   const rank = { cx3: 0, partly: 1, upgraded: 2 };
-  const sorted = data.partners.slice().sort((a, b) => rank[a.status] - rank[b.status] || b.orgs - a.orgs || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  const sorted = partners.slice().sort((a, b) => rank[a.status] - rank[b.status] || b.orgs - a.orgs || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   const groups = sorted.map((p) => {
     const list = byPartner.get(p.name) || [];
     const [label, cls] = DEV_STATUS[p.status];
@@ -3463,7 +3530,7 @@ async function viewDevOrgs(pageTop) {
   const regionRows = [...regions.entries()].sort((a, b) => (b[1].cx4 + b[1].cx3) - (a[1].cx4 + a[1].cx3)).map(([name, r]) =>
     h("div", { class: "gap-row", style: "grid-template-columns:minmax(160px, 260px) minmax(0, 1fr) 130px" }, h("span", {}, name), devStack(r.cx4, r.cx3), h("span", { class: "muted", style: "text-align:right;white-space:nowrap" }, `${r.cx4} of ${r.cx4 + r.cx3} on CX4`)));
 
-  return h("div", {}, head, bar, msg, tiles,
+  return h("div", {}, head, bar, msg, groupBar, tiles,
     h("div", { class: "panel" },
       h("div", { class: "row", style: "margin-bottom:8px" }, h("h3", { style: "margin:0" }, "Partners"), shown, h("span", { class: "spacer" }), seg, filter),
       h("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px" }, "Partners still on CX3 first. The bar shows a partner's dev orgs: green on CX4, amber on CX3. Click a partner to see each org with its part numbers and subscription."),

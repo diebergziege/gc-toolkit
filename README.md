@@ -144,7 +144,8 @@ everything. It needs internet access to nodejs.org and github.com.
   channels, AI, agent and supervisor, and platform. **Dev orgs: CX3 → CX4**: upload the report of all
   partner DEV/LAB orgs (CSV or Excel) and see which partners already run on CX4 (GC4 Dev/Lab: part
   numbers GC-170-DEV-LABBUC, -LABBUP, -LABBUV) and who is still on CX3, partner by partner, org by
-  org and by region. The files stay on this computer. Also on its own as
+  org and by region; make groups of partners (e.g. your territory) to see the overview for just
+  them. The files stay on this computer. Also on its own as
   [gctk Partner](#for-partner-managers-gctk-partner)
 - **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
   link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
@@ -172,6 +173,9 @@ Start menu (Windows).
 The tab **Dev orgs: CX3 → CX4** works the same way with the report of all partner dev orgs (the
 CSV or Excel export with Account Name, Part Number and Org ID): it shows who has upgraded to CX4
 (GC4 Dev/Lab), who partly, and who is still on CX3. Upload a newer report to see the latest state.
+**New group** collects the partners you care about (find them by name and tick them); choose the
+group under **Show** and the figures, the partner list and the regions cover only those partners.
+Groups stay when you upload a newer report.
 
 The files stay on your computer (`~/.config/gctk/partner-radar.json`, `partner-dev-orgs.json`)
 until you remove them. Installing the full gctk later (the other download, or
@@ -318,6 +322,7 @@ Open button; this is the overview:
 | `~/.config/gctk/mcp-servers/` | GitHub repositories Add MCP server downloaded (Read again to update) |
 | `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
 | `~/.config/gctk/partner-dev-orgs.json` | Partner: the dev org report you uploaded last (partner names, org IDs, part numbers, regions, dates) |
+| `~/.config/gctk/partner-groups.json` | Partner: your partner groups on the Dev orgs tab (names and partner names) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
 | `~/.config/gctk/app/`, `install.json` | gctk as `gctk install` put it here, and what it added outside this folder (command, app, Claude app entry) |
 | `~/.config/gctk/node/` | the Node.js the [download](#download) brought along, which runs gctk |

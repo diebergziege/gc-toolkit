@@ -67,6 +67,7 @@ const HOME_PLACES: Array<[string, string, string]> = [
   ["partner-radar.json", "Partner: Enablement Radar", "The partner survey you uploaded last: partner names, their contacts' email addresses and every answer. Remove on the Partner page deletes it."],
   ["mcp-catalog.json", "MCP servers you added", "The MCP servers you added on the AI Coding Tools page: how each starts and which variables take the org's credentials (no secrets)."],
   ["mcp-servers", "MCP servers from GitHub", "The GitHub repositories Add MCP server downloaded; the servers you added from them start from here. Reading the link again replaces a download."],
+  ["partner-groups.json", "Partner: your partner groups", "The groups of partners you made on the Dev orgs tab (a name and partner names); a newer report keeps them."],
   ["harness-starts.json", "AXL: harness starts", "When Cursor last started a workshop's AVA harness."],
   ["app", "gctk, installed", "gctk and its demos as `gctk install` put them here (for use without Cursor); the top bar's Update gctk replaces them."],
   ["partner-dev-orgs.json", "Partner: dev orgs", "The dev org report you uploaded last on the Partner page (partner names, org IDs, part numbers, regions, dates)."],
