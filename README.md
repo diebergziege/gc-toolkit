@@ -5,6 +5,54 @@ non-technical users. It runs on your computer, opens from Cursor, Claude Code, t
 its own app icon, and needs no AI itself. You do not need Cursor: see
 [Without Cursor](#without-cursor-install-gctk-on-your-computer).
 
+## Download
+
+Download the file for your computer, double-click it, and gctk installs itself, Node.js included.
+Nothing to install first, no admin rights, no terminal.
+
+**gctk** (every page):
+
+[![Download for Mac](https://img.shields.io/badge/Download-Mac-ff4f1f?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-mac.zip)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows-ff4f1f?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-windows.zip)
+
+**gctk Partner** (only the [Partner page](#for-partner-managers-gctk-partner), for partner managers):
+
+[![Download gctk Partner for Mac](https://img.shields.io/badge/gctk_Partner-Mac-2a60c8?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-partner-mac.zip)
+[![Download gctk Partner for Windows](https://img.shields.io/badge/gctk_Partner-Windows-2a60c8?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-partner-windows.zip)
+
+**Mac**
+
+1. Click the Mac button. Your browser downloads the file and unpacks it in **Downloads**
+   (if it does not, double-click the zip there).
+2. Double-click **Install gctk** (or **Install gctk Partner**) in Downloads.
+3. The Mac does not know the installer yet and says it cannot verify it. Click **Done**, open
+   **System Settings → Privacy & Security**, scroll down to the message about the installer and click
+   **Open Anyway**, enter your password, then **Open**. (On older macOS: right-click the file →
+   **Open** → **Open**.) You only do this once.
+4. A Terminal window shows the progress for a minute or two, then gctk opens in your browser. Close
+   the window. From now on, open **gctk** (or **gctk Partner**) from Launchpad or Spotlight.
+
+Rather paste one line? Open **Terminal** and run
+`curl -fsSL https://github.com/diebergziege/gc-toolkit/releases/latest/download/install.sh | sh`
+(add ` -s -- --partner` for gctk Partner). This skips step 3.
+
+**Windows**
+
+1. Click the Windows button and open the downloaded zip.
+2. Double-click **Install gctk** (or **Install gctk Partner**) in it.
+3. If Windows says *Windows protected your PC*, click **More info → Run anyway**.
+4. A window shows the progress for a minute or two, then gctk opens in your browser. Press a key to
+   close the window. From now on, open **gctk** (or **gctk Partner**) from the Start menu or the
+   Desktop.
+
+On Windows, gctk cannot keep org credentials yet (it has no Windows keychain), so the pages that
+work on an org need a Mac for now; gctk Partner needs no org and works fully.
+
+The installer puts its own Node.js into `~/.config/gctk/node/` (whatever Node.js the computer has
+stays untouched), then installs gctk as [Without Cursor](#without-cursor-install-gctk-on-your-computer)
+describes. Updates come with one click in gctk's top bar; running the installer again repairs
+everything. It needs internet access to nodejs.org and github.com.
+
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
   straight into the OS keychain, never into a file or the chat. Each org shows the start of its
   OAuth client ID (never the secret); **OAuth clients not in gctk yet** lists the MCP servers that bring
@@ -68,7 +116,8 @@ its own app icon, and needs no AI itself. You do not need Cursor: see
 - **Partner**: the **Enablement Radar**. Upload the Excel export of the Genesys Partner Demo Org
   Readiness Checklist (Microsoft Forms) and compare all partners at a glance, see which topics most
   partners need help with, or pick a partner and read every answer with its notes, grouped by
-  channels, AI, agent and supervisor, and platform. The file stays on this computer
+  channels, AI, agent and supervisor, and platform. The file stays on this computer. Also on its
+  own as [gctk Partner](#for-partner-managers-gctk-partner)
 - **Pricing**: Genesys Cloud licences, add-ons, fair use and AI Experience tokens explained, with a
   link to Genesys' own page for every figure; use cases that combine them; a monthly cost calculator
   at list price; and **Live billing**, an org's real licences, token use per AI feature and fair use
@@ -80,9 +129,28 @@ The plugin adds one MCP server with three tools, so the AI in your editor can op
 the setup: `gc_ui`, `gc_ai_setup` and `gc_axl`. It brings no skills and no hooks, and it gives the AI
 no tools to read or change a Genesys Cloud org.
 
+## For partner managers: gctk Partner
+
+gctk Partner is gctk with only the Partner page: the Enablement Radar, without orgs, demos or AI
+tools. It needs no Genesys Cloud org and no OAuth client. Install it with the
+[gctk Partner download](#download); it shows up as **gctk Partner** in Launchpad (Mac) or the
+Start menu (Windows).
+
+1. Export the survey: in Microsoft Forms, open the Genesys Partner Demo Org Readiness Checklist →
+   **Responses → Open results in Excel**, and save the file.
+2. Open **gctk Partner** and drop the Excel file on the page (or **Choose Excel file…**).
+3. Compare all partners, see which topics most need help, or pick one partner to read their answers.
+
+The file and its answers stay on your computer (`~/.config/gctk/partner-radar.json`) until you
+remove them. Installing the full gctk later (the other download, or
+`gctk install --edition full`) turns gctk Partner into gctk; the survey stays.
+
 ## Install
 
-You need **Node.js 22 or newer**. If `node --version` in a terminal says nothing or an older
+The [downloads](#download) above are the easiest way. The ways below are for Cursor, Claude Code,
+or a terminal.
+
+You need **Node.js 22 or newer** for them. If `node --version` in a terminal says nothing or an older
 version, install the LTS version from [nodejs.org](https://nodejs.org) (the normal installer for Mac
 or Windows; it brings `npx` along). Nothing else: no git, no clone, no build.
 
@@ -92,7 +160,7 @@ Pick the way that fits you:
 |---|---|
 | Cursor | [one click](#cursor-one-click) or [the plugin](#cursor-as-a-plugin) |
 | Claude Code | [the plugin](#claude-code-terminal) |
-| No Cursor (the Claude app, or nothing) | [one command, then an app to click](#without-cursor-install-gctk-on-your-computer) |
+| No Cursor (the Claude app, or nothing) | [the download](#download), or [one command, then an app to click](#without-cursor-install-gctk-on-your-computer) |
 
 ### Cursor: one click
 
@@ -172,6 +240,8 @@ opens it in your browser; nothing else needs a terminal after this.
   credentials are in the keychain under `gctk`.
 - Install with `--no-claude-app` to leave the Claude app alone. Running `install` again repairs
   everything (for example after a new Node.js version).
+- `--edition partner` installs [gctk Partner](#for-partner-managers-gctk-partner) instead (the app
+  **gctk Partner**, only the Partner page, nothing in the Claude app); `--edition full` switches back.
 
 Only want to try it once, without installing anything? Run the same link with `ui` instead of
 `install`.
@@ -215,6 +285,7 @@ Open button; this is the overview:
 | `~/.config/gctk/partner-radar.json` | Partner: the survey you uploaded last (partner names, contacts' email addresses, answers) |
 | `~/.config/gctk/claude-app-skills/` | Claude app: the skill zips you upload in the app, and which version of each was zipped |
 | `~/.config/gctk/app/`, `install.json` | gctk as `gctk install` put it here, and what it added outside this folder (command, app, Claude app entry) |
+| `~/.config/gctk/node/` | the Node.js the [download](#download) brought along, which runs gctk |
 | `~/.config/gctk/bin/` | a copy of gctk that the editor entries gctk writes start (survives plugin updates) |
 | `~/.config/gctk/cache/` | website logos, staged schedule uploads (safe to delete) |
 | OS keychain, service `gctk` | org client IDs and secrets, AI setup secrets, the signing key, the UI token |
@@ -248,7 +319,7 @@ Open button; this is the overview:
 | Command | Purpose |
 |---|---|
 | `gctk ui [page] [--port <n>] [--no-open] [--stop] [--foreground]` | the local UI (background by default); pages: `profiles`, `ai-setup` (AI Coding Tools; `claude-app` opens it too), `demos`, `site`, `demo`, `axl`, `partner`, `pricing`, `monitoring`, `data` |
-| `gctk install [--no-claude-app] [--no-open]` | install gctk for use without Cursor: a `gctk` command, an app to click, gctk in the Claude app |
+| `gctk install [--edition full\|partner] [--no-claude-app] [--no-open]` | install gctk for use without Cursor: a `gctk` command, an app to click, gctk in the Claude app (`partner`: gctk Partner) |
 | `gctk update` / `gctk uninstall` | update that install from GitHub / remove what it added (orgs and settings stay) |
 | `gctk profile add/list/show/use/remove` | manage orgs from a terminal |
 | `gctk login [profile]` / `logout` | store or delete an org's credentials in the keychain (`--from-env` for CI) |
@@ -267,6 +338,7 @@ Global option: `-p, --profile <name>`.
 | `.claude-plugin/`, `.mcp.json` | Claude Code plugin: manifest, MCP server |
 | `.cursor-plugin/`, `mcp.json` | Cursor plugin: manifest, MCP server |
 | `dist/gctk.js` | bundled CLI + server + UI; **committed**, because plugin installs do not run `npm install` |
+| `installer/`, `scripts/installers.mjs` | the downloads: install scripts that bring Node.js; the workflow `installers.yml` publishes them as the GitHub release |
 
 ## Development
 

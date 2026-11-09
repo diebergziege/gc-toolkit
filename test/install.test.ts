@@ -4,7 +4,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { dataInfo } from "../src/core/data-info.js";
-import { appDir, appGctkJs, installGctk, loadInstallRecord, readGctkTarball, uninstallGctk, untar, updateInstalledGctk } from "../src/core/install.js";
+import { appDir, appGctkJs, installGctk, loadInstallRecord, privateNodeDir, readGctkTarball, runningEdition, uninstallGctk, untar, updateInstalledGctk } from "../src/core/install.js";
 import { gctkInstall } from "../src/core/updates.js";
 
 let tmp: string;
@@ -108,6 +108,68 @@ describe("gctk install", () => {
     const failed = installGctk({ ...source(), version: "1.0.0", node: "n", home, platform: "win32", env, claudeApp: false, run: () => ({ code: 1, output: "blocked by policy" }) });
     expect(failed.launcher).toBeUndefined();
     expect(failed.notes[0]).toMatch(/blocked by policy/);
+  });
+});
+
+describe("gctk Partner (--edition partner)", () => {
+  const env = { PATH: "/usr/bin", SHELL: "/bin/zsh" };
+
+  it("macOS: an app gctk Partner that opens the Partner page, no Claude app entry", () => {
+    fs.mkdirSync(path.dirname(claudeConfig), { recursive: true });
+    fs.writeFileSync(claudeConfig, "{}");
+    const r = installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "darwin", env, edition: "partner" });
+    const bundle = path.join(home, "Applications", "gctk Partner.app");
+    expect(r.launcher).toBe(bundle);
+    expect(fs.readFileSync(path.join(bundle, "Contents", "MacOS", "gctk"), "utf8")).toMatch(/' ui partner\n$/);
+    expect(fs.readFileSync(path.join(bundle, "Contents", "Info.plist"), "utf8")).toContain("<string>com.github.diebergziege.gctk.partner</string>");
+    expect(r.claudeApp).toBe("skipped");
+    expect(JSON.parse(fs.readFileSync(claudeConfig, "utf8"))).toEqual({});
+    expect(loadInstallRecord()?.edition).toBe("partner");
+    expect(runningEdition(appGctkJs())).toBe("partner");
+    expect(runningEdition(source().from)).toBe("full");
+    expect(runningEdition(undefined)).toBe("full");
+  });
+
+  it("switching the edition replaces the app and drops the Claude app entry", () => {
+    fs.mkdirSync(path.dirname(claudeConfig), { recursive: true });
+    fs.writeFileSync(claudeConfig, "{}");
+    installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "darwin", env });
+    const full = path.join(home, "Applications", "gctk.app");
+    const partner = path.join(home, "Applications", "gctk Partner.app");
+    expect(JSON.parse(fs.readFileSync(claudeConfig, "utf8")).mcpServers.gctk).toBeDefined();
+
+    installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "darwin", env, edition: "partner" });
+    expect(fs.existsSync(full)).toBe(false);
+    expect(fs.existsSync(partner)).toBe(true);
+    expect(JSON.parse(fs.readFileSync(claudeConfig, "utf8")).mcpServers.gctk).toBeUndefined();
+    expect(loadInstallRecord()?.claudeApp).toBeUndefined();
+
+    installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "darwin", env, edition: "full" });
+    expect(fs.existsSync(partner)).toBe(false);
+    expect(fs.existsSync(full)).toBe(true);
+    expect(runningEdition(appGctkJs())).toBe("full");
+  });
+
+  it("Windows and Linux: shortcuts and menu entry named gctk Partner", () => {
+    const calls: string[][] = [];
+    const winEnv = { LOCALAPPDATA: path.join(home, "Local"), APPDATA: path.join(home, "Roaming"), USERPROFILE: home };
+    installGctk({ ...source(), version: "1.0.0", node: "node.exe", home, platform: "win32", env: winEnv, edition: "partner", run: (c, a) => (calls.push([c, ...a]), { code: 0, output: "" }) });
+    const script = calls[0]!.at(-1)!;
+    expect(script).toContain(path.join(home, "Desktop", "gctk Partner.lnk"));
+    expect(script).toContain(`$s.Arguments = '"${appGctkJs()}" ui partner'`);
+
+    installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "linux", env: { PATH: "" }, edition: "partner" });
+    const desktop = fs.readFileSync(path.join(home, ".local", "share", "applications", "gctk-partner.desktop"), "utf8");
+    expect(desktop).toContain("Name=gctk Partner");
+    expect(desktop).toMatch(/ ui partner\n/);
+  });
+
+  it("uninstall removes the Node.js the download brought", () => {
+    installGctk({ ...source(), version: "1.0.0", node: "/n", home, platform: "linux", env: { PATH: "" }, edition: "partner" });
+    fs.mkdirSync(path.join(privateNodeDir(), "bin"), { recursive: true });
+    fs.writeFileSync(path.join(privateNodeDir(), "bin", "node"), "");
+    expect(uninstallGctk()).toContain(privateNodeDir());
+    expect(fs.existsSync(privateNodeDir())).toBe(false);
   });
 });
 

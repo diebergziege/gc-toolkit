@@ -15,16 +15,25 @@ import { olderVersion } from "./stable-gctk.js";
  * Windows Start menu and Desktop shortcuts, Linux menu entry) and, where the Claude app is installed,
  * the gctk MCP server in its config. install.json in the gctk home lists everything written outside
  * the gctk home, so `gctk uninstall` removes exactly that. The top bar updates app/ from GitHub.
+ * The Partner edition (decision 2026-11-09, for partner managers) is the same install with an app
+ * "gctk Partner" whose UI shows only the Partner page, and no Claude app entry.
  */
+
+export const EDITIONS = ["full", "partner"] as const;
+export type Edition = (typeof EDITIONS)[number];
 
 export const appDir = () => path.join(gctkHome(), "app");
 export const appGctkJs = () => path.join(appDir(), "dist", "gctk.js");
+/** The Node.js the downloadable installers bring along (installer/), used when no other one is there. */
+export const privateNodeDir = () => path.join(gctkHome(), "node");
 const recordFile = () => path.join(gctkHome(), "install.json");
 
 export interface InstallRecord {
   version: string;
   node: string;
   installedAt: string;
+  /** Missing in records before 0.39: full. */
+  edition?: Edition;
   /** Files gctk wrote outside the gctk home (command, launchers). */
   files: string[];
   /** The shell startup file that got gctk's command folder on the PATH. */
@@ -42,6 +51,7 @@ export interface InstallOptions {
   /** The demos folder that ships with it. */
   demos?: string;
   node?: string;
+  edition?: Edition;
   home?: string;
   platform?: NodeJS.Platform;
   env?: NodeJS.ProcessEnv;
@@ -67,6 +77,25 @@ export function loadInstallRecord(): InstallRecord | undefined {
     return undefined;
   }
 }
+
+/** Partner only when the running gctk is the installed copy of the Partner edition; Cursor's or the plugin's gctk is always full. */
+export function runningEdition(js: string | undefined): Edition {
+  if (!js) return "full";
+  const real = (p: string) => {
+    try {
+      return fs.realpathSync(p);
+    } catch {
+      return path.resolve(p);
+    }
+  };
+  return real(js) === real(appGctkJs()) && loadInstallRecord()?.edition === "partner" ? "partner" : "full";
+}
+
+/** What the app to click is called, and the page it opens. */
+const launcherOf = (edition: Edition) =>
+  edition === "partner"
+    ? { name: "gctk Partner", file: "gctk-partner", display: "gctk Partner · Enablement Radar", id: "com.github.diebergziege.gctk.partner", args: "ui partner" }
+    : { name: "gctk", file: "gctk", display: "gctk · Genesys Cloud Toolkit", id: "com.github.diebergziege.gctk", args: "ui" };
 
 /** Puts gctk.js, the demos and a package.json (ES module) into app/, replacing the folder whole. */
 function writeApp(files: { js: Buffer; version: string; demos?: Array<[string, Buffer]> | string }): void {
@@ -157,6 +186,9 @@ export function installGctk(o: InstallOptions): InstallResult {
   const platform = o.platform ?? process.platform;
   const env = o.env ?? process.env;
   const node = o.node ?? process.execPath;
+  const edition = o.edition ?? "full";
+  const launch = launcherOf(edition);
+  const previous = loadInstallRecord();
   const files: string[] = [];
   const notes: string[] = [];
   // npx keeps the first download of a link, so a later install may run an older gctk than the updated app/.
@@ -171,7 +203,7 @@ export function installGctk(o: InstallOptions): InstallResult {
   else if (path.resolve(o.from) !== path.resolve(appGctkJs())) writeApp({ js: fs.readFileSync(o.from), version: o.version, demos: o.demos });
   const js = appGctkJs();
   const result: InstallResult = { app: appDir(), command: "", claudeApp: "skipped", notes };
-  const record: InstallRecord = { version: keep ? have! : o.version, node, installedAt: new Date().toISOString(), files };
+  const record: InstallRecord = { version: keep ? have! : o.version, node, installedAt: new Date().toISOString(), edition, files };
 
   if (platform === "win32") {
     const local = env.LOCALAPPDATA ?? path.join(home, "AppData", "Local");
@@ -181,20 +213,20 @@ export function installGctk(o: InstallOptions): InstallResult {
     files.push(cmd);
     result.command = cmd;
     const roaming = env.APPDATA ?? path.join(home, "AppData", "Roaming");
-    const links = [path.join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "gctk.lnk"), path.join(env.USERPROFILE ?? home, "Desktop", "gctk.lnk")];
+    const links = [path.join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", `${launch.name}.lnk`), path.join(env.USERPROFILE ?? home, "Desktop", `${launch.name}.lnk`)];
     const script = [
       `$p = [Environment]::GetEnvironmentVariable('Path', 'User'); if (-not $p) { $p = '' }`,
       `if (($p -split ';') -notcontains ${psQuote(bin)}) { [Environment]::SetEnvironmentVariable('Path', ($p.TrimEnd(';') + ';' + ${psQuote(bin)}).TrimStart(';'), 'User') }`,
       `$w = New-Object -ComObject WScript.Shell`,
-      ...links.map((l) => `if (Test-Path ${psQuote(path.dirname(l))}) { $s = $w.CreateShortcut(${psQuote(l)}); $s.TargetPath = ${psQuote(node)}; $s.Arguments = ${psQuote(`"${js}" ui`)}; $s.WindowStyle = 7; $s.Description = 'Genesys Cloud Toolkit'; $s.Save() }`),
+      ...links.map((l) => `if (Test-Path ${psQuote(path.dirname(l))}) { $s = $w.CreateShortcut(${psQuote(l)}); $s.TargetPath = ${psQuote(node)}; $s.Arguments = ${psQuote(`"${js}" ${launch.args}`)}; $s.WindowStyle = 7; $s.Description = ${psQuote(launch.display)}; $s.Save() }`),
     ].join("; ");
     const r = (o.run ?? runPowerShell)("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]);
-    if (r.code !== 0) notes.push(`Windows did not take the shortcuts and the PATH entry (${r.output.trim().split(/\r?\n/).pop()}). Start gctk with ${cmd} ui instead.`);
+    if (r.code !== 0) notes.push(`Windows did not take the shortcuts and the PATH entry (${r.output.trim().split(/\r?\n/).pop()}). Start gctk with ${cmd} ${launch.args} instead.`);
     else {
       files.push(...links);
       record.winPath = bin;
       result.launcher = links[0];
-      notes.push("Open a new terminal for the gctk command; the Start menu and the Desktop have gctk now.");
+      notes.push(`Open a new terminal for the gctk command; the Start menu and the Desktop have ${launch.name} now.`);
     }
   } else {
     const bin = path.join(home, ".local", "bin");
@@ -212,16 +244,16 @@ export function installGctk(o: InstallOptions): InstallResult {
       notes.push(`Added ${bin} to the PATH in ${rc}; open a new terminal for the gctk command.`);
     }
     if (platform === "darwin") {
-      const appBundle = path.join(home, "Applications", "gctk.app");
+      const appBundle = path.join(home, "Applications", `${launch.name}.app`);
       fs.rmSync(appBundle, { recursive: true, force: true });
-      write(path.join(appBundle, "Contents", "MacOS", "gctk"), shScript(node, js, "ui", env), 0o755);
+      write(path.join(appBundle, "Contents", "MacOS", "gctk"), shScript(node, js, launch.args, env), 0o755);
       write(path.join(appBundle, "Contents", "Info.plist"), [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
         '<plist version="1.0"><dict>',
-        "<key>CFBundleName</key><string>gctk</string>",
-        "<key>CFBundleDisplayName</key><string>gctk · Genesys Cloud Toolkit</string>",
-        "<key>CFBundleIdentifier</key><string>com.github.diebergziege.gctk</string>",
+        `<key>CFBundleName</key><string>${launch.name}</string>`,
+        `<key>CFBundleDisplayName</key><string>${launch.display}</string>`,
+        `<key>CFBundleIdentifier</key><string>${launch.id}</string>`,
         "<key>CFBundleExecutable</key><string>gctk</string>",
         "<key>CFBundlePackageType</key><string>APPL</string>",
         `<key>CFBundleShortVersionString</key><string>${o.version}</string>`,
@@ -231,24 +263,26 @@ export function installGctk(o: InstallOptions): InstallResult {
       ].join("\n"));
       files.push(appBundle);
       result.launcher = appBundle;
-      notes.push("Open gctk from Spotlight or Launchpad (gctk in your Applications folder); drag it to the Dock to keep it there.");
+      notes.push(`Open ${launch.name} from Spotlight or Launchpad (in your Applications folder); drag it to the Dock to keep it there.`);
     } else {
-      const desktop = path.join(env.XDG_DATA_HOME ?? path.join(home, ".local", "share"), "applications", "gctk.desktop");
+      const desktop = path.join(env.XDG_DATA_HOME ?? path.join(home, ".local", "share"), "applications", `${launch.file}.desktop`);
       const q = (s: string) => `"${s.replace(/(["\\`$])/g, "\\$1")}"`;
-      write(desktop, `[Desktop Entry]\nType=Application\nName=gctk\nComment=Genesys Cloud Toolkit\nExec=${env.GCTK_HOME ? `env GCTK_HOME=${q(env.GCTK_HOME)} ` : ""}${q(node)} ${q(js)} ui\nTerminal=false\nCategories=Development;\n`);
+      write(desktop, `[Desktop Entry]\nType=Application\nName=${launch.name}\nComment=${launch.display}\nExec=${env.GCTK_HOME ? `env GCTK_HOME=${q(env.GCTK_HOME)} ` : ""}${q(node)} ${q(js)} ${launch.args}\nTerminal=false\nCategories=Development;\n`);
       files.push(desktop);
       result.launcher = desktop;
-      notes.push("gctk is in your applications menu now.");
+      notes.push(`${launch.name} is in your applications menu now.`);
     }
   }
+  // Switching the edition: the other edition's app goes.
+  for (const f of previous?.files ?? []) if (!files.includes(f)) fs.rmSync(f, { recursive: true, force: true });
 
-  if (o.claudeApp !== false) {
+  if (o.claudeApp !== false && edition === "full") {
     result.claudeApp = addToClaudeApp(node, js);
     if (result.claudeApp === "added" || result.claudeApp === "ours") record.claudeApp = claudeAppConfigFile();
     if (result.claudeApp === "added") {
       notes.push('Added gctk to the Claude app: quit and reopen it, then ask "Open the gctk UI."');
     }
-  }
+  } else if (previous?.claudeApp) removeFromClaudeApp(previous.claudeApp);
   fs.mkdirSync(gctkHome(), { recursive: true });
   fs.writeFileSync(recordFile(), `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
   return result;
@@ -273,21 +307,30 @@ export function uninstallGctk(o: Pick<InstallOptions, "run"> = {}): string[] {
     (o.run ?? runPowerShell)("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]);
     removed.push(`${r.winPath} from the PATH`);
   }
-  if (r?.claudeApp && fs.existsSync(r.claudeApp)) {
-    try {
-      const cfg = JSON.parse(fs.readFileSync(r.claudeApp, "utf8")) as { mcpServers?: Record<string, { args?: string[] }> };
-      if (cfg.mcpServers?.gctk?.args?.[0] === appGctkJs()) {
-        delete cfg.mcpServers.gctk;
-        fs.writeFileSync(r.claudeApp, `${JSON.stringify(cfg, null, 2)}\n`);
-        removed.push(`gctk in ${r.claudeApp}`);
-      }
-    } catch {
-      // not JSON any more: leave it to the user
-    }
-  }
+  if (r?.claudeApp && removeFromClaudeApp(r.claudeApp)) removed.push(`gctk in ${r.claudeApp}`);
   if (fs.existsSync(appDir())) (fs.rmSync(appDir(), { recursive: true, force: true }), removed.push(appDir()));
+  try {
+    if (fs.existsSync(privateNodeDir())) (fs.rmSync(privateNodeDir(), { recursive: true, force: true }), removed.push(privateNodeDir()));
+  } catch {
+    // Windows keeps the running node.exe locked; the installer replaces it next time
+  }
   fs.rmSync(recordFile(), { force: true });
   return removed;
+}
+
+/** Removes the gctk entry that gctk install wrote into the Claude app; one of the user's own stays. */
+function removeFromClaudeApp(file: string): boolean {
+  if (!fs.existsSync(file)) return false;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(file, "utf8")) as { mcpServers?: Record<string, { args?: string[] }> };
+    if (cfg.mcpServers?.gctk?.args?.[0] !== appGctkJs()) return false;
+    delete cfg.mcpServers.gctk;
+    fs.writeFileSync(file, `${JSON.stringify(cfg, null, 2)}\n`);
+    return true;
+  } catch {
+    // not JSON any more: leave it to the user
+    return false;
+  }
 }
 
 // ------------------------------------------------------------------ update

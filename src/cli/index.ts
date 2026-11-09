@@ -5,7 +5,7 @@ import { runHarness, runProjectTool } from "../core/axl.js";
 import { GenesysClient } from "../core/client.js";
 import { deleteCredentials, hasStoredCredentials, keychainName, storeCredentials } from "../core/credentials.js";
 import { builtInDemosDir, setSnapshotSource, snapshotSource } from "../core/demos.js";
-import { appGctkJs, installGctk, loadInstallRecord, uninstallGctk, updateInstalledGctk } from "../core/install.js";
+import { appGctkJs, EDITIONS, type Edition, installGctk, loadInstallRecord, uninstallGctk, updateInstalledGctk } from "../core/install.js";
 import { ensureStableGctk, runningGctkJs } from "../core/stable-gctk.js";
 import { formatError, GctkError } from "../core/errors.js";
 import { toJson } from "../core/output.js";
@@ -191,19 +191,22 @@ program
 /** Starts the installed copy's UI (it replaces a background UI that runs another copy). */
 const startInstalledUi = (open: boolean) => {
   stopRunningUi();
-  spawnSync(process.execPath, [appGctkJs(), "ui", ...(open ? [] : ["--no-open"])], { stdio: "inherit" });
+  const page = loadInstallRecord()?.edition === "partner" ? ["partner"] : [];
+  spawnSync(process.execPath, [appGctkJs(), "ui", ...page, ...(open ? [] : ["--no-open"])], { stdio: "inherit" });
 };
 
 program
   .command("install")
   .description("install gctk on this computer for use without Cursor: a gctk command, an app to click, and gctk in the Claude app")
+  .addOption(new Option("--edition <edition>", "full: every page; partner: only the Partner page, as the app gctk Partner (default: the edition installed before, else full)").choices([...EDITIONS]))
   .option("--no-claude-app", "do not add gctk to the Claude app")
   .option("--no-open", "do not open the UI afterwards")
-  .action((o: { claudeApp: boolean; open: boolean }) => {
+  .action((o: { edition?: Edition; claudeApp: boolean; open: boolean }) => {
     const from = runningGctkJs();
     if (!from) throw new GctkError("INVALID_INPUT", "Install from the built gctk (dist/gctk.js or npx), not from the sources.");
-    const r = installGctk({ from, version: VERSION, demos: builtInDemosDir(), claudeApp: o.claudeApp });
-    console.log(`Installed gctk ${VERSION} in ${r.app}.`);
+    const edition = o.edition ?? loadInstallRecord()?.edition ?? "full";
+    const r = installGctk({ from, version: VERSION, demos: builtInDemosDir(), claudeApp: o.claudeApp, edition });
+    console.log(`Installed ${edition === "partner" ? "gctk Partner" : "gctk"} ${VERSION} in ${r.app}.`);
     console.log(`Command: ${r.command}`);
     if (r.launcher) console.log(`App: ${r.launcher}`);
     for (const n of r.notes) console.log(`- ${n}`);

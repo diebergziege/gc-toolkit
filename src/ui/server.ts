@@ -34,7 +34,7 @@ import { checkPrerequisites, commandLog, commandStatus, DEMO_TYPES, deployDemo, 
 import { claudeAppSkills, exportClaudeAppSkills } from "../core/claude-skills.js";
 import { installAxlSkillZip } from "../core/axl-skills.js";
 import { importRadar, loadRadar, removeRadar } from "../core/partner-radar.js";
-import { appGctkJs, updateInstalledGctk } from "../core/install.js";
+import { appGctkJs, runningEdition, updateInstalledGctk } from "../core/install.js";
 import { axlStatus, claudeHarnessUnlinkWorkshop, getWorkshop, type ProjectTool, listAxlSessions, removeWorkshop, saveHarnessCommand, saveWorkshop, sessionsDirOf, setupWorkshopFolder, syncClaudeApp, useInClaudeApp } from "../core/axl.js";
 import { claudeAppConfigFile, gctkHome } from "../core/paths.js";
 import { REGIONS, resolveRegion } from "../core/regions.js";
@@ -143,6 +143,8 @@ route("GET", "/api/overview", () => ({
   /** Runs in the background (gctk ui), so the top bar offers Stop UI. */
   persistent: Boolean(process.env.GCTK_UI_DAEMON),
   tiers: TIERS,
+  /** partner: the page shows only Partner (gctk install --edition partner). */
+  edition: runningEdition(runningGctkJs()),
 }));
 
 // Is a newer gctk out? The top bar asks once an hour (GitHub); an update by click only for npx.

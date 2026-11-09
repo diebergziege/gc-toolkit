@@ -442,10 +442,17 @@ const MINOR_VIEWS = [
   ["data", "Your data", "Where gctk keeps your orgs, settings and records on this computer"],
 ];
 
+// The Partner edition (gctk Partner, for partner managers) has the Partner page only.
+const isPartnerEdition = () => state.overview?.edition === "partner";
+
 function renderNav() {
   const nav = document.getElementById("nav");
   const btn = ([id, label, title]) => h("button", { "aria-current": state.view === id ? "page" : null, title, onclick: () => go(id) }, label);
-  nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));
+  if (isPartnerEdition()) {
+    document.title = "gctk Partner · Enablement Radar";
+    document.querySelector("header h1").replaceChildren(h("b", { class: "logo-mark", "aria-hidden": "true" }, "g"), h("span", {}, "gctk"), " Partner");
+    nav.replaceChildren(...VIEWS.filter(([id]) => id === "partner").map(btn));
+  } else nav.replaceChildren(...VIEWS.map(btn), h("span", { class: "sep" }), h("span", { class: "minor", style: "display:contents" }, MINOR_VIEWS.map(btn)));
   const o = state.overview;
   const v = state.gctkVersion;
   document.getElementById("who").replaceChildren(
@@ -459,7 +466,7 @@ function renderNav() {
 function renderOrg() {
   const box = document.getElementById("org");
   const o = state.overview;
-  if (!o) return box.replaceChildren();
+  if (!o || isPartnerEdition()) return box.replaceChildren();
   const usable = o.profiles.filter((p) => !p.error);
   if (!usable.length) return box.replaceChildren(h("button", { class: "btn primary", style: "padding:3px 10px;font-size:12px", onclick: () => go("profiles") }, "Connect an org"));
   const active = usable.find((p) => p.name === o.activeProfile);
@@ -535,14 +542,15 @@ function pageAlias(view) {
   return view;
 }
 function go(view) {
-  state.view = view = pageAlias(view);
+  state.view = view = isPartnerEdition() ? "partner" : pageAlias(view);
   try { sessionStorage.setItem("gctk-view", view); } catch {}
   render();
 }
 const main = () => document.getElementById("main");
 async function stopUi() {
-  if (!confirm("Stop the gctk UI? The AI can open it again any time.")) return;
-  try { await api("/api/shutdown", { method: "POST", body: {} }); main().replaceChildren(h("div", { class: "panel empty" }, "The gctk UI was stopped. Ask the AI to open it again, or run `gctk ui`.")); }
+  const partner = isPartnerEdition();
+  if (!confirm(partner ? "Stop gctk Partner? Click the gctk Partner app to open it again." : "Stop the gctk UI? The AI can open it again any time.")) return;
+  try { await api("/api/shutdown", { method: "POST", body: {} }); main().replaceChildren(h("div", { class: "panel empty" }, partner ? "gctk Partner was stopped. Click the gctk Partner app to open it again." : "The gctk UI was stopped. Ask the AI to open it again, or run `gctk ui`.")); }
   catch (err) { showError(err); }
 }
 function showError(err) { main().prepend(h("div", { class: "error" }, err.message || String(err))); }
@@ -4485,7 +4493,7 @@ function filesPanel(s, msg, draw, editor = "cursor") {
   if (!TOKEN) { main().replaceChildren(h("div", { class: "error" }, "This browser has not opened gctk yet. Ask the AI to open the gctk UI, or run `gctk ui` in a terminal; after that this address works as a bookmark.")); return; }
   try {
     await refreshOverview();
-    state.view = pageAlias(state.view);
+    state.view = isPartnerEdition() ? "partner" : pageAlias(state.view);
     // A page this tab remembers that no longer exists opens Orgs.
     if (![...VIEWS, ...MINOR_VIEWS].some(([id]) => id === state.view)) {
       state.view = "profiles";

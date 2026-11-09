@@ -1,0 +1,33 @@
+# Publishes the downloads of the README's buttons (scripts/installers.mjs) as the GitHub release
+# v<version of package.json>, marked latest, so .../releases/latest/download/<file> always works.
+name: Installers
+
+on:
+  push:
+    branches: [main]
+    paths: [installer/**, scripts/installers.mjs, package.json, .github/workflows/installers.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/installers.mjs release
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --latest --title "gctk $version" --notes "Download the file for your computer and double-click it. It installs Node.js and gctk (or gctk Partner) for you; see the README for the steps."
+          fi

@@ -126,6 +126,20 @@
   tar reader), replaces `app/` whole and starts the new UI, which replaces the old one; the page
   reloads when the version changed. Never test this with a fake `HOME` on macOS: the keychain
   (`security`) then hangs and shows "Keychain Not Found" to the user.
+- Downloads (decision 2026-11-09, for non-technical users): `installer/install.sh` (Mac, Linux) and
+  `installer/install.ps1` (Windows) put the newest Node.js of one LTS line (checked against
+  nodejs.org's SHASUMS256) into `node/` in the gctk home, download GitHub's main and run its
+  `gctk install --edition …` with that Node.js. `scripts/installers.mjs` turns them into the README's
+  buttons (a `.command` in a zip that keeps its mode; a cmd/PowerShell hybrid `.cmd`, ASCII and CRLF),
+  with the edition as the default line (`DEFAULT_EDITION=`, `$DefaultEdition =`); the workflow
+  `installers.yml` publishes them as release `v<version>`, so `releases/latest/download/<file>` works.
+  They are not code-signed: the README walks through Gatekeeper's "Open Anyway" and SmartScreen.
+  `GCTK_INSTALL_FROM` (a folder with `dist/gctk.js`) tests them without GitHub; never run them with
+  this computer's real gctk home. gctk Partner (`--edition partner`, kept in `install.json`) is the
+  same install with the app "gctk Partner" (`ui partner`) and no Claude app entry; the UI shows only
+  the Partner page when the running gctk is that installed copy (`runningEdition`, overview
+  `edition`), so Cursor's or the plugin's gctk on the same computer stays full. Switching editions
+  removes the other edition's launchers.
 - Partner (UI page "Partner", page id `partner`, decision 2026-11-04): section "Enablement Radar"
   (`src/core/partner-radar.ts`, routes `/api/partner/radar`) reads the Microsoft Forms Excel export of
   the Genesys Partner Demo Org Readiness Checklist (base64 JSON, own xlsx reader on top of the AXL
