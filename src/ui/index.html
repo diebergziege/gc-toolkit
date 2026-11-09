@@ -456,7 +456,7 @@ function renderNav() {
   const o = state.overview;
   const v = state.gctkVersion;
   document.getElementById("who").replaceChildren(
-    v?.update ? h("button", { class: "update-btn", title: `You have gctk ${v.running}; ${v.latest} is out.`, onclick: () => gctkUpdateDialog(v) }, `Update gctk to ${v.latest}`) : "",
+    v?.update ? h("button", { class: "update-btn", title: `You have gctk ${v.running}; ${v.latest} is out.${v.install === "app" ? " One click installs it; your orgs and settings stay." : ""}`, onclick: (e) => v.install === "app" ? gctkUpdateNow(e.currentTarget, v) : gctkUpdateDialog(v) }, `Update gctk to ${v.latest}`) : "",
     o ? `${o.user} · gctk ${o.version}` : "",
     o?.persistent ? h("button", { class: "btn", style: "padding:2px 8px;font-size:12px;margin-left:8px", title: "Stops the background UI; the AI or `gctk ui` starts it again", onclick: stopUi }, "Stop UI") : "");
   renderOrg();
@@ -487,15 +487,33 @@ function renderOrg() {
   box.replaceChildren(...[h("span", {}, "Working on"), sel, active ? pill(active.tier, `t-${active.tier}`) : null].filter(Boolean));
 }
 
-/** How to get the newer gctk depends on how this one was installed; npx is the one gctk updates itself. */
+/** The installed copy (gctk install, the downloads) updates in place: download, restart, reload on the new version. */
+async function gctkUpdateNow(btn, v) {
+  btn.disabled = true;
+  btn.textContent = "Updating…";
+  try {
+    await api("/api/gctk-version/update", { method: "POST", body: {} });
+    btn.textContent = "Restarting…";
+    for (let i = 0; i < 60; i++) {
+      await new Promise((ok) => setTimeout(ok, 1000));
+      try { if ((await api("/api/overview")).version !== v.running) { location.reload(); return; } } catch {}
+    }
+    throw new Error("gctk was updated but did not start again. Open gctk again from its app icon.");
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = `Update gctk to ${v.latest}`;
+    showError(err);
+  }
+}
+
+/** Where gctk cannot replace itself (npx, plugins), the dialog says what to do. */
 function gctkUpdateDialog(v) {
   const reopen = "Then ask the AI to open the gctk UI: the new version replaces this one.";
-  const steps = {
-    npx: null,
-    app: null,
+  const STEPS = {
     "claude-plugin": ["In Claude Code, type /plugin and update the genesys-cloud-toolkit marketplace (or its plugin).", "Restart Claude Code.", reopen],
     "cursor-plugin": ["Quit Cursor and open it again; it updates its plugins at the start. If it still runs the old version, update the gctk plugin in Cursor's settings (Plugins).", reopen],
-  }[v.install] || ["Update gctk where you installed it (the plugin in Cursor or Claude Code), then restart that editor.", reopen];
+  };
+  const steps = v.install === "npx" || v.install === "app" ? null : STEPS[v.install] || ["Update gctk where you installed it (the plugin in Cursor or Claude Code), then restart that editor.", reopen];
   const out = h("div");
   const close = h("button", { class: "btn" }, "Close");
   const run = h("button", { class: "btn primary" }, "Update gctk");
@@ -527,7 +545,7 @@ function gctkUpdateDialog(v) {
 
 async function refreshOverview() {
   if (state.gctkVersion === undefined) {
-    // Asked once per page load (the server asks GitHub at most once an hour).
+    // Asked once per page load (the server asks GitHub at most every 10 minutes).
     state.gctkVersion = null;
     api("/api/gctk-version").then((v) => { state.gctkVersion = v; renderNav(); }).catch(() => {});
   }

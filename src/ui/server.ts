@@ -148,8 +148,8 @@ route("GET", "/api/overview", () => ({
   edition: runningEdition(runningGctkJs()),
 }));
 
-// Is a newer gctk out? The top bar asks once an hour (GitHub); an update by click only for npx.
-const GCTK_TTL_MS = 60 * 60 * 1000;
+// Is a newer gctk out? The top bar asks GitHub at most every 10 minutes; the installed copy updates by click.
+const GCTK_TTL_MS = 10 * 60 * 1000;
 let gctkCache: { at: number; value: Promise<GctkVersion> } | undefined;
 const gctkVersion = (refresh = false) => {
   if (refresh || !gctkCache || Date.now() - gctkCache.at > GCTK_TTL_MS) gctkCache = { at: Date.now(), value: checkGctk(VERSION) };
