@@ -7,36 +7,53 @@ its own app icon, and needs no AI itself. You do not need Cursor: see
 
 ## Download
 
-Download the file for your computer, double-click it, and gctk installs itself, Node.js included.
-Nothing to install first, no admin rights, no terminal.
+gctk installs itself, Node.js included: nothing to install first, no admin rights.
 
 **gctk** (every page):
 
-[![Download for Mac](https://img.shields.io/badge/Download-Mac-ff4f1f?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-mac.zip)
+[![Install on Mac](https://img.shields.io/badge/Install-Mac-ff4f1f?style=for-the-badge)](#mac)
 [![Download for Windows](https://img.shields.io/badge/Download-Windows-ff4f1f?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-windows.zip)
 
 **gctk Partner** (only the [Partner page](#for-partner-managers-gctk-partner), for partner managers):
 
-[![Download gctk Partner for Mac](https://img.shields.io/badge/gctk_Partner-Mac-2a60c8?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-partner-mac.zip)
+[![Install gctk Partner on Mac](https://img.shields.io/badge/gctk_Partner-Mac-2a60c8?style=for-the-badge)](#mac)
 [![Download gctk Partner for Windows](https://img.shields.io/badge/gctk_Partner-Windows-2a60c8?style=for-the-badge)](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-partner-windows.zip)
 
-**Mac**
+### Mac
 
-1. Click the Mac button. Your browser downloads the file and unpacks it in **Downloads**
-   (if it does not, double-click the zip there).
-2. Double-click **Install gctk** (or **Install gctk Partner**) in Downloads.
-3. The Mac does not know the installer yet and says it cannot verify it. Click **Done**, open
-   **System Settings → Privacy & Security**, scroll down to the message about the installer and click
-   **Open Anyway**, enter your password, then **Open**. (On older macOS: right-click the file →
-   **Open** → **Open**.) You only do this once.
-4. A Terminal window shows the progress for a minute or two, then gctk opens in your browser. Close
-   the window. From now on, open **gctk** (or **gctk Partner**) from Launchpad or Spotlight.
+1. Open **Terminal**: press **⌘ Space**, type `Terminal` and press **Return**.
+2. Copy the line for what you want (the copy button is at the right end of the box), paste it into
+   Terminal with **⌘ V** and press **Return**.
 
-Rather paste one line? Open **Terminal** and run
-`curl -fsSL https://github.com/diebergziege/gc-toolkit/releases/latest/download/install.sh | sh`
-(add ` -s -- --partner` for gctk Partner). This skips step 3.
+   **gctk:**
 
-**Windows**
+   ```sh
+   curl -fsSL https://github.com/diebergziege/gc-toolkit/releases/latest/download/install.sh | sh
+   ```
+
+   **gctk Partner:**
+
+   ```sh
+   curl -fsSL https://github.com/diebergziege/gc-toolkit/releases/latest/download/install.sh | sh -s -- --partner
+   ```
+
+3. Terminal shows the progress for a minute or two, then gctk opens in your browser. Close
+   Terminal. From now on, open **gctk** (or **gctk Partner**) from Launchpad or Spotlight.
+
+<details>
+<summary>Rather download a file to double-click?</summary>
+
+Download [gctk for Mac](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-mac.zip)
+or [gctk Partner for Mac](https://github.com/diebergziege/gc-toolkit/releases/latest/download/gctk-partner-mac.zip)
+and double-click **Install gctk** (or **Install gctk Partner**) in Downloads. The Mac then says
+*Apple could not verify … is free of malware*, because the installer is not signed by a registered
+Apple developer. Click **Done**, open **System Settings → Privacy & Security**, scroll down to the
+message about the installer, click **Open Anyway**, enter your password, then **Open**. The pasted
+line above does the same without this warning.
+
+</details>
+
+### Windows
 
 1. Click the Windows button and open the downloaded zip.
 2. Double-click **Install gctk** (or **Install gctk Partner**) in it.
@@ -48,10 +65,14 @@ Rather paste one line? Open **Terminal** and run
 On Windows, gctk cannot keep org credentials yet (it has no Windows keychain), so the pages that
 work on an org need a Mac for now; gctk Partner needs no org and works fully.
 
-The installer puts its own Node.js into `~/.config/gctk/node/` (whatever Node.js the computer has
-stays untouched), then installs gctk as [Without Cursor](#without-cursor-install-gctk-on-your-computer)
+### What the installer does
+
+It puts its own Node.js into `~/.config/gctk/node/` (whatever Node.js the computer has stays
+untouched), then installs gctk as [Without Cursor](#without-cursor-install-gctk-on-your-computer)
 describes. Updates come with one click in gctk's top bar; running the installer again repairs
 everything. It needs internet access to nodejs.org and github.com.
+
+## What gctk does
 
 - **Orgs**: connect a Genesys Cloud org (name, region, tier, OAuth client). The client secret goes
   straight into the OS keychain, never into a file or the chat. Each org shows the start of its
