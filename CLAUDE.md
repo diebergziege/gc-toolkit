@@ -262,6 +262,7 @@
   `.cursor/skills` or `~/.cursor/skills`, blocks a new workshop without them, and installs them
   from their zip files (route `/api/axl/skills`, base64 JSON, own unzip that refuses links and paths
   outside the skill folder) into `~/.cursor/skills`; a replaced skill goes to `skill-backups/`.
+  Each skill has its own Install/Update button, which sends `skill` so a zip of the other skill is refused.
 - Claude app (decision 2026-10-12, part of the UI page "AI Coding Tools"; page id `claude-app` opens it): the
   parts for `claude_desktop_config.json` (`claudeAppConfigFile` in `src/core/paths.ts`, read only where
   the app's settings folder exists; `GCTK_CLAUDE_APP_CONFIG` overrides it, and vitest points it to a

@@ -288,7 +288,7 @@ route("GET", "/api/axl", () => axlStatus());
 route("POST", "/api/axl/skills", ({ body }) => {
   const data = pickStr(body, "zip") ?? "";
   if (!/^[A-Za-z0-9+/=]+$/.test(data)) throw new HttpError(400, "Choose a skill zip file.");
-  return { ...installAxlSkillZip(Buffer.from(data, "base64")), status: axlStatus() };
+  return { ...installAxlSkillZip(Buffer.from(data, "base64"), undefined, pickStr(body, "skill") || undefined), status: axlStatus() };
 });
 route("PUT", "/api/axl/settings", ({ body }) => (saveHarnessCommand(pickStr(body, "harnessCommand") ?? ""), axlStatus()));
 route("GET", "/api/axl/tool-templates", () => projectTemplates());

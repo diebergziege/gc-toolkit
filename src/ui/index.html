@@ -1922,36 +1922,33 @@ function toolPicker(w, st) {
  */
 function axlSkillsBox(skills, onInstalled) {
   const msg = h("div");
-  const missing = skills.filter((s) => !s.path);
-  const file = h("input", { type: "file", accept: ".zip,application/zip", multiple: true, hidden: true });
   const asBase64 = (f) => new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ""));
     r.onerror = () => reject(new Error(`Could not read ${f.name}.`));
     r.readAsDataURL(f);
   });
-  file.addEventListener("change", async () => {
-    const done = [];
-    let status;
-    put(msg, h("div", { class: "muted", style: "font-size:13px" }, "Installing…"));
-    try {
-      for (const f of file.files) {
-        const r = await api("/api/axl/skills", { method: "POST", body: { zip: await asBase64(f) } });
-        done.push(...r.installed);
-        status = r.status;
-      }
-      put(msg, h("div", { class: "okbox" }, `Installed ${done.join(" and ")} in ~/.cursor/skills. Cursor picks them up in a new chat.`));
-      onInstalled(status);
-    } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
-    file.value = "";
-  });
+  const installer = (s) => {
+    const file = h("input", { type: "file", accept: ".zip,application/zip", hidden: true });
+    file.addEventListener("change", async () => {
+      const f = file.files[0];
+      file.value = "";
+      if (!f) return;
+      put(msg, h("div", { class: "muted", style: "font-size:13px" }, `Installing ${s.name}…`));
+      try {
+        const r = await api("/api/axl/skills", { method: "POST", body: { zip: await asBase64(f), skill: s.name } });
+        put(msg, h("div", { class: "okbox" }, `${s.path ? "Updated" : "Installed"} ${s.name} in ~/.cursor/skills${r.backups.length ? "; the old one is in gctk's skill-backups folder" : ""}. Cursor picks it up in a new chat.`));
+        onInstalled(r.status);
+      } catch (err) { put(msg, h("div", { class: "error" }, err.message)); }
+    });
+    const title = s.link ? "This skill is a link to another folder; update it there" : `Choose ${s.name}.zip${s.path ? "; gctk keeps the old one in its home folder" : ""}`;
+    return [file, h("button", { class: `btn sm${s.path ? "" : " primary"}`, disabled: s.link || null, title, onclick: () => file.click() }, s.path ? "Update…" : "Install…")];
+  };
   return h("div", { style: "display:grid;gap:8px" },
     skills.map((s) => h("div", { class: "conn", style: "grid-template-columns:minmax(0,1fr) auto;padding:6px 0" },
-      h("div", { class: "tool" }, h("strong", {}, s.name), h("small", {}, s.path ? `${s.what} · ${s.path.replace(/^\/Users\/[^/]+/, "~")}${s.link ? " (a link)" : ""}` : s.what)),
-      h("div", { class: "end" }, s.path ? pill("Installed", "s-applied") : pill("Missing", "s-failed")))),
-    h("div", { class: "row" }, file,
-      h("button", { class: `btn sm${missing.length ? " primary" : ""}`, onclick: () => file.click() }, icon("plus"), missing.length ? "Install from zip…" : "Update from zip…"),
-      h("span", { class: "muted", style: "font-size:12.5px" }, missing.length ? `Choose the zip file${missing.length > 1 ? "s" : ""} you were given (${missing.map((s) => `${s.name}.zip`).join(", ")}).` : "Both are there. A newer zip replaces the skill; gctk keeps the old one in its home folder.")),
+      h("div", { class: "tool" }, h("strong", {}, s.name), h("small", {}, s.path ? `${s.what} · ${s.path.replace(/^\/Users\/[^/]+/, "~")}${s.link ? " (a link)" : ""}${s.updated ? ` · from ${time(s.updated)}` : ""}` : s.what)),
+      h("div", { class: "end row", style: "gap:8px" }, s.path ? pill("Installed", "s-applied") : pill("Missing", "s-failed"), installer(s)))),
+    h("span", { class: "muted", style: "font-size:12.5px" }, skills.some((s) => !s.path) ? "Install each one from the zip file you were given (e.g. axl-capsule.zip)." : "A newer zip replaces a skill; gctk keeps the old one in its home folder."),
     msg);
 }
 

@@ -37,6 +37,15 @@ describe("AXL skills", () => {
     expect(fs.readdirSync(path.join(home, ".cursor", "skills")).filter((n) => n.startsWith("."))).toEqual([]);
   });
 
+  it("installs only the skill the zip was chosen for", () => {
+    const z = zip([["axl-capsule/SKILL.md", skillMd("axl-capsule")]]);
+    expect(() => installAxlSkillZip(z, home, "axl-lab-facilitator")).toThrow(/holds axl-capsule, not axl-lab-facilitator/);
+    expect(() => installAxlSkillZip(z, home, "other")).toThrow(/not an AXL skill/);
+    expect(fs.existsSync(path.join(home, ".cursor", "skills", "axl-capsule"))).toBe(false);
+    expect(installAxlSkillZip(z, home, "axl-capsule").installed).toEqual(["axl-capsule"]);
+    expect(axlSkillStatus(undefined, home)[1]!.updated).toMatch(/^\d{4}-/);
+  });
+
   it("finds a skill in the workshop folder too", () => {
     const folder = path.join(tmp, "ws");
     fs.mkdirSync(path.join(folder, ".cursor", "skills", "axl-lab-facilitator"), { recursive: true });

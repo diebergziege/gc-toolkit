@@ -25,6 +25,8 @@ export interface AxlSkillStatus {
   path?: string;
   /** It is a link to another folder (gctk does not replace it). */
   link?: boolean;
+  /** When its SKILL.md last changed (an install from zip writes it anew). */
+  updated?: string;
 }
 
 const userSkillsDir = (home = os.homedir()) => path.join(home, ".cursor", "skills");
@@ -40,7 +42,8 @@ export function axlSkillStatus(folder?: string, home = os.homedir()): AxlSkillSt
     for (const d of dirs) {
       const dir = path.join(d, s.name);
       try {
-        if (skillName(fs.readFileSync(path.join(dir, "SKILL.md"), "utf8")) === s.name) return { ...s, path: dir, ...(fs.lstatSync(dir).isSymbolicLink() ? { link: true } : {}) };
+        const md = path.join(dir, "SKILL.md");
+        if (skillName(fs.readFileSync(md, "utf8")) === s.name) return { ...s, path: dir, updated: fs.statSync(md).mtime.toISOString(), ...(fs.lstatSync(dir).isSymbolicLink() ? { link: true } : {}) };
       } catch {
         // not in this folder
       }
@@ -99,9 +102,10 @@ export function unzip(buf: Buffer): Array<[string, Buffer]> {
 
 /**
  * Installs the AXL skills in a zip into ~/.cursor/skills. A skill already there moves to the gctk
- * home (skill-backups/) first, so nothing the user had is lost.
+ * home (skill-backups/) first, so nothing the user had is lost. With `only`, the zip must hold that
+ * skill, and only that one is installed.
  */
-export function installAxlSkillZip(buf: Buffer, home = os.homedir()): { installed: string[]; backups: string[] } {
+export function installAxlSkillZip(buf: Buffer, home = os.homedir(), only?: string): { installed: string[]; backups: string[] } {
   const files = unzip(buf);
   const roots = new Map<string, string>();
   for (const [name, data] of files) {
@@ -110,7 +114,11 @@ export function installAxlSkillZip(buf: Buffer, home = os.homedir()): { installe
     const skill = skillName(data.toString("utf8"));
     if (skill) roots.set(skill, parts.length === 2 ? `${parts[0]}/` : "");
   }
-  const known = [...roots.keys()].filter((n) => AXL_SKILLS.some((s) => s.name === n));
+  if (only && !AXL_SKILLS.some((s) => s.name === only)) throw new GctkError("INVALID_INPUT", `${only} is not an AXL skill.`);
+  const known = [...roots.keys()].filter((n) => AXL_SKILLS.some((s) => s.name === n) && (!only || n === only));
+  if (!known.length && only && roots.size) {
+    throw new GctkError("INVALID_INPUT", `This zip holds ${[...roots.keys()].join(", ")}, not ${only}. Choose ${only}.zip.`);
+  }
   if (!known.length) {
     throw new GctkError("INVALID_INPUT", roots.size
       ? `This zip holds the skill ${[...roots.keys()].join(", ")}, not ${AXL_SKILLS.map((s) => s.name).join(" or ")}.`
