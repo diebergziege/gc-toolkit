@@ -229,11 +229,13 @@ function assertAxlProfile(p: Profile): void {
 
 /** A workshop: sandbox or dev. A project: any org, production only when confirmed for that org. */
 function assertProjectOrg(w: Pick<AxlWorkshop, "lab" | "harness" | "productionConfirmed" | "tools">, p: Profile): void {
-  if (isLab(w)) return assertAxlProfile(p);
-  if (p.tier === "production" && w.productionConfirmed !== p.name) {
-    throw new GctkError("PROJECT_PRODUCTION", `"${p.name}" is a production org. The AI tools of this folder would change it directly; confirm the production org on the Projects page first.`);
+  if (isLab(w)) assertAxlProfile(p);
+  else {
+    if (p.tier === "production" && w.productionConfirmed !== p.name) {
+      throw new GctkError("PROJECT_PRODUCTION", `"${p.name}" is a production org. The AI tools of this folder would change it directly; confirm the production org on the Projects page first.`);
+    }
+    if (usesHarness(w) && !HABITATS[p.region]) throw new GctkError("AXL_REGION", `The AVA harness does not know the region ${p.region} of "${p.name}".`);
   }
-  if (usesHarness(w) && !HABITATS[p.region]) throw new GctkError("AXL_REGION", `The AVA harness does not know the region ${p.region} of "${p.name}".`);
   const barred = (w.tools ?? []).find((t) => t.tiers && !t.tiers.includes(p.tier));
   if (barred) throw new GctkError("PROJECT_TIER", `${barred.name} may only work on ${barred.tiers!.join(" or ")} orgs, and "${p.name}" is ${p.tier}. Choose another org or remove ${barred.name} from the project.`);
 }
@@ -393,7 +395,7 @@ export interface WorkshopFolderStatus {
   org?: string;
   /** Connected, but out of date: other org or workshop, older format, or the gctk it starts is gone. */
   stale: boolean;
-  /** Projects: each wanted tool and whether the folder starts it through gctk as it should. */
+  /** Each wanted tool and whether the folder starts it through gctk as it should. */
   tools?: Array<{ name: string; connected: boolean }>;
 }
 
@@ -419,7 +421,6 @@ export function workshopFolderStatus(w: Pick<AxlWorkshop, "id" | "profile" | "fo
   const org = connected ? argOf(e, "--org") : undefined;
   const missing = connected && !runnable(e!);
   const harnessStale = usesHarness(w) ? connected && (missing || org !== w.profile || workshopArg(e) !== w.id) : connected && workshopArg(e) === w.id;
-  if (isLab(w)) return { exists: true, connected, org, stale: harnessStale };
   const tools = (w.tools ?? []).map((t) => {
     const x = servers[t.name];
     return { name: t.name, connected: isOurTool(x, w.id) && argOf(x, "--tool") === t.name && runnable(x!) };
@@ -757,6 +758,7 @@ function describeWorkshop(x: WorkshopStatus, st: AxlStatus): string[] {
         ? `Its .cursor/mcp.json starts the ava-harness server through gctk with ${x.folder.org ?? "?"}${x.folder.stale ? ", but that entry is out of date: the user presses \"Set up folder\" for this workshop on the AXL page" : ""}. The harness uses this org only when Cursor has this folder open and the user switched this project's ava-harness on in Cursor (Settings → MCP)${st.globalHarness.present ? " and the global ava-harness off, which points to its own org" : ""}. ${x.lastStart?.sinceSetup ? `Cursor last started it at ${x.lastStart.at} (${x.lastStart.detail}).` : "Cursor has not started it since it was set up."}`
         : "Its ava-harness server is not set up by gctk yet (button \"Set up folder\" on the AXL page), so the harness uses whatever org Cursor's own settings give it.",
     );
+    if (w.tools?.length) lines.push(`Other MCP servers gctk starts in this folder with the same org: ${w.tools.map((t) => t.name).join(", ")}. Cursor uses them only after the user switched them on (Settings → MCP).`);
   }
   if (st.claudeApp.ours && st.claudeApp.workshop === w.id) lines.push(`The Claude app (chat and Cowork) starts its ava-harness for this workshop with ${st.claudeApp.org ?? "?"}${st.claudeApp.stale ? ", but that entry is out of date: the user fixes it on the Projects page of the gctk UI" : ""}.`);
   if (x.sessions.length) {

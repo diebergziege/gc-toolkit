@@ -2282,15 +2282,12 @@ function axlDetail(st, x, draw) {
       f.exists && !f.stale && (f.connected || (f.tools || []).some((t) => t.connected)) ? null : setupBtn(),
       f.exists ? h("button", { class: "btn", onclick: () => api(axlUrl(w.id, "/reveal"), { method: "POST", body: {} }).catch(showError) }, "Show in Finder") : null) : null);
 
-  // Tools (projects only; a workshop always has the harness)
-  let toolsPanel = null;
-  if (!lab) {
-    const picker = toolPicker(w, st);
-    toolsPanel = step("MCP servers in this folder",
-      note("Each one starts through gctk with the org above; its credentials come from the keychain, never from the folder."),
-      picker.el,
-      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save")));
-  }
+  // Tools (a workshop always has the harness; more can be added)
+  const picker = toolPicker(w, st);
+  const toolsPanel = step("MCP servers in this folder",
+    note(`${lab ? "The AVA harness is always on; add others the lab may use, such as Architect. " : ""}Each one starts through gctk with the org above; its credentials come from the keychain, never from the folder.`),
+    picker.el,
+    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn primary", onclick: () => put2(picker.read()) }, "Save")));
 
   // Skills (workshops)
   const skillsPanel = lab && x.skills ? step("Skills", note("The lab runs on these two Cursor skills next to the AVA harness. Cursor finds them in ~/.cursor/skills or in the folder's .cursor/skills."),

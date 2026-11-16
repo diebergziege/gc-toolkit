@@ -433,6 +433,10 @@ describe("linking to an org (the Orgs page keeps the credentials)", () => {
     expect(x).toMatchObject({ credentials: "org", org: { profile: "sandbox-org" } });
     expect(x.linkOrg).toBeUndefined();
     expect(x.problems).toEqual([]);
+    // Projects can still get it: the credential variables are in the record, not in the entry.
+    write(file(), { mcpServers: { ...read(file()).mcpServers, "genesys-builder": { command: fakeCommand(), args: ["run", "genesys-builder-mcp"], env: { GENESYSCLOUD_REGION: "mypurecloud.de", GENESYSCLOUD_OAUTHCLIENT_ID: CLIENT, GENESYSCLOUD_OAUTHCLIENT_SECRET: SECRET, GENESYS_FLOW_REPO: "/repo" } } } });
+    linkToOrg({ file: file(), section: "mcpServers", name: "genesys-builder" }, { ...o, gctkJs: js() });
+    expect(toolTemplates(o)).toEqual([expect.objectContaining({ name: "genesys-builder", args: ["run", "genesys-builder-mcp"], env: { GENESYS_FLOW_REPO: "/repo" }, keys: { clientId: "GENESYSCLOUD_OAUTHCLIENT_ID", secret: "GENESYSCLOUD_OAUTHCLIENT_SECRET", region: "GENESYSCLOUD_REGION" } })]);
     // A rotated secret on the Orgs page reaches the server at its next start.
     orgMem.set("sandbox-org", { clientId: CLIENT, clientSecret: "rotated-secret-0000" });
     const spec = launchSpec(e.args[2], {}, store, o.orgs);

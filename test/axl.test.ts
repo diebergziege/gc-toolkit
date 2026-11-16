@@ -124,7 +124,7 @@ describe("workshop folder", () => {
     expect(mcp.mcpServers.other).toEqual({ command: "x" });
     expect(mcp.mcpServers["ava-harness"]).toEqual({ command: process.execPath, args: [gctkJs, "axl-harness", "--workshop", "lab", "--org", "lab"], env: { FASTMCP_LOG_LEVEL: "ERROR", AVA_USE_INTERNAL_SAGE: "true" }, timeout: 60000 });
     expect(fs.existsSync(path.join(dir, "axl-sessions"))).toBe(true);
-    expect(workshopFolderStatus(w)).toEqual({ exists: true, connected: true, org: "lab", stale: false });
+    expect(workshopFolderStatus(w)).toEqual({ exists: true, connected: true, org: "lab", tools: [], stale: false });
     expect(setupWorkshopFolder(w.id, gctkJs, process.execPath)).toBe(false);
 
     // Another org for the workshop: out of date until written again.
@@ -338,6 +338,25 @@ describe("projects (folders that are not AXL workshops)", () => {
     expect(harnessEnv(process.env, { workshop: w.id, org: "sbx" }).env).toMatchObject({ GENESYS_CLIENT_ID: "client-id", AVA_HABITAT: "prod-euc1" });
     expect(removeWorkshop(w.id)).toEqual({ removedServer: true });
     expect(JSON.parse(fs.readFileSync(file, "utf8")).mcpServers).toEqual({});
+  });
+
+  it("gives a workshop more MCP servers next to the harness, also after it was set up", () => {
+    profile("sbx", "sandbox");
+    harness();
+    const js = fakeGctk();
+    const cmd = path.join(tmp, "architect-mcp");
+    fs.writeFileSync(cmd, "");
+    const folder = path.join(tmp, "lab");
+    const w = saveWorkshop({ name: "Lab", profile: "sbx", folder });
+    setupWorkshopFolder(w.id, js);
+    expect(workshopFolderStatus(loadAxlSettings().workshops[0]!)).toMatchObject({ connected: true, stale: false, tools: [] });
+    saveWorkshop({ id: w.id, tools: [tool(cmd)] });
+    expect(workshopFolderStatus(loadAxlSettings().workshops[0]!).stale).toBe(true);
+    setupWorkshopFolder(w.id, js);
+    expect(Object.keys(JSON.parse(fs.readFileSync(workshopMcpFile(folder), "utf8")).mcpServers).sort()).toEqual(["ava-harness", "genesys-cloud-architect-mcp"]);
+    expect(workshopFolderStatus(loadAxlSettings().workshops[0]!)).toMatchObject({ stale: false, tools: [{ name: "genesys-cloud-architect-mcp", connected: true }] });
+    expect(projectToolSpec({ project: w.id, tool: "genesys-cloud-architect-mcp" }).env.GENESYS_CLIENT_ID).toBe("client-id");
+    expect(() => saveWorkshop({ id: w.id, tools: [{ ...tool(cmd), tiers: ["dev" as const] }] })).toThrow(/only work on dev orgs/);
   });
 
   it("never replaces a server of the same name the user wrote into the folder", () => {

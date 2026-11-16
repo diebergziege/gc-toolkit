@@ -749,8 +749,10 @@ export function toolTemplates(o: ScanOptions = {}): ToolTemplate[] {
         if (launchId && !validRecord(record)) continue;
         if (!record && isGctkJs(args[0])) continue;
         const rawEnv = record ? record.env : Object.fromEntries(Object.entries((e.env as Record<string, unknown>) ?? {}).map(([k, v]) => [k, String(v ?? "")]));
-        const names = record ? [...Object.keys(record.env), ...record.secretNames] : Object.keys(rawEnv);
-        const keys = credentialKeysOf(names);
+        // Linked to an org, the credential variables are only in the record's keys.
+        const linked = record?.keys ? [record.keys.clientId, record.keys.secret, record.keys.region, record.keys.habitat].filter((k): k is string => Boolean(k)) : [];
+        const names = record ? [...Object.keys(record.env), ...record.secretNames, ...linked] : Object.keys(rawEnv);
+        const keys = record?.keys ?? credentialKeysOf(names);
         const command = record?.command ?? e.command;
         const genesys = GENESYS.test(name) || GENESYS.test(command) || names.some((k) => GENESYS_ENV.test(k));
         if (!genesys || !keys?.clientId || !keys.secret) continue;

@@ -259,6 +259,9 @@
   `gctk project-tool --project <id> --tool <name>`. Command, arguments and which variables get the
   credentials live in `axl.json`, never in the folder; the project page sends template ids, not
   commands (commands are entered only in the MCP catalog). Cursor only (no Claude Code project config).
+  AXL workshops get the same tools next to the harness, at creation and later in their settings
+  (folder status, tier checks and `gc_axl` cover them). A server linked to an org has its
+  credential variables only in its launch record (`keys`), and `toolTemplates` reads them there.
   An AXL workshop needs the skills axl-lab-facilitator and axl-capsule next to the AVA harness
   (`src/core/axl-skills.ts`, decision 2026-11-04): the page shows them from the folder's
   `.cursor/skills` or `~/.cursor/skills`, blocks a new workshop without them, and installs them
