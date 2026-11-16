@@ -55,6 +55,7 @@ describe("partner dev orgs", () => {
     ]);
     // An org on two rows: both parts, the earliest start and the latest end.
     expect(d.orgs[2]).toMatchObject({ parts: ["PC-170-DEV-PARTNERLABBUPCV", "PC-170-NV-PARTNERLABBUVIR"], start: "2023-08-10", end: "2028-09-12", region: "us-east-1", billing: "Annual Pre-Pay" });
+    expect(d.orgs[2]).toMatchObject({ opportunities: ['Cloud Renewal - "Beta" - S-0166574: Cloned', "Partner dev lab"], quotes: ["2026-1"] });
     expect(d.orgs[0]).toMatchObject({ start: "2027-03-01", end: "2028-02-29" });
     expect(d.partners).toEqual([
       { name: "Alpha GmbH", orgs: 2, cx4: 1, cx3: 1, status: "partly" },

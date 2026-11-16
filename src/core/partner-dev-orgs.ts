@@ -23,6 +23,9 @@ export interface DevOrg {
   generation: Generation;
   parts: string[];
   products: string[];
+  /** Salesforce opportunities and quotes of its subscription lines (missing in reports an older gctk kept). */
+  opportunities?: string[];
+  quotes?: string[];
   region?: string;
   billing?: string;
   /** YYYY-MM-DD when the file's date could be read, else as written. */
@@ -109,6 +112,8 @@ const COLUMNS = {
   orgId: "org id",
   part: "part number",
   product: "product name",
+  opportunity: "opportunity name",
+  quote: "quote",
   region: "aws region",
   billing: "billing category",
   start: "subscription start date",
@@ -132,12 +137,14 @@ export function parseDevOrgs(buf: Buffer, fileName = "dev-orgs.csv", now = new D
     const orgId = cell(r, "orgId");
     if (!partner || !orgId) continue;
     const key = `${orgId}\n${partner}`;
-    const org = byOrg.get(key) ?? { orgId, partner, generation: "cx3", parts: [], products: [] };
+    const org = byOrg.get(key) ?? { orgId, partner, generation: "cx3", parts: [], products: [], opportunities: [], quotes: [] };
     byOrg.set(key, org);
+    const add = (list: string[], v: string) => { if (v && !list.includes(v)) list.push(v); };
     const part = cell(r, "part").toUpperCase();
-    const product = cell(r, "product");
-    if (part && !org.parts.includes(part)) org.parts.push(part);
-    if (product && !org.products.includes(product)) org.products.push(product);
+    add(org.parts, part);
+    add(org.products, cell(r, "product"));
+    add(org.opportunities!, cell(r, "opportunity"));
+    add(org.quotes!, cell(r, "quote"));
     if ((CX4_PARTS as readonly string[]).includes(part)) org.generation = "cx4";
     org.region ||= cell(r, "region") || undefined;
     org.billing ||= cell(r, "billing") || undefined;

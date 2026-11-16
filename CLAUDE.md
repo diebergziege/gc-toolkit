@@ -154,7 +154,9 @@
   UTF-8 CSV or xlsx; columns by header (Account Name, Org ID, Part Number required). An org (org ID +
   account; the report has an org ID shared by two accounts) is CX4 when one of its part numbers is in
   `CX4_PARTS` (GC-170-DEV-LABBUC/P/V, the maintainer's rule; GCFR-170-DEV-LABBUP counts as CX3), a
-  partner is upgraded, partly or cx3. Dates are day first ("22/05/2026 00:00:00"). Kept in
+  partner is upgraded, partly or cx3. Each org also keeps its Opportunity Name and Quote values
+  (shown under the org ID, searchable; a report kept by an older gctk has none, and the page asks
+  for a new upload). Dates are day first ("22/05/2026 00:00:00"). Kept in
   `partner-dev-orgs.json` until Remove. Partner groups (`src/core/partner-groups.ts`,
   `partner-groups.json`, routes `/api/partner/groups[/:id]`): named lists of partner names, matched to
   the report case-insensitively and kept apart from it, so a newer upload keeps them (names not in
