@@ -28,6 +28,14 @@ describe("UI server", () => {
   const call = (p: string, init: RequestInit = {}, token = "test-token") =>
     fetch(`${base()}${p}`, { ...init, headers: { "x-gctk-token": token, "content-type": "application/json", ...(init.headers ?? {}) } });
 
+  it("restarts only as the background UI, and tells the page when it started", async () => {
+    const o = (await (await call("/api/overview")).json()) as { started: string };
+    expect(Date.parse(o.started)).toBeGreaterThan(0);
+    const r = await call("/api/gctk-version/restart", { method: "POST", body: "{}" });
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { error: string }).error).toMatch(/terminal/);
+  });
+
   it("answers at the readable address gctk.localhost and prefers its fixed port", async () => {
     expect(ui.url).toBe(`http://gctk.localhost:${ui.port}/#token=test-token`);
     const status = await new Promise<number>((resolve) => {

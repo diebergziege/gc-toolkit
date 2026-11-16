@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { readSecret, writeSecret } from "../core/credentials.js";
+import { appGctkJs, appVersion } from "../core/install.js";
+import { olderVersion } from "../core/stable-gctk.js";
 import { gctkHome } from "../core/paths.js";
 import { getUiPort, setUiPort } from "../core/profiles.js";
 import { DEFAULT_UI_PORT, startUi, uiUrl } from "./server.js";
@@ -137,16 +139,33 @@ export async function runUiDaemon(opts: { port?: number } = {}): Promise<void> {
 }
 
 /**
- * Returns the URL of the shared UI, starting it as a detached background process when needed.
- * A UI from an older toolkit version is replaced.
+ * What `build` (version+build id) does about the shared UI: reuse the running one, or start one from
+ * itself or from the installed copy (app/, version `installed`). A development run (version "dev")
+ * always runs itself.
  */
-export async function ensureSharedUi(): Promise<string> {
+export function uiPlan(o: { build: string; running?: Pick<UiInfo, "version" | "port">; keptPort?: number; installed?: string; restart?: boolean }): "reuse" | "start-self" | "start-installed" {
+  const version = o.build.split("+")[0]!;
+  const released = /^\d+\.\d+\.\d+/.test(version);
+  if (o.running && !o.restart && o.running.port === (o.keptPort ?? o.running.port)) {
+    // Same build on the kept port: reuse it. On another port (gctk ui --port): start it again there.
+    if (o.running.version === o.build || (released && olderVersion(version, o.running.version.split("+")[0]!))) return "reuse";
+  }
+  return released && o.installed && olderVersion(version, o.installed) ? "start-installed" : "start-self";
+}
+
+/**
+ * Returns the URL of the shared UI, starting it as a detached background process when needed.
+ * A UI from another build is replaced, never by an older version: an editor's plugin that has not
+ * updated yet reuses the newer UI the top bar installed, and starts the installed copy (app/) when
+ * that one is newer than itself. `restart` replaces the running UI in any case.
+ */
+export async function ensureSharedUi(opts: { restart?: boolean } = {}): Promise<string> {
   const running = await findRunningUi();
-  // Same build on the kept port: reuse it. On another port (gctk ui --port): start it again there.
-  if (running && running.info.version === UI_BUILD && running.info.port === (getUiPort() ?? running.info.port)) return running.url;
+  const plan = uiPlan({ build: UI_BUILD, running: running?.info, keptPort: getUiPort(), installed: appVersion(), restart: opts.restart });
+  if (plan === "reuse") return running!.url;
   if (running) stopRunningUi();
-  const script = process.argv[1]!;
-  const child = spawn(process.execPath, [...process.execArgv, script, "ui", "--daemon"], { detached: true, stdio: "ignore" });
+  const script = plan === "start-installed" ? appGctkJs() : process.argv[1]!;
+  const child = spawn(process.execPath, [...(plan === "start-self" ? process.execArgv : []), script, "ui", "--daemon"], { detached: true, stdio: "ignore" });
   child.unref();
   for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, 250));

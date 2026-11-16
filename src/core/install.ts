@@ -24,6 +24,15 @@ export type Edition = (typeof EDITIONS)[number];
 
 export const appDir = () => path.join(gctkHome(), "app");
 export const appGctkJs = () => path.join(appDir(), "dist", "gctk.js");
+/** The version of the copy in app/ (written by gctk install and the top bar's update), if there is one. */
+export function appVersion(): string | undefined {
+  try {
+    if (!fs.existsSync(appGctkJs())) return undefined;
+    return (JSON.parse(fs.readFileSync(path.join(appDir(), "package.json"), "utf8")) as { version?: string }).version;
+  } catch {
+    return undefined;
+  }
+}
 /** The Node.js the downloadable installers bring along (installer/), used when no other one is there. */
 export const privateNodeDir = () => path.join(gctkHome(), "node");
 const recordFile = () => path.join(gctkHome(), "install.json");

@@ -163,8 +163,9 @@ program
   .option("--no-open", "do not open the browser")
   .option("--foreground", "run in this terminal instead of the background (stop with Ctrl+C)")
   .option("--stop", "stop the background UI")
+  .option("--restart", "start the background UI again, with the newest gctk on this computer")
   .option("--daemon", "internal: run as the background UI process")
-  .action(async (page: string | undefined, o: { port?: string; open: boolean; foreground?: boolean; stop?: boolean; daemon?: boolean }) => {
+  .action(async (page: string | undefined, o: { port?: string; open: boolean; foreground?: boolean; stop?: boolean; restart?: boolean; daemon?: boolean }) => {
     if (o.daemon) return runUiDaemon({ port: o.port ? Number(o.port) : undefined });
     if (page && !(UI_PAGES as readonly string[]).includes(page)) throw new GctkError("INVALID_INPUT", `Unknown page "${page}". Pages: ${UI_PAGES.join(", ")}.`);
     const target = (url: string) => (page ? `${url}&view=${page}` : url);
@@ -180,7 +181,7 @@ program
       process.on("SIGTERM", stop);
       return;
     }
-    const url = await ensureSharedUi();
+    const url = await ensureSharedUi({ restart: o.restart });
     const running = await findRunningUi();
     console.log(`gctk UI is running in the background${running ? ` (pid ${running.info.pid})` : ""}: ${url}`);
     console.log("This link contains a session token; do not share it. Stop it with the button in the UI or `gctk ui --stop`.");

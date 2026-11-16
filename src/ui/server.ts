@@ -47,6 +47,8 @@ import { environmentFor, INDUSTRIES, LANGS, parseSiteQuery, readLogo, saveLogo, 
 
 declare const __GCTK_VERSION__: string;
 const VERSION = typeof __GCTK_VERSION__ === "string" ? __GCTK_VERSION__ : "dev";
+/** When this UI started: the page reloads once a restarted UI answers with another time. */
+const STARTED = new Date().toISOString();
 const MAX_BODY = 1024 * 1024;
 /** Skill zips for AXL workshops arrive base64 encoded in JSON (the lab facilitator is several MB). */
 const MAX_SKILL_BODY = 48 * 1024 * 1024;
@@ -132,6 +134,7 @@ function route(method: string, path: string, handler: Handler) {
 
 route("GET", "/api/overview", () => ({
   version: VERSION,
+  started: STARTED,
   user: currentUser(),
   activeProfile: getActiveProfileName() ?? null,
   profiles: listProfiles().map((n) => {
@@ -157,19 +160,45 @@ const gctkVersion = (refresh = false) => {
   if (refresh || !gctkCache || Date.now() - gctkCache.at > GCTK_TTL_MS) gctkCache = { at: Date.now(), value: checkGctk(VERSION) };
   return gctkCache.value;
 };
-route("GET", "/api/gctk-version", ({ query }) => gctkVersion(query.get("refresh") === "1"));
+/** The gctk.js this UI runs was written again after it started (a newer build on disk): a restart runs it. */
+const rebuilt = () => {
+  const js = runningGctkJs();
+  try {
+    return Boolean(js && process.env.GCTK_UI_DAEMON && fs.statSync(js).mtimeMs > Date.parse(STARTED));
+  } catch {
+    return false;
+  }
+};
+/**
+ * A new background UI takes this one's place, once the answer is out. A newer gctk does so with a
+ * plain `gctk ui` (every version replaces an older UI); the same version needs `--restart`.
+ */
+const restartUi = (js: string, args: string[] = []) => setTimeout(() => spawn(process.execPath, [js, "ui", "--no-open", ...args], { detached: true, stdio: "ignore" }).unref(), 300);
+route("GET", "/api/gctk-version", async ({ query }) => ({ ...(await gctkVersion(query.get("refresh") === "1")), rebuilt: rebuilt(), canRestart: Boolean(process.env.GCTK_UI_DAEMON) }));
 route("POST", "/api/gctk-version/update", async () => {
   const v = await gctkVersion();
-  if (v.install === "app") {
-    // The installed copy (gctk install): replaced from GitHub, then a new UI of that version takes this one's place.
-    const r = await updateInstalledGctk();
-    gctkCache = undefined;
-    setTimeout(() => spawn(process.execPath, [appGctkJs(), "ui", "--no-open"], { detached: true, stdio: "ignore" }).unref(), 300);
-    return { from: r.from, next: `gctk ${r.to} is installed and starts now; this page reloads by itself.`, restart: true };
+  if (v.install === "dev") throw new HttpError(400, "A development run of gctk is not updated from GitHub.");
+  if (!v.update) throw new HttpError(400, `gctk ${v.running} is the newest version.`);
+  // Every install gets the newest gctk from GitHub in the gctk home (app/), the copy editor entries
+  // start follows, and the UI starts again on it. A plugin's own copy updates later in its editor;
+  // until then it uses this newer UI (ensureSharedUi never goes back to an older one).
+  const r = await updateInstalledGctk();
+  if (v.install === "npx") updateGctk("npx");
+  try {
+    ensureStableGctk(appGctkJs(), r.to);
+  } catch {
+    // the editors' copy stays as it was
   }
-  const r = updateGctk(v.install);
   gctkCache = undefined;
-  return r;
+  if (!process.env.GCTK_UI_DAEMON) return { from: r.from ?? v.running, next: `gctk ${r.to} is installed. Stop this UI (Ctrl+C) and run \`gctk ui\` to use it.`, restart: false };
+  restartUi(appGctkJs());
+  return { from: r.from ?? v.running, next: `gctk ${r.to} is installed and starts now; this page reloads by itself.`, restart: true };
+});
+route("POST", "/api/gctk-version/restart", () => {
+  const js = runningGctkJs();
+  if (!js || !process.env.GCTK_UI_DAEMON) throw new HttpError(400, "This UI runs in a terminal; stop it there (Ctrl+C) and start it again.");
+  restartUi(js, ["--restart"]);
+  return { restart: true };
 });
 
 // Demo ready: fills one agent's home screen with demo data. A run writes to the org as soon as the

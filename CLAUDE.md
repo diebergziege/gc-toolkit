@@ -124,7 +124,7 @@
   `main.tar.gz` may be an old gctk without `install`; so `install` never replaces a newer `app/`.
   `gctkInstall` reports `app` for that copy: the top bar's update downloads the GitHub tarball (own
   tar reader), replaces `app/` whole and starts the new UI, which replaces the old one; the page
-  reloads when the version changed. Never test this with a fake `HOME` on macOS: the keychain
+  reloads when the UI restarted. Never test this with a fake `HOME` on macOS: the keychain
   (`security`) then hangs and shows "Keychain Not Found" to the user.
 - Downloads (decision 2026-11-09, for non-technical users): `installer/install.sh` (Mac, Linux) and
   `installer/install.ps1` (Windows) put the newest Node.js of one LTS line (checked against
@@ -246,11 +246,14 @@
   started by `npx <tarball>` is updated by deleting its `_npx` cache folder, because npx never
   downloads a cached tarball again; Cursor fetches the newest at its next start.
   The top bar shows "Update gctk to x" when GitHub's main has a newer version than the running UI
-  (`checkGctk`, route `/api/gctk-version`, asked at most every 10 minutes). What a click does depends
-  on how this gctk runs (`gctkInstall`): the installed copy (`app`, decision 2026-11-09) updates on the
-  button itself, no dialog (download, restart, the page reloads on the new version); npx gets a dialog
-  with a click (`updateGctk`) and a Cursor restart; plugins get a dialog that says how to update them in
-  their editor; a development run never asks.
+  (`checkGctk`, route `/api/gctk-version`, asked at most every 10 minutes; the page asks every minute,
+  and "Check for updates" asks GitHub at once). One click for every install but a development run
+  (decision 2026-11-16): the newest gctk goes into `app/` (`updateInstalledGctk`), `bin/gctk.js`
+  follows, npx also loses its cached download, and the background UI restarts on `app/` (a plain
+  `gctk ui`, which every version understands; "Restart gctk" uses `--restart`); the page reloads when `/api/overview` reports another `started`. "Restart gctk" shows
+  when the running gctk.js was written after the UI started (a rebuild of `dist/`). `uiPlan` in
+  `src/ui/daemon.ts` keeps this: an older gctk (a plugin not yet updated) reuses a newer running UI,
+  and starts `app/` instead of itself when that one is newer.
 - Projects (decision 2026-10-06, UI page "Projects", page id `axl`): a folder a consultant builds a demo
   in, with its own org (any tier; production only after a confirmation stored for exactly that org and
   checked at every start, `productionConfirmed`). An AXL workshop is a project with `lab` not false.

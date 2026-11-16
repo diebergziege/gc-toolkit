@@ -94,8 +94,9 @@ everything. It needs internet access to nodejs.org and github.com.
   **Versions** shows when a newer AVA harness (ava-mcp) or gctk is out and updates it with one click
   (ava-mcp with uv, together with the AVA skills in Cursor; gctk by deleting the copy npx keeps, so
   Cursor downloads the newest at its next start).
-  When a newer gctk is out, the top bar says so on every page (**Update gctk to …**) and explains how
-  to get it for the way you installed it (a click for Cursor without the plugin).
+  When a newer gctk is out, the top bar says so on every page (**Update gctk to …**): one click
+  installs it, starts the UI again and reloads the page, however you installed gctk.
+  **Check for updates** asks GitHub right away and does the same when there is a newer version.
   A plain-text secret in a config file becomes an org (or is linked to the org with the same OAuth
   client) with one click; **Use another org** switches a server to another of your orgs. Flags
   entries that cannot start, or only start on this computer, and repairs them. Folders with their own `.cursor/mcp.json` are listed, each one click away from
@@ -270,7 +271,8 @@ opens it in your browser; nothing else needs a terminal after this.
 - **Windows:** in PowerShell, `npx` may be blocked ("running scripts is disabled on this system").
   Use the Command Prompt (`cmd`), or type `npx.cmd` instead of `npx`.
 - **Updates:** when a newer gctk is out, the top bar says **Update gctk to …**; one click downloads
-  it, replaces the installed one and reloads the page. In a terminal: `gctk update`.
+  it, replaces the installed one, starts the UI again and reloads the page. **Check for updates**
+  asks GitHub right away. In a terminal: `gctk update`.
 - **Remove:** `gctk uninstall` removes the app, the command, the PATH line and the Claude app entry.
   Your orgs and settings stay in `~/.config/gctk` (delete that folder to remove them too); the org
   credentials are in the keychain under `gctk`.
